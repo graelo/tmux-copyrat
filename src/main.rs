@@ -12,6 +12,8 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::{self, Read};
 
+// TODO: position as an enum ::Leading ::Trailing
+
 fn app_args<'a>() -> clap::ArgMatches<'a> {
   App::new("thumbs")
     .version(crate_version!())
@@ -138,17 +140,18 @@ fn main() {
   let select_foreground_color = colors::get_color(args.value_of("select_foreground_color").unwrap());
   let select_background_color = colors::get_color(args.value_of("select_background_color").unwrap());
 
+  // Copy the pane contents (piped in via stdin) into a buffer, and split lines.
+  let mut buffer = String::new();
   let stdin = io::stdin();
   let mut handle = stdin.lock();
-  let mut output = String::new();
 
-  handle.read_to_string(&mut output).unwrap();
+  handle.read_to_string(&mut buffer).unwrap();
 
-  let lines = output.split('\n').collect::<Vec<&str>>();
+  let lines: Vec<&str> = buffer.split('\n').collect();
 
   let mut state = state::State::new(&lines, alphabet, &regexp);
 
-  let selected = {
+  let selections = {
     let mut viewbox = view::View::new(
       &mut state,
       multi,
@@ -167,22 +170,28 @@ fn main() {
     viewbox.present()
   };
 
-  if !selected.is_empty() {
-    let output = selected
-      .iter()
-      .map(|(text, upcase)| {
-        let upcase_value = if *upcase { "true" } else { "false" };
+  // Early exit, signaling tmux we had no selections.
+  if selections.is_empty() {
+    ::std::process::exit(1);
+  }
 
-        let mut output = format.to_string();
+  let output = selections
+    .iter()
+    .map(|(text, upcase)| {
+      let upcase_value = if *upcase { "true" } else { "false" };
 
-        output = str::replace(&output, "%U", upcase_value);
-        output = str::replace(&output, "%H", text.as_str());
-        output
-      })
-      .collect::<Vec<_>>()
-      .join("\n");
+      let mut output = format.to_string();
 
-    if let Some(target) = target {
+      output = str::replace(&output, "%U", upcase_value);
+      output = str::replace(&output, "%H", text.as_str());
+      output
+    })
+    .collect::<Vec<_>>()
+    .join("\n");
+
+  match target {
+    None => println!("{}", output),
+    Some(target) => {
       let mut file = OpenOptions::new()
         .create(true)
         .truncate(true)
@@ -191,10 +200,6 @@ fn main() {
         .expect("Unable to open the target file");
 
       file.write(output.as_bytes()).unwrap();
-    } else {
-      print!("{}", output);
     }
-  } else {
-    ::std::process::exit(1);
   }
 }
