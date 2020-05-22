@@ -1,4 +1,4 @@
-use super::*;
+use super::{colors, state};
 use std::char;
 use std::io::{stdout, Read, Write};
 use termion::async_stdin;
@@ -6,25 +6,42 @@ use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 use termion::screen::AlternateScreen;
-use termion::{color, cursor};
+use termion::{color, cursor, style};
 
 pub struct View<'a> {
   state: &'a mut state::State<'a>,
-  skip: usize,
-  multi: bool,
-  contrast: bool,
-  position: &'a str,
   matches: Vec<state::Match<'a>>,
-  select_foreground_color: Box<&'a dyn color::Color>,
-  select_background_color: Box<&'a dyn color::Color>,
-  foreground_color: Box<&'a dyn color::Color>,
-  background_color: Box<&'a dyn color::Color>,
-  hint_background_color: Box<&'a dyn color::Color>,
-  hint_foreground_color: Box<&'a dyn color::Color>,
+  focus_index: usize,
+  multi: bool,
+  rendering_edge: RenderingEdge,
+  rendering_colors: &'a colors::RenderingColors<'a>,
+  contrast_style: Option<ContrastStyle>,
 }
 
+/// Describes if, during rendering, a hint should aligned to the leading edge of
+/// the matched text, or to its trailing edge.
+pub enum RenderingEdge {
+  Leading,
+  Trailing,
+}
+
+/// Describes the style of contrast to be used during rendering of the hint's
+/// text.
+///
+/// # Note
+/// In practice, this is wrapped in an `Option`, so that the hint's text can be rendered with no style.
+pub enum ContrastStyle {
+  /// The hint's text will be underlined (leveraging `termion::style::Underline`).
+  Underlined,
+  /// The hint's text will be surrounded by these chars.
+  Surrounded(char, char),
+}
+
+/// Returned value after the `View` has finished listening to events.
 enum CaptureEvent {
+  /// Exit with no selected matches,
   Exit,
+  /// A vector of matched text and whether it was selected with uppercase.
   Hint(Vec<(String, bool)>),
 }
 
@@ -32,147 +49,232 @@ impl<'a> View<'a> {
   pub fn new(
     state: &'a mut state::State<'a>,
     multi: bool,
-    reverse: bool,
+    reversed: bool,
     unique: bool,
-    contrast: bool,
-    position: &'a str,
-    select_foreground_color: Box<&'a dyn color::Color>,
-    select_background_color: Box<&'a dyn color::Color>,
-    foreground_color: Box<&'a dyn color::Color>,
-    background_color: Box<&'a dyn color::Color>,
-    hint_foreground_color: Box<&'a dyn color::Color>,
-    hint_background_color: Box<&'a dyn color::Color>,
+    rendering_edge: RenderingEdge,
+    rendering_colors: &'a colors::RenderingColors,
+    contrast_style: Option<ContrastStyle>,
   ) -> View<'a> {
-    let matches = state.matches(reverse, unique);
-    let skip = if reverse { matches.len() - 1 } else { 0 };
+    let matches = state.matches(reversed, unique);
+    let focus_index = if reversed { matches.len() - 1 } else { 0 };
 
     View {
       state,
-      skip,
-      multi,
-      contrast,
-      position,
       matches,
-      select_foreground_color,
-      select_background_color,
-      foreground_color,
-      background_color,
-      hint_foreground_color,
-      hint_background_color,
+      focus_index,
+      multi,
+      rendering_edge,
+      rendering_colors,
+      contrast_style,
     }
   }
 
   /// Move focus onto the previous hint.
   pub fn prev(&mut self) {
-    if self.skip > 0 {
-      self.skip -= 1;
+    if self.focus_index > 0 {
+      self.focus_index -= 1;
     }
   }
 
   /// Move focus onto the next hint.
   pub fn next(&mut self) {
-    if self.skip < self.matches.len() - 1 {
-      self.skip += 1;
+    if self.focus_index < self.matches.len() - 1 {
+      self.focus_index += 1;
     }
   }
 
-  // /// TODO remove
-  // fn make_hint_text(&self, hint: &str) -> String {
-  //   if self.contrast {
-  //     format!("[{}]", hint)
-  //   } else {
-  //     hint.to_string()
-  //   }
-  // }
+  /// Render entire state lines on provided writer.
+  ///
+  /// This renders the basic content on which matches and hints can be rendered.
+  ///
+  /// # Notes
+  /// - All trailing whitespaces are trimmed, empty lines are skipped.
+  /// - This writes directly on the writer, avoiding extra allocation.
+  fn render_lines(stdout: &mut dyn Write, lines: &Vec<&str>) -> () {
+    for (index, line) in lines.iter().enumerate() {
+      let trimmed_line = line.trim_end();
 
-  /// Render the view on stdout.
+      if !trimmed_line.is_empty() {
+        write!(
+          stdout,
+          "{goto}{text}",
+          goto = cursor::Goto(1, index as u16 + 1),
+          text = &trimmed_line,
+        )
+        .unwrap();
+      }
+    }
+  }
+
+  /// Render the Match's `text` field on provided writer.
+  ///
+  /// If a Mach is "focused", then it is rendered with a specific color.
+  ///
+  /// # Note
+  /// This writes directly on the writer, avoiding extra allocation.
+  fn render_matched_text(
+    stdout: &mut dyn Write,
+    text: &str,
+    focused: bool,
+    offset: (usize, usize),
+    colors: &colors::RenderingColors,
+  ) {
+    // To help identify it, the match thas has focus is rendered with a dedicated color.
+    let (text_fg_color, text_bg_color) = if focused {
+      (&colors.focus_fg_color, &colors.focus_bg_color)
+    } else {
+      (&colors.normal_fg_color, &colors.normal_bg_color)
+    };
+
+    // Render just the Match's text on top of existing content.
+    write!(
+      stdout,
+      "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
+      goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+      fg_color = color::Fg(**text_fg_color),
+      bg_color = color::Bg(**text_bg_color),
+      fg_reset = color::Fg(color::Reset),
+      bg_reset = color::Bg(color::Reset),
+      text = &text,
+    )
+    .unwrap();
+  }
+
+  /// Render a Match's `hint` field on the provided writer.
+  ///
+  /// This renders the hint according to some provided style:
+  /// - just colors
+  /// - underlined with colors
+  /// - surrounding the hint's text with some delimiters, see
+  ///   `ContrastStyle::Delimited`.
+  ///
+  /// # Note
+  /// This writes directly on the writer, avoiding extra allocation.
+  fn render_matched_hint(
+    stdout: &mut dyn Write,
+    hint_text: &str,
+    offset: (usize, usize),
+    colors: &colors::RenderingColors,
+    contrast_style: &Option<ContrastStyle>,
+  ) {
+    let fg_color = color::Fg(*colors.hint_fg_color);
+    let bg_color = color::Bg(*colors.hint_bg_color);
+    let fg_reset = color::Fg(color::Reset);
+    let bg_reset = color::Bg(color::Reset);
+
+    match contrast_style {
+      None => {
+        write!(
+          stdout,
+          "{goto}{bg_color}{fg_color}{hint}{fg_reset}{bg_reset}",
+          goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+          fg_color = fg_color,
+          bg_color = bg_color,
+          fg_reset = fg_reset,
+          bg_reset = bg_reset,
+          hint = hint_text,
+        )
+        .unwrap();
+      }
+      Some(contrast_style) => match contrast_style {
+        ContrastStyle::Underlined => {
+          write!(
+            stdout,
+            "{goto}{bg_color}{fg_color}{sty}{hint}{sty_reset}{fg_reset}{bg_reset}",
+            goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+            fg_color = fg_color,
+            bg_color = bg_color,
+            fg_reset = fg_reset,
+            bg_reset = bg_reset,
+            sty = style::Underline,
+            sty_reset = style::NoUnderline,
+            hint = hint_text,
+          )
+          .unwrap();
+        }
+        ContrastStyle::Surrounded(opening, closing) => {
+          write!(
+            stdout,
+            "{goto}{bg_color}{fg_color}{bra}{hint}{bra_close}{fg_reset}{bg_reset}",
+            goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+            fg_color = fg_color,
+            bg_color = bg_color,
+            fg_reset = fg_reset,
+            bg_reset = bg_reset,
+            bra = opening,
+            bra_close = closing,
+            hint = hint_text,
+          )
+          .unwrap();
+        }
+      },
+    }
+  }
+
+  /// Render the view on the provided writer.
+  ///
+  /// This renders in 3 phases:
+  /// - all lines are rendered verbatim
+  /// - each Match's `text` is rendered as an overlay on top of it
+  /// - each Match's `hint` text is rendered as a final overlay
+  ///
+  /// Depending on the value of `self.rendering_edge`, the hint can be rendered
+  /// on the leading edge of the underlying Match's `text`,
+  /// or on the trailing edge.
+  ///
+  /// # Note
+  /// Multibyte characters are taken into account, so that the Match's `text`
+  /// and `hint` are rendered in their proper position.
   fn render(&self, stdout: &mut dyn Write) -> () {
     write!(stdout, "{}", cursor::Hide).unwrap();
 
-    // Trim all lines and render non-empty ones.
-    for (index, line) in self.state.lines.iter().enumerate() {
-      // remove trailing whitespaces
-      let cleaned_line = line.trim_end_matches(|c: char| c.is_whitespace());
-
-      if cleaned_line.is_empty() {
-        continue; // Don't render empty lines.
-      }
-
-      // let text = self.make_hint_text(line);
-      // print!(
-      write!(
-        stdout,
-        "{goto}{text}",
-        goto = cursor::Goto(1, index as u16 + 1),
-        text = &cleaned_line,
-      )
-      .unwrap();
-    }
-
-    // let focused = self.matches.get(self.skip);
+    // 1. Trim all lines and render non-empty ones.
+    View::render_lines(stdout, self.state.lines);
 
     for (index, mat) in self.matches.iter().enumerate() {
-      // 1. Render the match's text.
-      //
-
-      // To help identify it, the match thas has focus is rendered with a dedicated color.
-      // let (text_fg_color, text_bg_color) = if focused == Some(mat) {
-      let (text_fg_color, text_bg_color) = if index == self.skip {
-        (&self.select_foreground_color, &self.select_background_color)
-      } else {
-        (&self.foreground_color, &self.background_color)
-      };
+      // 2. Render the match's text.
 
       // If multibyte characters occur before the hint (in the "prefix"), then
       // their compouding takes less space on screen when printed: for
       // instance ´ + e = é. Consequently the hint offset has to be adjusted
       // to the left.
-      let line = &self.state.lines[mat.y as usize];
-      let prefix = &line[0..mat.x as usize];
-      let adjust = prefix.len() - prefix.chars().count();
-      let offset = (mat.x as u16) - (adjust as u16);
-      let text = &mat.text; //self.make_hint_text(mat.text);
+      let offset_x = {
+        let line = &self.state.lines[mat.y as usize];
+        let prefix = &line[0..mat.x as usize];
+        let adjust = prefix.len() - prefix.chars().count();
+        (mat.x as usize) - (adjust)
+      };
+      let offset_y = mat.y as usize;
 
-      // Render just the match's text on top of existing content.
-      write!(
-        stdout,
-        "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
-        goto = cursor::Goto(offset + 1, mat.y as u16 + 1),
-        fg_color = color::Fg(**text_fg_color),
-        bg_color = color::Bg(**text_bg_color),
-        fg_reset = color::Fg(color::Reset),
-        bg_reset = color::Bg(color::Reset),
-        text = &text,
-      )
-      .unwrap();
+      let text = &mat.text;
 
-      // 2. Render the hint (e.g. ";k") on top of the text at the beginning or the end.
-      //
+      let focused = index == self.focus_index;
+
+      View::render_matched_text(stdout, text, focused, (offset_x, offset_y), &self.rendering_colors);
+
+      // 3. Render the hint (e.g. "eo") as an overlay on top of the rendered matched text,
+      // aligned at its leading or the trailing edge.
       if let Some(ref hint) = mat.hint {
-        let extra_offset = if self.position == "left" {
-          0
-        } else {
-          text.len() - hint.len()
+        let extra_offset = match self.rendering_edge {
+          RenderingEdge::Leading => 0,
+          RenderingEdge::Trailing => text.len() - hint.len(),
         };
 
-        write!(
+        View::render_matched_hint(
           stdout,
-          "{goto}{bg_color}{fg_color}{hint}{fg_reset}{bg_reset}",
-          goto = cursor::Goto(offset + extra_offset as u16 + 1, mat.y as u16 + 1),
-          fg_color = color::Fg(*self.hint_foreground_color),
-          bg_color = color::Bg(*self.hint_background_color),
-          fg_reset = color::Fg(color::Reset),
-          bg_reset = color::Bg(color::Reset),
-          hint = hint,
-        )
-        .unwrap();
+          hint,
+          (offset_x + extra_offset, offset_y),
+          &self.rendering_colors,
+          &self.contrast_style,
+        );
       }
     }
 
     stdout.flush().unwrap();
   }
 
-  /// Listen to keys entered on stdin
+  /// Listen to keys entered on stdin, moving focus accordingly, and selecting
+  /// one or multiple matches.
   ///
   /// # Panics
   /// This function panics if termion cannot read the entered keys on stdin.
@@ -220,10 +322,12 @@ impl<'a> View<'a> {
           }
         }
 
-        // TODO: What does this do?
-        Key::Insert => match self.matches.iter().enumerate().find(|&(idx, _)| idx == self.skip) {
-          Some((_idx, mtch)) => {
-            chosen.push((mtch.text.to_string(), false));
+        // In multi-selection mode, this appends the selected hint to the
+        // vector of selections. In normal mode, this returns with the hint
+        // selected.
+        Key::Insert => match self.matches.get(self.focus_index) {
+          Some(mat) => {
+            chosen.push((mat.text.to_string(), false));
 
             if !self.multi {
               return CaptureEvent::Hint(chosen);
@@ -232,14 +336,15 @@ impl<'a> View<'a> {
           None => panic!("Match not found?"),
         },
 
-        // Move focus to next/prev hint.
+        // Move focus to next/prev match.
         Key::Up => self.prev(),
         Key::Down => self.next(),
         Key::Left => self.prev(),
         Key::Right => self.next(),
 
-        // Pressing space finalizes an ongoing multi-hint selection.
-        // Others characters attempt the corresponding hint.
+        // Pressing space finalizes an ongoing multi-hint selection (without
+        // selecting the focused match). Pressing other characters attempts at
+        // finding a match with a corresponding hint.
         Key::Char(ch) => {
           if ch == ' ' && self.multi {
             return CaptureEvent::Hint(chosen);
@@ -250,11 +355,16 @@ impl<'a> View<'a> {
 
           typed_hint.push_str(&lower_key);
 
-          let selection = self.matches.iter().find(|&mtch| mtch.hint == Some(typed_hint.clone()));
+          // Find the match that corresponds to the entered key.
+          let selection = self
+            .matches
+            .iter()
+            // Avoid cloning typed_hint for comparison.
+            .find(|&mat| mat.hint.as_deref().unwrap_or_default() == &typed_hint);
 
           match selection {
-            Some(mtch) => {
-              chosen.push((mtch.text.to_string(), key != lower_key));
+            Some(mat) => {
+              chosen.push((mat.text.to_string(), key != lower_key));
 
               if self.multi {
                 typed_hint.clear();
@@ -263,6 +373,8 @@ impl<'a> View<'a> {
               }
             }
             None => {
+              // TODO: use a Trie or another data structure to determine
+              // if the entered key belongs to a longer hint.
               if !self.multi && typed_hint.len() >= longest_hint.len() {
                 break;
               }
@@ -274,6 +386,8 @@ impl<'a> View<'a> {
         _ => (),
       }
 
+      // Render on stdout if we did not exit earlier (move focus,
+      // multi-selection).
       self.render(stdout);
     }
 
@@ -299,35 +413,403 @@ impl<'a> View<'a> {
 mod tests {
   use super::*;
 
-  fn split(output: &str) -> Vec<&str> {
-    output.split("\n").collect::<Vec<&str>>()
+  #[test]
+  fn test_render_all_lines() {
+    let content = "some text
+* e006b06 - (12 days ago) swapper: Make quotes
+path: /usr/local/bin/git
+
+
+path: /usr/local/bin/cargo";
+    let lines: Vec<&str> = content.split('\n').collect();
+
+    let mut writer = vec![];
+    View::render_lines(&mut writer, &lines);
+
+    let goto1 = cursor::Goto(1, 1);
+    let goto2 = cursor::Goto(1, 2);
+    let goto3 = cursor::Goto(1, 3);
+    let goto6 = cursor::Goto(1, 6);
+    assert_eq!(
+      writer,
+      format!(
+        "{}some text{}* e006b06 - (12 days ago) swapper: Make quotes{}path: /usr/local/bin/git{}path: /usr/local/bin/cargo",
+        goto1, goto2, goto3, goto6,
+      )
+      .as_bytes()
+    );
   }
 
   #[test]
-  fn hint_text() {
-    let lines = split("lorem 127.0.0.1 lorem");
-    let custom = [].to_vec();
-    let mut state = state::State::new(&lines, "abcd", &custom);
-    let mut view = View {
-      state: &mut state,
-      skip: 0,
-      multi: false,
-      contrast: false,
-      position: &"",
-      matches: vec![],
-      select_foreground_color: colors::get_color("default"),
-      select_background_color: colors::get_color("default"),
-      foreground_color: colors::get_color("default"),
-      background_color: colors::get_color("default"),
-      hint_background_color: colors::get_color("default"),
-      hint_foreground_color: colors::get_color("default"),
+  fn test_render_focused_matched_text() {
+    let mut writer = vec![];
+    let text = "https://en.wikipedia.org/wiki/Barcelona";
+    let focused = true;
+    let offset: (usize, usize) = (3, 1);
+    let colors = colors::RenderingColors {
+      focus_fg_color: Box::new(&(color::Red)),
+      focus_bg_color: Box::new(&(color::Blue)),
+      normal_fg_color: Box::new(&color::Green),
+      normal_bg_color: Box::new(&color::Magenta),
+      hint_fg_color: Box::new(&color::Yellow),
+      hint_bg_color: Box::new(&color::Cyan),
     };
 
-    // let result = view.make_hint_text("a");
-    // assert_eq!(result, "a".to_string());
+    View::render_matched_text(&mut writer, text, focused, offset, &colors);
 
-    // view.contrast = true;
-    // let result = view.make_hint_text("a");
-    // assert_eq!(result, "[a]".to_string());
+    assert_eq!(
+      writer,
+      format!(
+        "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
+        goto = cursor::Goto(4, 2),
+        fg = color::Fg(*colors.focus_fg_color),
+        bg = color::Bg(*colors.focus_bg_color),
+        fg_reset = color::Fg(color::Reset),
+        bg_reset = color::Bg(color::Reset),
+        text = &text,
+      )
+      .as_bytes()
+    );
+  }
+
+  #[test]
+  fn test_render_matched_text() {
+    let mut writer = vec![];
+    let text = "https://en.wikipedia.org/wiki/Barcelona";
+    let focused = false;
+    let offset: (usize, usize) = (3, 1);
+    let colors = colors::RenderingColors {
+      focus_fg_color: Box::new(&(color::Red)),
+      focus_bg_color: Box::new(&(color::Blue)),
+      normal_fg_color: Box::new(&color::Green),
+      normal_bg_color: Box::new(&color::Magenta),
+      hint_fg_color: Box::new(&color::Yellow),
+      hint_bg_color: Box::new(&color::Cyan),
+    };
+
+    View::render_matched_text(&mut writer, text, focused, offset, &colors);
+
+    assert_eq!(
+      writer,
+      format!(
+        "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
+        goto = cursor::Goto(4, 2),
+        fg = color::Fg(*colors.normal_fg_color),
+        bg = color::Bg(*colors.normal_bg_color),
+        fg_reset = color::Fg(color::Reset),
+        bg_reset = color::Bg(color::Reset),
+        text = &text,
+      )
+      .as_bytes()
+    );
+  }
+
+  #[test]
+  fn test_render_unstyled_matched_hint() {
+    let mut writer = vec![];
+    let hint_text = "eo";
+    let offset: (usize, usize) = (3, 1);
+    let colors = colors::RenderingColors {
+      focus_fg_color: Box::new(&(color::Red)),
+      focus_bg_color: Box::new(&(color::Blue)),
+      normal_fg_color: Box::new(&color::Green),
+      normal_bg_color: Box::new(&color::Magenta),
+      hint_fg_color: Box::new(&color::Yellow),
+      hint_bg_color: Box::new(&color::Cyan),
+    };
+
+    let extra_offset = 0;
+    let contrast_style = None;
+
+    View::render_matched_hint(
+      &mut writer,
+      hint_text,
+      (offset.0 + extra_offset, offset.1),
+      &colors,
+      &contrast_style,
+    );
+
+    assert_eq!(
+      writer,
+      format!(
+        "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
+        goto = cursor::Goto(4, 2),
+        fg = color::Fg(*colors.hint_fg_color),
+        bg = color::Bg(*colors.hint_bg_color),
+        fg_reset = color::Fg(color::Reset),
+        bg_reset = color::Bg(color::Reset),
+        text = "eo",
+      )
+      .as_bytes()
+    );
+  }
+
+  #[test]
+  fn test_render_underlined_matched_hint() {
+    let mut writer = vec![];
+    let hint_text = "eo";
+    let offset: (usize, usize) = (3, 1);
+    let colors = colors::RenderingColors {
+      focus_fg_color: Box::new(&(color::Red)),
+      focus_bg_color: Box::new(&(color::Blue)),
+      normal_fg_color: Box::new(&color::Green),
+      normal_bg_color: Box::new(&color::Magenta),
+      hint_fg_color: Box::new(&color::Yellow),
+      hint_bg_color: Box::new(&color::Cyan),
+    };
+
+    let extra_offset = 0;
+    let contrast_style = Some(ContrastStyle::Underlined);
+
+    View::render_matched_hint(
+      &mut writer,
+      hint_text,
+      (offset.0 + extra_offset, offset.1),
+      &colors,
+      &contrast_style,
+    );
+
+    assert_eq!(
+      writer,
+      format!(
+        "{goto}{bg}{fg}{sty}{text}{sty_reset}{fg_reset}{bg_reset}",
+        goto = cursor::Goto(4, 2),
+        fg = color::Fg(*colors.hint_fg_color),
+        bg = color::Bg(*colors.hint_bg_color),
+        fg_reset = color::Fg(color::Reset),
+        bg_reset = color::Bg(color::Reset),
+        sty = style::Underline,
+        sty_reset = style::NoUnderline,
+        text = "eo",
+      )
+      .as_bytes()
+    );
+  }
+
+  #[test]
+  fn test_render_bracketed_matched_hint() {
+    let mut writer = vec![];
+    let hint_text = "eo";
+    let offset: (usize, usize) = (3, 1);
+    let colors = colors::RenderingColors {
+      focus_fg_color: Box::new(&(color::Red)),
+      focus_bg_color: Box::new(&(color::Blue)),
+      normal_fg_color: Box::new(&color::Green),
+      normal_bg_color: Box::new(&color::Magenta),
+      hint_fg_color: Box::new(&color::Yellow),
+      hint_bg_color: Box::new(&color::Cyan),
+    };
+
+    let extra_offset = 0;
+    let contrast_style = Some(ContrastStyle::Surrounded('{', '}'));
+
+    View::render_matched_hint(
+      &mut writer,
+      hint_text,
+      (offset.0 + extra_offset, offset.1),
+      &colors,
+      &contrast_style,
+    );
+
+    assert_eq!(
+      writer,
+      format!(
+        "{goto}{bg}{fg}{bra}{text}{bra_close}{fg_reset}{bg_reset}",
+        goto = cursor::Goto(4, 2),
+        fg = color::Fg(*colors.hint_fg_color),
+        bg = color::Bg(*colors.hint_bg_color),
+        fg_reset = color::Fg(color::Reset),
+        bg_reset = color::Bg(color::Reset),
+        bra = '{',
+        bra_close = '}',
+        text = "eo",
+      )
+      .as_bytes()
+    );
+  }
+
+  #[test]
+  /// Simulates rendering without any match.
+  fn test_render_full_without_matches() {
+    let content = "lorem 127.0.0.1 lorem
+
+Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
+
+    let lines = content.split('\n').collect();
+
+    let custom_regexes = [].to_vec();
+    let alphabet = "abcd";
+    let mut state = state::State::new(&lines, alphabet, &custom_regexes);
+    let rendering_colors = colors::RenderingColors {
+      focus_fg_color: Box::new(&(color::Red)),
+      focus_bg_color: Box::new(&(color::Blue)),
+      normal_fg_color: Box::new(&color::Green),
+      normal_bg_color: Box::new(&color::Magenta),
+      hint_fg_color: Box::new(&color::Yellow),
+      hint_bg_color: Box::new(&color::Cyan),
+    };
+    let rendering_edge = RenderingEdge::Leading;
+
+    // create a view without any match
+    let view = View {
+      state: &mut state,
+      matches: vec![], // no matches
+      focus_index: 0,
+      multi: false,
+      rendering_edge,
+      rendering_colors: &rendering_colors,
+      contrast_style: None,
+    };
+
+    let mut writer = vec![];
+    view.render(&mut writer);
+
+    let hide = cursor::Hide;
+    let goto1 = cursor::Goto(1, 1);
+    let goto3 = cursor::Goto(1, 3);
+
+    let expected = format!(
+      "{hide}{goto1}lorem 127.0.0.1 lorem\
+        {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -",
+      hide = hide,
+      goto1 = goto1,
+      goto3 = goto3,
+    );
+
+    // println!("{:?}", writer);
+    // println!("{:?}", expected.as_bytes());
+
+    // println!("matches: {}", view.matches.len());
+    // println!("lines: {}", lines.len());
+
+    assert_eq!(writer, expected.as_bytes());
+  }
+
+  #[test]
+  /// Simulates rendering with matches.
+  fn test_render_full_with_matches() {
+    let content = "lorem 127.0.0.1 lorem
+
+Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
+
+    let lines = content.split('\n').collect();
+
+    let custom_regexes = [].to_vec();
+    let alphabet = "abcd";
+    let mut state = state::State::new(&lines, alphabet, &custom_regexes);
+    let multi = false;
+    let reversed = true;
+    let unique = false;
+
+    let rendering_colors = colors::RenderingColors {
+      focus_fg_color: Box::new(&(color::Red)),
+      focus_bg_color: Box::new(&(color::Blue)),
+      normal_fg_color: Box::new(&color::Green),
+      normal_bg_color: Box::new(&color::Magenta),
+      hint_fg_color: Box::new(&color::Yellow),
+      hint_bg_color: Box::new(&color::Cyan),
+    };
+    let rendering_edge = RenderingEdge::Leading;
+    let contrast_style = None;
+
+    let view = View::new(
+      &mut state,
+      multi,
+      reversed,
+      unique,
+      rendering_edge,
+      &rendering_colors,
+      contrast_style,
+    );
+
+    let mut writer = vec![];
+    view.render(&mut writer);
+
+    let expected_content = {
+      let hide = cursor::Hide;
+      let goto1 = cursor::Goto(1, 1);
+      let goto3 = cursor::Goto(1, 3);
+
+      format!(
+        "{hide}{goto1}lorem 127.0.0.1 lorem\
+        {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -",
+        hide = hide,
+        goto1 = goto1,
+        goto3 = goto3,
+      )
+    };
+
+    let expected_match1_text = {
+      let goto7_1 = cursor::Goto(7, 1);
+      format!(
+        "{goto7_1}{normal_bg_color}{normal_fg_color}127.0.0.1{fg_reset}{bg_reset}",
+        goto7_1 = goto7_1,
+        normal_fg_color = color::Fg(*rendering_colors.normal_fg_color),
+        normal_bg_color = color::Bg(*rendering_colors.normal_bg_color),
+        fg_reset = color::Fg(color::Reset),
+        bg_reset = color::Bg(color::Reset)
+      )
+    };
+
+    let expected_match1_hint = {
+      let goto7_1 = cursor::Goto(7, 1);
+
+      format!(
+        "{goto7_1}{hint_bg_color}{hint_fg_color}b{fg_reset}{bg_reset}",
+        goto7_1 = goto7_1,
+        hint_fg_color = color::Fg(*rendering_colors.hint_fg_color),
+        hint_bg_color = color::Bg(*rendering_colors.hint_bg_color),
+        fg_reset = color::Fg(color::Reset),
+        bg_reset = color::Bg(color::Reset)
+      )
+    };
+
+    let expected_match2_text = {
+      let goto11_3 = cursor::Goto(11, 3);
+      format!(
+        "{goto11_3}{focus_bg_color}{focus_fg_color}https://en.wikipedia.org/wiki/Barcelona{fg_reset}{bg_reset}",
+        goto11_3 = goto11_3,
+        focus_fg_color = color::Fg(*rendering_colors.focus_fg_color),
+        focus_bg_color = color::Bg(*rendering_colors.focus_bg_color),
+        fg_reset = color::Fg(color::Reset),
+        bg_reset = color::Bg(color::Reset)
+      )
+    };
+
+    let expected_match2_hint = {
+      let goto11_3 = cursor::Goto(11, 3);
+
+      format!(
+        "{goto11_3}{hint_bg_color}{hint_fg_color}a{fg_reset}{bg_reset}",
+        goto11_3 = goto11_3,
+        hint_fg_color = color::Fg(*rendering_colors.hint_fg_color),
+        hint_bg_color = color::Bg(*rendering_colors.hint_bg_color),
+        fg_reset = color::Fg(color::Reset),
+        bg_reset = color::Bg(color::Reset)
+      )
+    };
+
+    let expected = [
+      expected_content,
+      expected_match1_text,
+      expected_match1_hint,
+      expected_match2_text,
+      expected_match2_hint,
+    ]
+    .concat();
+
+    // println!("{:?}", writer);
+    // println!("{:?}", expected.as_bytes());
+
+    // let diff_point = writer
+    //   .iter()
+    //   .zip(expected.as_bytes().iter())
+    //   .enumerate()
+    //   .find(|(_idx, (&l, &r))| l != r);
+    // println!("{:?}", diff_point);
+
+    assert_eq!(2, view.matches.len());
+
+    assert_eq!(writer, expected.as_bytes());
   }
 }
