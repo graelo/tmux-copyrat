@@ -15,6 +15,20 @@ pub fn get_color(color_name: &str) -> Box<&dyn color::Color> {
   }
 }
 
+/// Holds color-related data, for clarity.
+///
+/// - `focus_*` colors are used to render the currently focused matched text.
+/// - `normal_*` colors are used to render other matched text.
+/// - `hint_*` colors are used to render the hints.
+pub struct RenderingColors<'a> {
+  pub focus_fg_color: Box<&'a dyn color::Color>,
+  pub focus_bg_color: Box<&'a dyn color::Color>,
+  pub normal_fg_color: Box<&'a dyn color::Color>,
+  pub normal_bg_color: Box<&'a dyn color::Color>,
+  pub hint_fg_color: Box<&'a dyn color::Color>,
+  pub hint_bg_color: Box<&'a dyn color::Color>,
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

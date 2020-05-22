@@ -151,20 +151,36 @@ fn main() {
 
   let mut state = state::State::new(&lines, alphabet, &regexp);
 
+  let rendering_edge = if position == "left" {
+    view::RenderingEdge::Leading
+  } else {
+    view::RenderingEdge::Trailing
+  };
+
+  let rendering_colors = colors::RenderingColors {
+    focus_fg_color: select_foreground_color,
+    focus_bg_color: select_background_color,
+    normal_fg_color: foreground_color,
+    normal_bg_color: background_color,
+    hint_fg_color: hint_foreground_color,
+    hint_bg_color: hint_background_color,
+  };
+
+  let contrast_style = if contrast {
+    Some(view::ContrastStyle::Surrounded('[', ']'))
+  } else {
+    None
+  };
+
   let selections = {
     let mut viewbox = view::View::new(
       &mut state,
       multi,
       reverse,
       unique,
-      contrast,
-      position,
-      select_foreground_color,
-      select_background_color,
-      foreground_color,
-      background_color,
-      hint_foreground_color,
-      hint_background_color,
+      rendering_edge,
+      &rendering_colors,
+      contrast_style,
     );
 
     viewbox.present()
