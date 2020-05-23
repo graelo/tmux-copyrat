@@ -13,14 +13,28 @@ pub struct View<'a> {
   matches: Vec<state::Match<'a>>,
   focus_index: usize,
   multi: bool,
-  rendering_edge: RenderingEdge,
-  rendering_colors: &'a colors::RenderingColors<'a>,
-  contrast_style: Option<ContrastStyle>,
+  hint_alignment: HintAlignment,
+  rendering_colors: &'a ViewColors<'a>,
+  hint_style: Option<HintStyle>,
+}
+
+/// Holds color-related data, for clarity.
+///
+/// - `focus_*` colors are used to render the currently focused matched text.
+/// - `normal_*` colors are used to render other matched text.
+/// - `hint_*` colors are used to render the hints.
+pub struct ViewColors<'a> {
+  pub focus_fg: Box<&'a dyn color::Color>,
+  pub focus_bg: Box<&'a dyn color::Color>,
+  pub match_fg: Box<&'a dyn color::Color>,
+  pub match_bg: Box<&'a dyn color::Color>,
+  pub hint_fg: Box<&'a dyn color::Color>,
+  pub hint_bg: Box<&'a dyn color::Color>,
 }
 
 /// Describes if, during rendering, a hint should aligned to the leading edge of
 /// the matched text, or to its trailing edge.
-pub enum RenderingEdge {
+pub enum HintAlignment {
   Leading,
   Trailing,
 }
@@ -30,7 +44,7 @@ pub enum RenderingEdge {
 ///
 /// # Note
 /// In practice, this is wrapped in an `Option`, so that the hint's text can be rendered with no style.
-pub enum ContrastStyle {
+pub enum HintStyle {
   /// The hint's text will be underlined (leveraging `termion::style::Underline`).
   Underlined,
   /// The hint's text will be surrounded by these chars.
@@ -51,9 +65,9 @@ impl<'a> View<'a> {
     multi: bool,
     reversed: bool,
     unique: bool,
-    rendering_edge: RenderingEdge,
-    rendering_colors: &'a colors::RenderingColors,
-    contrast_style: Option<ContrastStyle>,
+    hint_alignment: HintAlignment,
+    rendering_colors: &'a ViewColors,
+    hint_style: Option<HintStyle>,
   ) -> View<'a> {
     let matches = state.matches(reversed, unique);
     let focus_index = if reversed { matches.len() - 1 } else { 0 };
@@ -63,9 +77,9 @@ impl<'a> View<'a> {
       matches,
       focus_index,
       multi,
-      rendering_edge,
+      hint_alignment,
       rendering_colors,
-      contrast_style,
+      hint_style,
     }
   }
 
@@ -117,13 +131,13 @@ impl<'a> View<'a> {
     text: &str,
     focused: bool,
     offset: (usize, usize),
-    colors: &colors::RenderingColors,
+    colors: &ViewColors,
   ) {
     // To help identify it, the match thas has focus is rendered with a dedicated color.
     let (text_fg_color, text_bg_color) = if focused {
-      (&colors.focus_fg_color, &colors.focus_bg_color)
+      (&colors.focus_fg, &colors.focus_bg)
     } else {
-      (&colors.normal_fg_color, &colors.normal_bg_color)
+      (&colors.match_fg, &colors.match_bg)
     };
 
     // Render just the Match's text on top of existing content.
@@ -146,7 +160,7 @@ impl<'a> View<'a> {
   /// - just colors
   /// - underlined with colors
   /// - surrounding the hint's text with some delimiters, see
-  ///   `ContrastStyle::Delimited`.
+  ///   `HintStyle::Delimited`.
   ///
   /// # Note
   /// This writes directly on the writer, avoiding extra allocation.
@@ -154,15 +168,15 @@ impl<'a> View<'a> {
     stdout: &mut dyn Write,
     hint_text: &str,
     offset: (usize, usize),
-    colors: &colors::RenderingColors,
-    contrast_style: &Option<ContrastStyle>,
+    colors: &ViewColors,
+    hint_style: &Option<HintStyle>,
   ) {
-    let fg_color = color::Fg(*colors.hint_fg_color);
-    let bg_color = color::Bg(*colors.hint_bg_color);
+    let fg_color = color::Fg(*colors.hint_fg);
+    let bg_color = color::Bg(*colors.hint_bg);
     let fg_reset = color::Fg(color::Reset);
     let bg_reset = color::Bg(color::Reset);
 
-    match contrast_style {
+    match hint_style {
       None => {
         write!(
           stdout,
@@ -176,8 +190,8 @@ impl<'a> View<'a> {
         )
         .unwrap();
       }
-      Some(contrast_style) => match contrast_style {
-        ContrastStyle::Underlined => {
+      Some(hint_style) => match hint_style {
+        HintStyle::Underlined => {
           write!(
             stdout,
             "{goto}{bg_color}{fg_color}{sty}{hint}{sty_reset}{fg_reset}{bg_reset}",
@@ -192,7 +206,7 @@ impl<'a> View<'a> {
           )
           .unwrap();
         }
-        ContrastStyle::Surrounded(opening, closing) => {
+        HintStyle::Surrounded(opening, closing) => {
           write!(
             stdout,
             "{goto}{bg_color}{fg_color}{bra}{hint}{bra_close}{fg_reset}{bg_reset}",
@@ -218,7 +232,7 @@ impl<'a> View<'a> {
   /// - each Match's `text` is rendered as an overlay on top of it
   /// - each Match's `hint` text is rendered as a final overlay
   ///
-  /// Depending on the value of `self.rendering_edge`, the hint can be rendered
+  /// Depending on the value of `self.hint_alignment`, the hint can be rendered
   /// on the leading edge of the underlying Match's `text`,
   /// or on the trailing edge.
   ///
@@ -255,9 +269,9 @@ impl<'a> View<'a> {
       // 3. Render the hint (e.g. "eo") as an overlay on top of the rendered matched text,
       // aligned at its leading or the trailing edge.
       if let Some(ref hint) = mat.hint {
-        let extra_offset = match self.rendering_edge {
-          RenderingEdge::Leading => 0,
-          RenderingEdge::Trailing => text.len() - hint.len(),
+        let extra_offset = match self.hint_alignment {
+          HintAlignment::Leading => 0,
+          HintAlignment::Trailing => text.len() - hint.len(),
         };
 
         View::render_matched_hint(
@@ -265,7 +279,7 @@ impl<'a> View<'a> {
           hint,
           (offset_x + extra_offset, offset_y),
           &self.rendering_colors,
-          &self.contrast_style,
+          &self.hint_style,
         );
       }
     }
@@ -446,13 +460,13 @@ path: /usr/local/bin/cargo";
     let text = "https://en.wikipedia.org/wiki/Barcelona";
     let focused = true;
     let offset: (usize, usize) = (3, 1);
-    let colors = colors::RenderingColors {
-      focus_fg_color: Box::new(&(color::Red)),
-      focus_bg_color: Box::new(&(color::Blue)),
-      normal_fg_color: Box::new(&color::Green),
-      normal_bg_color: Box::new(&color::Magenta),
-      hint_fg_color: Box::new(&color::Yellow),
-      hint_bg_color: Box::new(&color::Cyan),
+    let colors = ViewColors {
+      focus_fg: Box::new(&(color::Red)),
+      focus_bg: Box::new(&(color::Blue)),
+      match_fg: Box::new(&color::Green),
+      match_bg: Box::new(&color::Magenta),
+      hint_fg: Box::new(&color::Yellow),
+      hint_bg: Box::new(&color::Cyan),
     };
 
     View::render_matched_text(&mut writer, text, focused, offset, &colors);
@@ -462,8 +476,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.focus_fg_color),
-        bg = color::Bg(*colors.focus_bg_color),
+        fg = color::Fg(*colors.focus_fg),
+        bg = color::Bg(*colors.focus_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         text = &text,
@@ -478,13 +492,13 @@ path: /usr/local/bin/cargo";
     let text = "https://en.wikipedia.org/wiki/Barcelona";
     let focused = false;
     let offset: (usize, usize) = (3, 1);
-    let colors = colors::RenderingColors {
-      focus_fg_color: Box::new(&(color::Red)),
-      focus_bg_color: Box::new(&(color::Blue)),
-      normal_fg_color: Box::new(&color::Green),
-      normal_bg_color: Box::new(&color::Magenta),
-      hint_fg_color: Box::new(&color::Yellow),
-      hint_bg_color: Box::new(&color::Cyan),
+    let colors = ViewColors {
+      focus_fg: Box::new(&(color::Red)),
+      focus_bg: Box::new(&(color::Blue)),
+      match_fg: Box::new(&color::Green),
+      match_bg: Box::new(&color::Magenta),
+      hint_fg: Box::new(&color::Yellow),
+      hint_bg: Box::new(&color::Cyan),
     };
 
     View::render_matched_text(&mut writer, text, focused, offset, &colors);
@@ -494,8 +508,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.normal_fg_color),
-        bg = color::Bg(*colors.normal_bg_color),
+        fg = color::Fg(*colors.match_fg),
+        bg = color::Bg(*colors.match_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         text = &text,
@@ -509,24 +523,24 @@ path: /usr/local/bin/cargo";
     let mut writer = vec![];
     let hint_text = "eo";
     let offset: (usize, usize) = (3, 1);
-    let colors = colors::RenderingColors {
-      focus_fg_color: Box::new(&(color::Red)),
-      focus_bg_color: Box::new(&(color::Blue)),
-      normal_fg_color: Box::new(&color::Green),
-      normal_bg_color: Box::new(&color::Magenta),
-      hint_fg_color: Box::new(&color::Yellow),
-      hint_bg_color: Box::new(&color::Cyan),
+    let colors = ViewColors {
+      focus_fg: Box::new(&(color::Red)),
+      focus_bg: Box::new(&(color::Blue)),
+      match_fg: Box::new(&color::Green),
+      match_bg: Box::new(&color::Magenta),
+      hint_fg: Box::new(&color::Yellow),
+      hint_bg: Box::new(&color::Cyan),
     };
 
     let extra_offset = 0;
-    let contrast_style = None;
+    let hint_style = None;
 
     View::render_matched_hint(
       &mut writer,
       hint_text,
       (offset.0 + extra_offset, offset.1),
       &colors,
-      &contrast_style,
+      &hint_style,
     );
 
     assert_eq!(
@@ -534,8 +548,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.hint_fg_color),
-        bg = color::Bg(*colors.hint_bg_color),
+        fg = color::Fg(*colors.hint_fg),
+        bg = color::Bg(*colors.hint_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         text = "eo",
@@ -549,24 +563,24 @@ path: /usr/local/bin/cargo";
     let mut writer = vec![];
     let hint_text = "eo";
     let offset: (usize, usize) = (3, 1);
-    let colors = colors::RenderingColors {
-      focus_fg_color: Box::new(&(color::Red)),
-      focus_bg_color: Box::new(&(color::Blue)),
-      normal_fg_color: Box::new(&color::Green),
-      normal_bg_color: Box::new(&color::Magenta),
-      hint_fg_color: Box::new(&color::Yellow),
-      hint_bg_color: Box::new(&color::Cyan),
+    let colors = ViewColors {
+      focus_fg: Box::new(&(color::Red)),
+      focus_bg: Box::new(&(color::Blue)),
+      match_fg: Box::new(&color::Green),
+      match_bg: Box::new(&color::Magenta),
+      hint_fg: Box::new(&color::Yellow),
+      hint_bg: Box::new(&color::Cyan),
     };
 
     let extra_offset = 0;
-    let contrast_style = Some(ContrastStyle::Underlined);
+    let hint_style = Some(HintStyle::Underlined);
 
     View::render_matched_hint(
       &mut writer,
       hint_text,
       (offset.0 + extra_offset, offset.1),
       &colors,
-      &contrast_style,
+      &hint_style,
     );
 
     assert_eq!(
@@ -574,8 +588,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{sty}{text}{sty_reset}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.hint_fg_color),
-        bg = color::Bg(*colors.hint_bg_color),
+        fg = color::Fg(*colors.hint_fg),
+        bg = color::Bg(*colors.hint_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         sty = style::Underline,
@@ -591,24 +605,24 @@ path: /usr/local/bin/cargo";
     let mut writer = vec![];
     let hint_text = "eo";
     let offset: (usize, usize) = (3, 1);
-    let colors = colors::RenderingColors {
-      focus_fg_color: Box::new(&(color::Red)),
-      focus_bg_color: Box::new(&(color::Blue)),
-      normal_fg_color: Box::new(&color::Green),
-      normal_bg_color: Box::new(&color::Magenta),
-      hint_fg_color: Box::new(&color::Yellow),
-      hint_bg_color: Box::new(&color::Cyan),
+    let colors = ViewColors {
+      focus_fg: Box::new(&(color::Red)),
+      focus_bg: Box::new(&(color::Blue)),
+      match_fg: Box::new(&color::Green),
+      match_bg: Box::new(&color::Magenta),
+      hint_fg: Box::new(&color::Yellow),
+      hint_bg: Box::new(&color::Cyan),
     };
 
     let extra_offset = 0;
-    let contrast_style = Some(ContrastStyle::Surrounded('{', '}'));
+    let hint_style = Some(HintStyle::Surrounded('{', '}'));
 
     View::render_matched_hint(
       &mut writer,
       hint_text,
       (offset.0 + extra_offset, offset.1),
       &colors,
-      &contrast_style,
+      &hint_style,
     );
 
     assert_eq!(
@@ -616,8 +630,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{bra}{text}{bra_close}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.hint_fg_color),
-        bg = color::Bg(*colors.hint_bg_color),
+        fg = color::Fg(*colors.hint_fg),
+        bg = color::Bg(*colors.hint_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         bra = '{',
@@ -640,15 +654,15 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
     let custom_regexes = [].to_vec();
     let alphabet = "abcd";
     let mut state = state::State::new(&lines, alphabet, &custom_regexes);
-    let rendering_colors = colors::RenderingColors {
-      focus_fg_color: Box::new(&(color::Red)),
-      focus_bg_color: Box::new(&(color::Blue)),
-      normal_fg_color: Box::new(&color::Green),
-      normal_bg_color: Box::new(&color::Magenta),
-      hint_fg_color: Box::new(&color::Yellow),
-      hint_bg_color: Box::new(&color::Cyan),
+    let rendering_colors = ViewColors {
+      focus_fg: Box::new(&(color::Red)),
+      focus_bg: Box::new(&(color::Blue)),
+      match_fg: Box::new(&color::Green),
+      match_bg: Box::new(&color::Magenta),
+      hint_fg: Box::new(&color::Yellow),
+      hint_bg: Box::new(&color::Cyan),
     };
-    let rendering_edge = RenderingEdge::Leading;
+    let hint_alignment = HintAlignment::Leading;
 
     // create a view without any match
     let view = View {
@@ -656,9 +670,9 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
       matches: vec![], // no matches
       focus_index: 0,
       multi: false,
-      rendering_edge,
+      hint_alignment,
       rendering_colors: &rendering_colors,
-      contrast_style: None,
+      hint_style: None,
     };
 
     let mut writer = vec![];
@@ -701,25 +715,25 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
     let reversed = true;
     let unique = false;
 
-    let rendering_colors = colors::RenderingColors {
-      focus_fg_color: Box::new(&(color::Red)),
-      focus_bg_color: Box::new(&(color::Blue)),
-      normal_fg_color: Box::new(&color::Green),
-      normal_bg_color: Box::new(&color::Magenta),
-      hint_fg_color: Box::new(&color::Yellow),
-      hint_bg_color: Box::new(&color::Cyan),
+    let rendering_colors = ViewColors {
+      focus_fg: Box::new(&(color::Red)),
+      focus_bg: Box::new(&(color::Blue)),
+      match_fg: Box::new(&color::Green),
+      match_bg: Box::new(&color::Magenta),
+      hint_fg: Box::new(&color::Yellow),
+      hint_bg: Box::new(&color::Cyan),
     };
-    let rendering_edge = RenderingEdge::Leading;
-    let contrast_style = None;
+    let hint_alignment = HintAlignment::Leading;
+    let hint_style = None;
 
     let view = View::new(
       &mut state,
       multi,
       reversed,
       unique,
-      rendering_edge,
+      hint_alignment,
       &rendering_colors,
-      contrast_style,
+      hint_style,
     );
 
     let mut writer = vec![];
@@ -742,10 +756,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
     let expected_match1_text = {
       let goto7_1 = cursor::Goto(7, 1);
       format!(
-        "{goto7_1}{normal_bg_color}{normal_fg_color}127.0.0.1{fg_reset}{bg_reset}",
+        "{goto7_1}{match_bg}{match_fg}127.0.0.1{fg_reset}{bg_reset}",
         goto7_1 = goto7_1,
-        normal_fg_color = color::Fg(*rendering_colors.normal_fg_color),
-        normal_bg_color = color::Bg(*rendering_colors.normal_bg_color),
+        match_fg = color::Fg(*rendering_colors.match_fg),
+        match_bg = color::Bg(*rendering_colors.match_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset)
       )
@@ -755,10 +769,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
       let goto7_1 = cursor::Goto(7, 1);
 
       format!(
-        "{goto7_1}{hint_bg_color}{hint_fg_color}b{fg_reset}{bg_reset}",
+        "{goto7_1}{hint_bg}{hint_fg}b{fg_reset}{bg_reset}",
         goto7_1 = goto7_1,
-        hint_fg_color = color::Fg(*rendering_colors.hint_fg_color),
-        hint_bg_color = color::Bg(*rendering_colors.hint_bg_color),
+        hint_fg = color::Fg(*rendering_colors.hint_fg),
+        hint_bg = color::Bg(*rendering_colors.hint_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset)
       )
@@ -767,10 +781,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
     let expected_match2_text = {
       let goto11_3 = cursor::Goto(11, 3);
       format!(
-        "{goto11_3}{focus_bg_color}{focus_fg_color}https://en.wikipedia.org/wiki/Barcelona{fg_reset}{bg_reset}",
+        "{goto11_3}{focus_bg}{focus_fg}https://en.wikipedia.org/wiki/Barcelona{fg_reset}{bg_reset}",
         goto11_3 = goto11_3,
-        focus_fg_color = color::Fg(*rendering_colors.focus_fg_color),
-        focus_bg_color = color::Bg(*rendering_colors.focus_bg_color),
+        focus_fg = color::Fg(*rendering_colors.focus_fg),
+        focus_bg = color::Bg(*rendering_colors.focus_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset)
       )
@@ -780,10 +794,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
       let goto11_3 = cursor::Goto(11, 3);
 
       format!(
-        "{goto11_3}{hint_bg_color}{hint_fg_color}a{fg_reset}{bg_reset}",
+        "{goto11_3}{hint_bg}{hint_fg}a{fg_reset}{bg_reset}",
         goto11_3 = goto11_3,
-        hint_fg_color = color::Fg(*rendering_colors.hint_fg_color),
-        hint_bg_color = color::Bg(*rendering_colors.hint_bg_color),
+        hint_fg = color::Fg(*rendering_colors.hint_fg),
+        hint_bg = color::Bg(*rendering_colors.hint_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset)
       )

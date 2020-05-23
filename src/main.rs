@@ -11,8 +11,26 @@ use clap::crate_version;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::{self, Read};
+use structopt::StructOpt;
 
 // TODO: position as an enum ::Leading ::Trailing
+
+/// A lightning fast version copy/pasting like vimium/vimperator.
+#[derive(StructOpt, Debug)]
+#[structopt(name = "thumbs")]
+struct Opt {
+  /// Sets the alphabet.
+  #[structopt(short, long, default_value = "qwerty")]
+  alphabet: String,
+
+  /// Sets the foreground color for matches.
+  #[structopt(long, default_value = "green")]
+  fg_color: String,
+
+  /// Sets the background color for matches.
+  #[structopt(long, default_value = "black")]
+  bg_color: String,
+}
 
 fn app_args<'a>() -> clap::ArgMatches<'a> {
   App::new("thumbs")
@@ -151,23 +169,23 @@ fn main() {
 
   let mut state = state::State::new(&lines, alphabet, &regexp);
 
-  let rendering_edge = if position == "left" {
-    view::RenderingEdge::Leading
+  let hint_alignment = if position == "left" {
+    view::HintAlignment::Leading
   } else {
-    view::RenderingEdge::Trailing
+    view::HintAlignment::Trailing
   };
 
-  let rendering_colors = colors::RenderingColors {
-    focus_fg_color: select_foreground_color,
-    focus_bg_color: select_background_color,
-    normal_fg_color: foreground_color,
-    normal_bg_color: background_color,
-    hint_fg_color: hint_foreground_color,
-    hint_bg_color: hint_background_color,
+  let rendering_colors = view::ViewColors {
+    focus_fg: select_foreground_color,
+    focus_bg: select_background_color,
+    match_fg: foreground_color,
+    match_bg: background_color,
+    hint_fg: hint_foreground_color,
+    hint_bg: hint_background_color,
   };
 
-  let contrast_style = if contrast {
-    Some(view::ContrastStyle::Surrounded('[', ']'))
+  let hint_style = if contrast {
+    Some(view::HintStyle::Surrounded('[', ']'))
   } else {
     None
   };
@@ -178,9 +196,9 @@ fn main() {
       multi,
       reverse,
       unique,
-      rendering_edge,
+      hint_alignment,
       &rendering_colors,
-      contrast_style,
+      hint_style,
     );
 
     viewbox.present()
