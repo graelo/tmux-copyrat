@@ -5,7 +5,7 @@
 PARAMS=()
 
 function add-option-param {
-  VALUE=$(tmux show -vg @thumbs-$1 2> /dev/null)
+  VALUE=$(tmux show-options -vg @thumbs-$1 2> /dev/null)
 
   if [[ ${VALUE} ]]; then
     PARAMS+=("--$1=${VALUE}")

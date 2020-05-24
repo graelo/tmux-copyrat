@@ -1,4 +1,5 @@
 use super::{colors, state};
+use clap::Clap;
 use std::char;
 use std::io::{stdout, Read, Write};
 use termion::async_stdin;
@@ -14,7 +15,7 @@ pub struct View<'a> {
   focus_index: usize,
   multi: bool,
   hint_alignment: HintAlignment,
-  rendering_colors: &'a ViewColors<'a>,
+  rendering_colors: &'a ViewColors,
   hint_style: Option<HintStyle>,
 }
 
@@ -23,17 +24,42 @@ pub struct View<'a> {
 /// - `focus_*` colors are used to render the currently focused matched text.
 /// - `normal_*` colors are used to render other matched text.
 /// - `hint_*` colors are used to render the hints.
-pub struct ViewColors<'a> {
-  pub focus_fg: Box<&'a dyn color::Color>,
-  pub focus_bg: Box<&'a dyn color::Color>,
-  pub match_fg: Box<&'a dyn color::Color>,
-  pub match_bg: Box<&'a dyn color::Color>,
-  pub hint_fg: Box<&'a dyn color::Color>,
-  pub hint_bg: Box<&'a dyn color::Color>,
+#[derive(Clap, Debug)]
+pub struct ViewColors {
+  /// Foreground color for matches.
+  #[clap(long, default_value = "green",
+                parse(try_from_str = colors::parse_color))]
+  match_fg: Box<dyn color::Color>,
+
+  /// Background color for matches.
+  #[clap(long, default_value = "black",
+                parse(try_from_str = colors::parse_color))]
+  match_bg: Box<dyn color::Color>,
+
+  /// Foreground color for the focused match.
+  #[clap(long, default_value = "blue",
+                parse(try_from_str = colors::parse_color))]
+  focused_fg: Box<dyn color::Color>,
+
+  /// Background color for the focused match.
+  #[clap(long, default_value = "black",
+                parse(try_from_str = colors::parse_color))]
+  focused_bg: Box<dyn color::Color>,
+
+  /// Foreground color for hints.
+  #[clap(long, default_value = "white",
+                parse(try_from_str = colors::parse_color))]
+  hint_fg: Box<dyn color::Color>,
+
+  /// Background color for hints.
+  #[clap(long, default_value = "black",
+                parse(try_from_str = colors::parse_color))]
+  hint_bg: Box<dyn color::Color>,
 }
 
 /// Describes if, during rendering, a hint should aligned to the leading edge of
 /// the matched text, or to its trailing edge.
+#[derive(Debug, Clap)]
 pub enum HintAlignment {
   Leading,
   Trailing,
@@ -135,7 +161,7 @@ impl<'a> View<'a> {
   ) {
     // To help identify it, the match thas has focus is rendered with a dedicated color.
     let (text_fg_color, text_bg_color) = if focused {
-      (&colors.focus_fg, &colors.focus_bg)
+      (&colors.focused_fg, &colors.focused_bg)
     } else {
       (&colors.match_fg, &colors.match_bg)
     };
@@ -145,8 +171,8 @@ impl<'a> View<'a> {
       stdout,
       "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
       goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
-      fg_color = color::Fg(**text_fg_color),
-      bg_color = color::Bg(**text_bg_color),
+      fg_color = color::Fg(text_fg_color.as_ref()),
+      bg_color = color::Bg(text_bg_color.as_ref()),
       fg_reset = color::Fg(color::Reset),
       bg_reset = color::Bg(color::Reset),
       text = &text,
@@ -171,8 +197,8 @@ impl<'a> View<'a> {
     colors: &ViewColors,
     hint_style: &Option<HintStyle>,
   ) {
-    let fg_color = color::Fg(*colors.hint_fg);
-    let bg_color = color::Bg(*colors.hint_bg);
+    let fg_color = color::Fg(colors.hint_fg.as_ref());
+    let bg_color = color::Bg(colors.hint_bg.as_ref());
     let fg_reset = color::Fg(color::Reset);
     let bg_reset = color::Bg(color::Reset);
 
@@ -426,6 +452,7 @@ impl<'a> View<'a> {
 #[cfg(test)]
 mod tests {
   use super::*;
+  use crate::alphabets;
 
   #[test]
   fn test_render_all_lines() {
@@ -461,12 +488,12 @@ path: /usr/local/bin/cargo";
     let focused = true;
     let offset: (usize, usize) = (3, 1);
     let colors = ViewColors {
-      focus_fg: Box::new(&(color::Red)),
-      focus_bg: Box::new(&(color::Blue)),
-      match_fg: Box::new(&color::Green),
-      match_bg: Box::new(&color::Magenta),
-      hint_fg: Box::new(&color::Yellow),
-      hint_bg: Box::new(&color::Cyan),
+      focused_fg: Box::new(color::Red),
+      focused_bg: Box::new(color::Blue),
+      match_fg: Box::new(color::Green),
+      match_bg: Box::new(color::Magenta),
+      hint_fg: Box::new(color::Yellow),
+      hint_bg: Box::new(color::Cyan),
     };
 
     View::render_matched_text(&mut writer, text, focused, offset, &colors);
@@ -476,8 +503,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.focus_fg),
-        bg = color::Bg(*colors.focus_bg),
+        fg = color::Fg(colors.focused_fg.as_ref()),
+        bg = color::Bg(colors.focused_bg.as_ref()),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         text = &text,
@@ -493,12 +520,12 @@ path: /usr/local/bin/cargo";
     let focused = false;
     let offset: (usize, usize) = (3, 1);
     let colors = ViewColors {
-      focus_fg: Box::new(&(color::Red)),
-      focus_bg: Box::new(&(color::Blue)),
-      match_fg: Box::new(&color::Green),
-      match_bg: Box::new(&color::Magenta),
-      hint_fg: Box::new(&color::Yellow),
-      hint_bg: Box::new(&color::Cyan),
+      focused_fg: Box::new(color::Red),
+      focused_bg: Box::new(color::Blue),
+      match_fg: Box::new(color::Green),
+      match_bg: Box::new(color::Magenta),
+      hint_fg: Box::new(color::Yellow),
+      hint_bg: Box::new(color::Cyan),
     };
 
     View::render_matched_text(&mut writer, text, focused, offset, &colors);
@@ -508,8 +535,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.match_fg),
-        bg = color::Bg(*colors.match_bg),
+        fg = color::Fg(colors.match_fg.as_ref()),
+        bg = color::Bg(colors.match_bg.as_ref()),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         text = &text,
@@ -524,12 +551,12 @@ path: /usr/local/bin/cargo";
     let hint_text = "eo";
     let offset: (usize, usize) = (3, 1);
     let colors = ViewColors {
-      focus_fg: Box::new(&(color::Red)),
-      focus_bg: Box::new(&(color::Blue)),
-      match_fg: Box::new(&color::Green),
-      match_bg: Box::new(&color::Magenta),
-      hint_fg: Box::new(&color::Yellow),
-      hint_bg: Box::new(&color::Cyan),
+      focused_fg: Box::new(color::Red),
+      focused_bg: Box::new(color::Blue),
+      match_fg: Box::new(color::Green),
+      match_bg: Box::new(color::Magenta),
+      hint_fg: Box::new(color::Yellow),
+      hint_bg: Box::new(color::Cyan),
     };
 
     let extra_offset = 0;
@@ -548,8 +575,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.hint_fg),
-        bg = color::Bg(*colors.hint_bg),
+        fg = color::Fg(colors.hint_fg.as_ref()),
+        bg = color::Bg(colors.hint_bg.as_ref()),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         text = "eo",
@@ -564,12 +591,12 @@ path: /usr/local/bin/cargo";
     let hint_text = "eo";
     let offset: (usize, usize) = (3, 1);
     let colors = ViewColors {
-      focus_fg: Box::new(&(color::Red)),
-      focus_bg: Box::new(&(color::Blue)),
-      match_fg: Box::new(&color::Green),
-      match_bg: Box::new(&color::Magenta),
-      hint_fg: Box::new(&color::Yellow),
-      hint_bg: Box::new(&color::Cyan),
+      focused_fg: Box::new(color::Red),
+      focused_bg: Box::new(color::Blue),
+      match_fg: Box::new(color::Green),
+      match_bg: Box::new(color::Magenta),
+      hint_fg: Box::new(color::Yellow),
+      hint_bg: Box::new(color::Cyan),
     };
 
     let extra_offset = 0;
@@ -588,8 +615,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{sty}{text}{sty_reset}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.hint_fg),
-        bg = color::Bg(*colors.hint_bg),
+        fg = color::Fg(colors.hint_fg.as_ref()),
+        bg = color::Bg(colors.hint_bg.as_ref()),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         sty = style::Underline,
@@ -606,12 +633,12 @@ path: /usr/local/bin/cargo";
     let hint_text = "eo";
     let offset: (usize, usize) = (3, 1);
     let colors = ViewColors {
-      focus_fg: Box::new(&(color::Red)),
-      focus_bg: Box::new(&(color::Blue)),
-      match_fg: Box::new(&color::Green),
-      match_bg: Box::new(&color::Magenta),
-      hint_fg: Box::new(&color::Yellow),
-      hint_bg: Box::new(&color::Cyan),
+      focused_fg: Box::new(color::Red),
+      focused_bg: Box::new(color::Blue),
+      match_fg: Box::new(color::Green),
+      match_bg: Box::new(color::Magenta),
+      hint_fg: Box::new(color::Yellow),
+      hint_bg: Box::new(color::Cyan),
     };
 
     let extra_offset = 0;
@@ -630,8 +657,8 @@ path: /usr/local/bin/cargo";
       format!(
         "{goto}{bg}{fg}{bra}{text}{bra_close}{fg_reset}{bg_reset}",
         goto = cursor::Goto(4, 2),
-        fg = color::Fg(*colors.hint_fg),
-        bg = color::Bg(*colors.hint_bg),
+        fg = color::Fg(colors.hint_fg.as_ref()),
+        bg = color::Bg(colors.hint_bg.as_ref()),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset),
         bra = '{',
@@ -652,15 +679,15 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
     let lines = content.split('\n').collect();
 
     let custom_regexes = [].to_vec();
-    let alphabet = "abcd";
-    let mut state = state::State::new(&lines, alphabet, &custom_regexes);
+    let alphabet = alphabets::Alphabet("abcd".to_string());
+    let mut state = state::State::new(&lines, &alphabet, &custom_regexes);
     let rendering_colors = ViewColors {
-      focus_fg: Box::new(&(color::Red)),
-      focus_bg: Box::new(&(color::Blue)),
-      match_fg: Box::new(&color::Green),
-      match_bg: Box::new(&color::Magenta),
-      hint_fg: Box::new(&color::Yellow),
-      hint_bg: Box::new(&color::Cyan),
+      focused_fg: Box::new(color::Red),
+      focused_bg: Box::new(color::Blue),
+      match_fg: Box::new(color::Green),
+      match_bg: Box::new(color::Magenta),
+      hint_fg: Box::new(color::Yellow),
+      hint_bg: Box::new(color::Cyan),
     };
     let hint_alignment = HintAlignment::Leading;
 
@@ -709,19 +736,19 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
     let lines = content.split('\n').collect();
 
     let custom_regexes = [].to_vec();
-    let alphabet = "abcd";
-    let mut state = state::State::new(&lines, alphabet, &custom_regexes);
+    let alphabet = alphabets::Alphabet("abcd".to_string());
+    let mut state = state::State::new(&lines, &alphabet, &custom_regexes);
     let multi = false;
     let reversed = true;
     let unique = false;
 
     let rendering_colors = ViewColors {
-      focus_fg: Box::new(&(color::Red)),
-      focus_bg: Box::new(&(color::Blue)),
-      match_fg: Box::new(&color::Green),
-      match_bg: Box::new(&color::Magenta),
-      hint_fg: Box::new(&color::Yellow),
-      hint_bg: Box::new(&color::Cyan),
+      focused_fg: Box::new(color::Red),
+      focused_bg: Box::new(color::Blue),
+      match_fg: Box::new(color::Green),
+      match_bg: Box::new(color::Magenta),
+      hint_fg: Box::new(color::Yellow),
+      hint_bg: Box::new(color::Cyan),
     };
     let hint_alignment = HintAlignment::Leading;
     let hint_style = None;
@@ -758,8 +785,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
       format!(
         "{goto7_1}{match_bg}{match_fg}127.0.0.1{fg_reset}{bg_reset}",
         goto7_1 = goto7_1,
-        match_fg = color::Fg(*rendering_colors.match_fg),
-        match_bg = color::Bg(*rendering_colors.match_bg),
+        match_fg = color::Fg(rendering_colors.match_fg.as_ref()),
+        match_bg = color::Bg(rendering_colors.match_bg.as_ref()),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset)
       )
@@ -771,8 +798,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
       format!(
         "{goto7_1}{hint_bg}{hint_fg}b{fg_reset}{bg_reset}",
         goto7_1 = goto7_1,
-        hint_fg = color::Fg(*rendering_colors.hint_fg),
-        hint_bg = color::Bg(*rendering_colors.hint_bg),
+        hint_fg = color::Fg(rendering_colors.hint_fg.as_ref()),
+        hint_bg = color::Bg(rendering_colors.hint_bg.as_ref()),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset)
       )
@@ -783,8 +810,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
       format!(
         "{goto11_3}{focus_bg}{focus_fg}https://en.wikipedia.org/wiki/Barcelona{fg_reset}{bg_reset}",
         goto11_3 = goto11_3,
-        focus_fg = color::Fg(*rendering_colors.focus_fg),
-        focus_bg = color::Bg(*rendering_colors.focus_bg),
+        focus_fg = color::Fg(rendering_colors.focused_fg.as_ref()),
+        focus_bg = color::Bg(rendering_colors.focused_bg.as_ref()),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset)
       )
@@ -796,8 +823,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
       format!(
         "{goto11_3}{hint_bg}{hint_fg}a{fg_reset}{bg_reset}",
         goto11_3 = goto11_3,
-        hint_fg = color::Fg(*rendering_colors.hint_fg),
-        hint_bg = color::Bg(*rendering_colors.hint_bg),
+        hint_fg = color::Fg(rendering_colors.hint_fg.as_ref()),
+        hint_bg = color::Bg(rendering_colors.hint_bg.as_ref()),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset)
       )
