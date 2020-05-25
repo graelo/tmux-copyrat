@@ -1,6 +1,4 @@
 use clap::Clap;
-use std::fs::OpenOptions;
-use std::io::prelude::*;
 use std::path;
 
 pub mod alphabets;
@@ -14,12 +12,12 @@ pub mod view;
 /// # Note
 ///
 /// Maybe the decision to move ownership is a bit bold.
-pub fn run(buffer: String, opt: Opt) {
+pub fn run(buffer: String, opt: &Opt) -> String {
     let lines: Vec<&str> = buffer.split('\n').collect();
 
     let mut state = state::State::new(&lines, &opt.alphabet, &opt.custom_regex);
 
-    let hint_style = match opt.hint_style {
+    let hint_style = match &opt.hint_style {
         None => None,
         Some(style) => match style {
             HintStyleCli::Underline => Some(view::HintStyle::Underline),
@@ -37,7 +35,7 @@ pub fn run(buffer: String, opt: Opt) {
             opt.multi_selection,
             opt.reverse,
             opt.unique,
-            opt.hint_alignment,
+            &opt.hint_alignment,
             &opt.colors,
             hint_style,
         );
@@ -64,19 +62,7 @@ pub fn run(buffer: String, opt: Opt) {
             .join("\n")
     };
 
-    match opt.target_path {
-        None => println!("{}", output),
-        Some(target) => {
-            let mut file = OpenOptions::new()
-                .create(true)
-                .truncate(true)
-                .write(true)
-                .open(target)
-                .expect("Unable to open the target file");
-
-            file.write(output.as_bytes()).unwrap();
-        }
-    }
+    output
 }
 
 /// Main configuration, parsed from command line.
@@ -108,7 +94,7 @@ pub struct Opt {
     unique: bool,
 
     /// Align hint with its match.
-    #[clap(short = "a", long, arg_enum, default_value = "Leading")]
+    #[clap(short = "a", long, arg_enum, default_value = "leading")]
     hint_alignment: view::HintAlignment,
 
     /// Additional regex patterns.
@@ -129,11 +115,11 @@ pub struct Opt {
 
     /// Target path where to store the selected matches.
     #[clap(short = "o", long = "output", parse(from_os_str))]
-    target_path: Option<path::PathBuf>,
+    pub target_path: Option<path::PathBuf>,
 
     /// Describes if the uppercased marker should be added to the output,
     /// indicating if hint key was uppercased. This is only used by
-    /// tmux-copyrat, so it is skipped from clap configuration.
+    /// tmux-copyrat, so it is hidden (skipped) from the CLI.
     #[clap(skip)]
     uppercased_marker: bool,
 }

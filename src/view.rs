@@ -14,7 +14,7 @@ pub struct View<'a> {
     matches: Vec<state::Match<'a>>,
     focus_index: usize,
     multi: bool,
-    hint_alignment: HintAlignment,
+    hint_alignment: &'a HintAlignment,
     rendering_colors: &'a ViewColors,
     hint_style: Option<HintStyle>,
 }
@@ -91,7 +91,7 @@ impl<'a> View<'a> {
         multi: bool,
         reversed: bool,
         unique: bool,
-        hint_alignment: HintAlignment,
+        hint_alignment: &'a HintAlignment,
         rendering_colors: &'a ViewColors,
         hint_style: Option<HintStyle>,
     ) -> View<'a> {
@@ -703,7 +703,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             matches: vec![], // no matches
             focus_index: 0,
             multi: false,
-            hint_alignment,
+            hint_alignment: &hint_alignment,
             rendering_colors: &rendering_colors,
             hint_style: None,
         };
@@ -764,7 +764,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             multi,
             reversed,
             unique,
-            hint_alignment,
+            &hint_alignment,
             &rendering_colors,
             hint_style,
         );
