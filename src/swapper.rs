@@ -4,6 +4,10 @@ use std::path;
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use copyrat::error;
+
+mod tmux;
+
 trait Executor {
     fn execute(&mut self, args: Vec<String>) -> String;
     fn last_executed(&self) -> Option<Vec<String>>;
@@ -38,7 +42,7 @@ impl Executor for RealShell {
     }
 }
 
-const TMP_FILE: &str = "/tmp/thumbs-last";
+const TMP_FILE: &str = "/tmp/copyrat-last";
 
 pub struct Swapper<'a> {
     executor: Box<&'a mut dyn Executor>,
@@ -83,11 +87,11 @@ impl<'a> Swapper<'a> {
 
     pub fn capture_active_pane(&mut self) {
         let active_command = vec![
-      "tmux",
-      "list-panes",
-      "-F",
-      "#{pane_id}:#{?pane_in_mode,1,0}:#{pane_height}:#{scroll_position}:#{?pane_active,active,nope}",
-    ];
+            "tmux",
+            "list-panes",
+            "-F",
+            "#{pane_id}:#{?pane_in_mode,1,0}:#{pane_height}:#{scroll_position}:#{?pane_active,active,nope}",
+        ];
 
         let output = self
             .executor
@@ -194,15 +198,15 @@ impl<'a> Swapper<'a> {
 
         // NOTE: For debugging add echo $PWD && sleep 5 after tee
         let pane_command = format!(
-        "tmux capture-pane -t {} -p{} | {}/target/release/thumbs -f '%U:%H' -t {} {}; tmux swap-pane -t {}; tmux wait-for -S {}",
-        active_pane_id,
-        scroll_params,
-        self.directory.to_str().unwrap(),
-        TMP_FILE,
-        args.join(" "),
-        active_pane_id,
-        self.signal
-    );
+            "tmux capture-pane -t {} -p{} | {}/target/release/thumbs -f '%U:%H' -t {} {}; tmux swap-pane -t {}; tmux wait-for -S {}",
+            active_pane_id,
+            scroll_params,
+            self.directory.to_str().unwrap(),
+            TMP_FILE,
+            args.join(" "),
+            active_pane_id,
+            self.signal
+        );
 
         let thumbs_command = vec![
             "tmux",
@@ -358,37 +362,21 @@ struct Opt {
     #[clap(
         short,
         long,
-        default_value = "'tmux set-bufffer {} && tmux-paste-buffer'"
+        default_value = "'tmux set-buffer {} && tmux-paste-buffer'"
     )]
     alt_command: String,
+
+    /// Retrieve options from tmux.
+    ///
+    /// If active, options formatted like `copyrat-*` are read from tmux.
+    /// You should prefer reading them from the config file (the default
+    /// option) as this saves both a command call (about 10ms) and a Regex
+    /// compilation.
+    #[clap(long)]
+    options_from_tmux: bool,
 }
 
-// fn app_args<'a>() -> clap::ArgMatches<'a> {
-//   App::new("tmux-thumbs")
-//     .version(crate_version!())
-//     .about("A lightning fast version of tmux-fingers, copy/pasting tmux like vimium/vimperator")
-//     .arg(
-//       Arg::with_name("dir")
-//         .help("Directory where to execute thumbs")
-//         .long("dir")
-//         .default_value(""),
-//     )
-//     .arg(
-//       Arg::with_name("command")
-//         .help("Pick command")
-//         .long("command")
-//         .default_value("tmux set-buffer {}"),
-//     )
-//     .arg(
-//       Arg::with_name("upcase_command")
-//         .help("Upcase command")
-//         .long("upcase-command")
-//         .default_value("tmux set-buffer {} && tmux paste-buffer"),
-//     )
-//     .get_matches()
-// }
-
-fn main() -> std::io::Result<()> {
+fn main() -> Result<(), error::ParseError> {
     let opt = Opt::parse();
     // let dir = args.value_of("dir").unwrap();
     // let command = args.value_of("command").unwrap();
@@ -398,7 +386,14 @@ fn main() -> std::io::Result<()> {
     //   panic!("Invalid tmux-thumbs execution. Are you trying to execute tmux-thumbs directly?")
     // }
 
+    let panes: Vec<tmux::Pane> = tmux::list_panes()?;
+    let active_pane = panes
+        .iter()
+        .find(|p| p.is_active)
+        .expect("One tmux pane should be active");
+
     let mut executor = RealShell::new();
+
     let mut swapper = Swapper::new(
         Box::new(&mut executor),
         opt.directory.as_path(),
