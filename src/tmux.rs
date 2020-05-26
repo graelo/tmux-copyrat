@@ -1,3 +1,4 @@
+use clap::Clap;
 use copyrat::error::ParseError;
 use regex::Regex;
 use std::collections::HashMap;
@@ -5,7 +6,7 @@ use std::process::Command;
 
 /// Execute an arbitrary Unix command and return the stdout as a `String` if
 /// successful.
-pub fn execute(command: &str, args: &Vec<&str>) -> Result<String, ParseError> {
+fn execute(command: &str, args: &Vec<&str>) -> Result<String, ParseError> {
     let output = Command::new(command).args(args).output()?;
 
     if !output.status.success() {
@@ -177,25 +178,24 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> 
 // }
 // };}
 
-#[derive(Debug)]
+#[derive(Clap, Debug)]
 pub enum CaptureRegion {
     /// The entire history.
     ///
     /// This will end up sending `-S - -E -` to `tmux capture-pane`.
     EntireHistory,
-    /// Region from start line to end line
-    ///
-    /// This works as defined in tmux's docs (order does not matter).
-    Region(i32, i32),
+    /// The visible area.
+    VisibleArea,
+    ///// Region from start line to end line
+    /////
+    ///// This works as defined in tmux's docs (order does not matter).
+    //Region(i32, i32),
 }
 
-/// Returns the Pane's content as a `String`. The `CaptureRegion` if `None`
-/// will result in the Pane's visible area to be capture (mimics the default
-/// behavior of tmux `capture-pane`). If a `CaptureRegion` is provided,
-/// depending on its value, either the entire history will be captured, or a
-/// user-provided region. For the user-provided region, the order of `start`
-/// and `end` does not matter. They have the same meaning as described in Tmux
-/// documentation.
+/// Returns the entire Pane content as a `String`.
+///
+/// `CaptureRegion` specifies if the visible area is captured, or the entire
+/// history.
 ///
 /// # Note
 ///
@@ -204,11 +204,11 @@ pub enum CaptureRegion {
 /// pane is in copy mode, we need to take into account the current scroll
 /// position. To support both cases, the implementation always provides those
 /// parameters to tmux.
-pub fn capture_pane(pane: &Pane, region: &Option<CaptureRegion>) -> Result<String, ParseError> {
+pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, ParseError> {
     let mut args = format!("capture-pane -t {id} -p", id = pane.id);
 
     let region_str = match region {
-        None => {
+        CaptureRegion::VisibleArea => {
             // Will capture the visible area.
             // Providing start/end helps support both copy and normal modes.
             format!(
@@ -217,12 +217,7 @@ pub fn capture_pane(pane: &Pane, region: &Option<CaptureRegion>) -> Result<Strin
                 end = pane.height - pane.scroll_position - 1
             )
         }
-        Some(region) => match region {
-            CaptureRegion::EntireHistory => String::from(" -S - -E -"),
-            CaptureRegion::Region(start, end) => {
-                format!(" -S {start} -E {end}", start = start, end = end)
-            }
-        },
+        CaptureRegion::EntireHistory => String::from(" -S - -E -"),
     };
 
     args.push_str(&region_str);
