@@ -1,4 +1,5 @@
 use super::{colors, state};
+
 use clap::Clap;
 use std::char;
 use std::io::{stdout, Read, Write};
@@ -90,12 +91,12 @@ impl<'a> View<'a> {
         state: &'a mut state::State<'a>,
         multi: bool,
         reversed: bool,
-        unique: bool,
+        unique_hint: bool,
         hint_alignment: &'a HintAlignment,
         rendering_colors: &'a ViewColors,
         hint_style: Option<HintStyle>,
     ) -> View<'a> {
-        let matches = state.matches(reversed, unique);
+        let matches = state.matches(reversed, unique_hint);
         let focus_index = if reversed { matches.len() - 1 } else { 0 };
 
         View {
@@ -746,7 +747,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let mut state = state::State::new(&lines, &alphabet, &custom_regexes);
         let multi = false;
         let reversed = true;
-        let unique = false;
+        let unique_hint = false;
 
         let rendering_colors = ViewColors {
             focused_fg: Box::new(color::Red),
@@ -763,7 +764,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             &mut state,
             multi,
             reversed,
-            unique,
+            unique_hint,
             &hint_alignment,
             &rendering_colors,
             hint_style,

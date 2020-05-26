@@ -198,14 +198,13 @@ impl<'a> Swapper<'a> {
 
         // NOTE: For debugging add echo $PWD && sleep 5 after tee
         let pane_command = format!(
-            "tmux capture-pane -t {} -p{} | {}/target/release/thumbs -f '%U:%H' -t {} {}; tmux swap-pane -t {}; tmux wait-for -S {}",
-            active_pane_id,
-            scroll_params,
-            self.directory.to_str().unwrap(),
-            TMP_FILE,
-            args.join(" "),
-            active_pane_id,
-            self.signal
+            "tmux capture-pane -t {active_id} -p{scroll_params} | {dir}/target/release/thumbs -f '%U:%H' -t {tmpfile} {args}; tmux swap-pane -t {active_id}; tmux wait-for -S {signal}",
+            active_id = active_pane_id,
+            scroll_params = scroll_params,
+            dir = self.directory.to_str().unwrap(),
+            tmpfile = TMP_FILE,
+            args = args.join(" "),
+            signal = self.signal
         );
 
         let thumbs_command = vec![
@@ -358,7 +357,7 @@ struct Opt {
     #[clap(short, long, default_value = "'tmux set-buffer {}'")]
     command: String,
 
-    /// Command to execute on uppercased selection.
+    /// Command to execute on alt selection.
     #[clap(
         short,
         long,
@@ -369,11 +368,15 @@ struct Opt {
     /// Retrieve options from tmux.
     ///
     /// If active, options formatted like `copyrat-*` are read from tmux.
-    /// You should prefer reading them from the config file (the default
+    /// You should consider reading them from the config file (the default
     /// option) as this saves both a command call (about 10ms) and a Regex
     /// compilation.
     #[clap(long)]
     options_from_tmux: bool,
+
+    /// Optionally capture entire pane history.
+    #[clap(long, arg_enum, default_value = "entire-history")]
+    capture: tmux::CaptureRegion,
 }
 
 fn main() -> Result<(), error::ParseError> {
@@ -391,6 +394,8 @@ fn main() -> Result<(), error::ParseError> {
         .iter()
         .find(|p| p.is_active)
         .expect("One tmux pane should be active");
+
+    let content = tmux::capture_pane(&active_pane, &opt.capture)?;
 
     let mut executor = RealShell::new();
 

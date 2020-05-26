@@ -34,7 +34,7 @@ pub fn run(buffer: String, opt: &Opt) -> String {
             &mut state,
             opt.multi_selection,
             opt.reverse,
-            opt.unique,
+            opt.unique_hint,
             &opt.hint_alignment,
             &opt.colors,
             hint_style,
@@ -91,7 +91,7 @@ pub struct Opt {
 
     /// Keep the same hint for identical matches.
     #[clap(short, long)]
-    unique: bool,
+    unique_hint: bool,
 
     /// Align hint with its match.
     #[clap(short = "a", long, arg_enum, default_value = "leading")]
@@ -113,7 +113,7 @@ pub struct Opt {
                 parse(try_from_str = parse_chars))]
     hint_surroundings: (char, char),
 
-    /// Target path where to store the selected matches.
+    /// Optional target path where to store the selected matches.
     #[clap(short = "o", long = "output", parse(from_os_str))]
     pub target_path: Option<path::PathBuf>,
 
