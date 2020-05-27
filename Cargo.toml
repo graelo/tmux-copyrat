@@ -19,4 +19,4 @@ path = "src/main.rs"
 
 [[bin]]
 name = "tmux-copyrat"
-path = "src/swapper.rs"
+path = "src/bridge.rs"

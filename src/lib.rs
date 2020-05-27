@@ -1,9 +1,13 @@
 use clap::Clap;
+use std::collections::HashMap;
 use std::path;
+use std::str::FromStr;
 
 pub mod alphabets;
 pub mod colors;
 pub mod error;
+pub mod process;
+pub mod regexes;
 pub mod state;
 pub mod view;
 
@@ -11,8 +15,8 @@ pub mod view;
 ///
 /// # Note
 ///
-/// Maybe the decision to move ownership is a bit bold.
-pub fn run(buffer: String, opt: &Opt) -> String {
+/// Maybe the decision to take ownership of the buffer is a bit bold.
+pub fn run(buffer: String, opt: &CliOpt) -> Vec<(String, bool)> {
     let lines: Vec<&str> = buffer.split('\n').collect();
 
     let mut state = state::State::new(&lines, &opt.alphabet, &opt.custom_regex);
@@ -27,7 +31,6 @@ pub fn run(buffer: String, opt: &Opt) -> String {
             }
         },
     };
-    let uppercased_marker = opt.uppercased_marker;
 
     let selections: Vec<(String, bool)> = {
         let mut viewbox = view::View::new(
@@ -43,32 +46,13 @@ pub fn run(buffer: String, opt: &Opt) -> String {
         viewbox.present()
     };
 
-    // Early exit, signaling tmux we had no selections.
-    if selections.is_empty() {
-        std::process::exit(1);
-    }
-
-    let output: String = if uppercased_marker {
-        selections
-            .iter()
-            .map(|(text, uppercased)| format!("{}:{}", *uppercased, text))
-            .collect::<Vec<String>>()
-            .join("\n")
-    } else {
-        selections
-            .iter()
-            .map(|(text, _)| text.as_str())
-            .collect::<Vec<&str>>()
-            .join("\n")
-    };
-
-    output
+    selections
 }
 
 /// Main configuration, parsed from command line.
 #[derive(Clap, Debug)]
 #[clap(author, about, version)]
-pub struct Opt {
+pub struct CliOpt {
     /// Alphabet to draw hints from.
     ///
     /// Possible values are "{A}", "{A}-homerow", "{A}-left-hand",
@@ -78,12 +62,19 @@ pub struct Opt {
                 parse(try_from_str = alphabets::parse_alphabet))]
     alphabet: alphabets::Alphabet,
 
+    // /// Which existing regexes to use.
+    // #[clap(short = "x", long, arg_enum)]
+    // regex_id: Vec<regexes::RegexId>,
+
+    // TODO: choose if pre-baked regexes is a good idea
+    // TODO: check if compiled regexes are possible
+    /// Additional regex patterns.
+    #[clap(short = "X", long)]
+    custom_regex: Vec<String>,
+
     /// Enable multi-selection.
     #[clap(short, long)]
     multi_selection: bool,
-
-    #[clap(flatten)]
-    colors: view::ViewColors,
 
     /// Reverse the order for assigned hints.
     #[clap(short, long)]
@@ -93,13 +84,12 @@ pub struct Opt {
     #[clap(short, long)]
     unique_hint: bool,
 
+    #[clap(flatten)]
+    colors: view::ViewColors,
+
     /// Align hint with its match.
     #[clap(short = "a", long, arg_enum, default_value = "leading")]
     hint_alignment: view::HintAlignment,
-
-    /// Additional regex patterns.
-    #[clap(short = "c", long)]
-    custom_regex: Vec<String>,
 
     /// Optional hint styling.
     ///
@@ -121,7 +111,7 @@ pub struct Opt {
     /// indicating if hint key was uppercased. This is only used by
     /// tmux-copyrat, so it is hidden (skipped) from the CLI.
     #[clap(skip)]
-    uppercased_marker: bool,
+    pub uppercased_marker: bool,
 }
 
 /// Type introduced due to parsing limitation,
@@ -132,6 +122,20 @@ enum HintStyleCli {
     Surround,
 }
 
+impl FromStr for HintStyleCli {
+    type Err = error::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, error::ParseError> {
+        match s {
+            "leading" => Ok(HintStyleCli::Underline),
+            "trailing" => Ok(HintStyleCli::Surround),
+            _ => Err(error::ParseError::ExpectedString(String::from(
+                "underline or surround",
+            ))),
+        }
+    }
+}
+
 fn parse_chars(src: &str) -> Result<(char, char), error::ParseError> {
     if src.len() != 2 {
         return Err(error::ParseError::ExpectedSurroundingPair);
@@ -139,4 +143,48 @@ fn parse_chars(src: &str) -> Result<(char, char), error::ParseError> {
 
     let chars: Vec<char> = src.chars().collect();
     Ok((chars[0], chars[1]))
+}
+
+impl CliOpt {
+    /// Try parsing provided options, and update self with the valid values.
+    pub fn merge_map(
+        &mut self,
+        options: &HashMap<String, String>,
+    ) -> Result<(), error::ParseError> {
+        for (name, value) in options {
+            match name.as_ref() {
+                "@copyrat-alphabet" => {
+                    self.alphabet = alphabets::parse_alphabet(value)?;
+                }
+                "@copyrat-regex-id" => (), // TODO
+                "@copyrat-custom-regex" => self.custom_regex = vec![String::from(value)],
+                "@copyrat-multi-selection" => {
+                    self.multi_selection = value.parse::<bool>()?;
+                }
+                "@copyrat-reverse" => {
+                    self.reverse = value.parse::<bool>()?;
+                }
+                "@copyrat-unique-hint" => {
+                    self.unique_hint = value.parse::<bool>()?;
+                }
+
+                "@copyrat-match-fg" => self.colors.match_fg = colors::parse_color(value)?,
+                "@copyrat-match-bg" => self.colors.match_bg = colors::parse_color(value)?,
+                "@copyrat-focused-fg" => self.colors.focused_fg = colors::parse_color(value)?,
+                "@copyrat-focused-bg" => self.colors.focused_bg = colors::parse_color(value)?,
+                "@copyrat-hint-fg" => self.colors.hint_fg = colors::parse_color(value)?,
+                "@copyrat-hint-bg" => self.colors.hint_bg = colors::parse_color(value)?,
+
+                "@copyrat-hint-alignment" => {
+                    self.hint_alignment = view::HintAlignment::from_str(&value)?
+                }
+                "@copyrat-hint-style" => self.hint_style = Some(HintStyleCli::from_str(&value)?),
+
+                // Ignore unknown options.
+                _ => (),
+            }
+        }
+
+        Ok(())
+    }
 }

@@ -3,10 +3,10 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::{self, Read};
 
-use copyrat::{run, Opt};
+use copyrat::{run, CliOpt};
 
 fn main() {
-    let opt = Opt::parse();
+    let opt = CliOpt::parse();
 
     // Copy the pane contents (piped in via stdin) into a buffer, and split lines.
     let stdin = io::stdin();
@@ -17,7 +17,18 @@ fn main() {
 
     // Execute copyrat over the buffer (will take control over stdout).
     // This returns the selected matches.
-    let output: String = run(buffer, &opt);
+    let selections: Vec<(String, bool)> = run(buffer, &opt);
+
+    // Early exit, signaling no selections were found.
+    if selections.is_empty() {
+        std::process::exit(1);
+    }
+
+    let output = selections
+        .iter()
+        .map(|(text, _)| text.as_str())
+        .collect::<Vec<&str>>()
+        .join("\n");
 
     // Write output to a target_path if provided, else print to original stdout.
     match opt.target_path {

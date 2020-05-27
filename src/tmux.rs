@@ -1,26 +1,10 @@
 use clap::Clap;
-use copyrat::error::ParseError;
 use regex::Regex;
 use std::collections::HashMap;
-use std::process::Command;
+use std::str::FromStr;
 
-/// Execute an arbitrary Unix command and return the stdout as a `String` if
-/// successful.
-fn execute(command: &str, args: &Vec<&str>) -> Result<String, ParseError> {
-    let output = Command::new(command).args(args).output()?;
-
-    if !output.status.success() {
-        let msg = String::from_utf8_lossy(&output.stderr);
-        return Err(ParseError::ProcessFailure(format!(
-            "Process failure: {} {}, error {}",
-            command,
-            args.join(" "),
-            msg
-        )));
-    }
-
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
-}
+use copyrat::error::ParseError;
+use copyrat::process;
 
 #[derive(Debug, PartialEq)]
 pub struct Pane {
@@ -97,7 +81,7 @@ pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
         "#{pane_id}:#{?pane_in_mode,1,0}:#{pane_height}:#{scroll_position}:#{?pane_active,active,nope}",
         ];
 
-    let output = execute("tmux", &args)?;
+    let output = process::execute("tmux", &args)?;
 
     // Each call to `Pane::parse` returns a `Result<Pane, _>`. All results
     // are collected into a Result<Vec<Pane>, _>, thanks to `collect()`.
@@ -116,7 +100,7 @@ pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
 pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> {
     let args = vec!["show", "-g"];
 
-    let output = execute("tmux", &args)?;
+    let output = process::execute("tmux", &args)?;
     let lines: Vec<&str> = output.split('\n').collect();
 
     let pattern = format!(r#"{prefix}([\w\-0-9]+) "?(\w+)"?"#, prefix = prefix);
@@ -192,6 +176,20 @@ pub enum CaptureRegion {
     //Region(i32, i32),
 }
 
+impl FromStr for CaptureRegion {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, ParseError> {
+        match s {
+            "leading" => Ok(CaptureRegion::EntireHistory),
+            "trailing" => Ok(CaptureRegion::VisibleArea),
+            _ => Err(ParseError::ExpectedString(String::from(
+                "entire-history or visible-area",
+            ))),
+        }
+    }
+}
+
 /// Returns the entire Pane content as a `String`.
 ///
 /// `CaptureRegion` specifies if the visible area is captured, or the entire
@@ -224,7 +222,7 @@ pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, Parse
 
     let args: Vec<&str> = args.split(' ').collect();
 
-    let output = execute("tmux", &args)?;
+    let output = process::execute("tmux", &args)?;
     Ok(output)
 
     // format!(
