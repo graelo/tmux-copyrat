@@ -1,10 +1,11 @@
 use clap::Clap;
 use regex::Regex;
-use std::path;
+use std::collections::HashMap;
 use std::process::Command;
+use std::str::FromStr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use copyrat::error;
+use copyrat::{error, process, CliOpt};
 
 mod tmux;
 
@@ -46,7 +47,7 @@ const TMP_FILE: &str = "/tmp/copyrat-last";
 
 pub struct Swapper<'a> {
     executor: Box<&'a mut dyn Executor>,
-    directory: &'a path::Path,
+    // directory: &'a path::Path,
     command: &'a str,
     alt_command: &'a str,
     active_pane_id: Option<String>,
@@ -61,7 +62,7 @@ pub struct Swapper<'a> {
 impl<'a> Swapper<'a> {
     fn new(
         executor: Box<&'a mut dyn Executor>,
-        directory: &'a path::Path,
+        // directory: &'a path::Path,
         command: &'a str,
         alt_command: &'a str,
     ) -> Swapper<'a> {
@@ -72,7 +73,7 @@ impl<'a> Swapper<'a> {
 
         Swapper {
             executor,
-            directory,
+            // directory,
             command,
             alt_command,
             active_pane_id: None,
@@ -198,10 +199,10 @@ impl<'a> Swapper<'a> {
 
         // NOTE: For debugging add echo $PWD && sleep 5 after tee
         let pane_command = format!(
-            "tmux capture-pane -t {active_id} -p{scroll_params} | {dir}/target/release/thumbs -f '%U:%H' -t {tmpfile} {args}; tmux swap-pane -t {active_id}; tmux wait-for -S {signal}",
+            "tmux capture-pane -t {active_id} -p{scroll_params} | target/release/thumbs -f '%U:%H' -t {tmpfile} {args}; tmux swap-pane -t {active_id}; tmux wait-for -S {signal}",
             active_id = active_pane_id,
             scroll_params = scroll_params,
-            dir = self.directory.to_str().unwrap(),
+            // dir = self.directory.to_str().unwrap(),
             tmpfile = TMP_FILE,
             args = args.join(" "),
             signal = self.signal
@@ -317,7 +318,7 @@ mod tests {
         let last_command_outputs =
             vec!["%97:100:24:1:active\n%106:100:24:1:nope\n%107:100:24:1:nope\n".to_string()];
         let mut executor = TestShell::new(last_command_outputs);
-        let mut swapper = Swapper::new(Box::new(&mut executor), &path::Path::new(""), "", "");
+        let mut swapper = Swapper::new(Box::new(&mut executor), "", "");
 
         swapper.capture_active_pane();
 
@@ -333,7 +334,7 @@ mod tests {
             "%106:100:24:1:nope\n%98:100:24:1:active\n%107:100:24:1:nope\n".to_string(),
         ];
         let mut executor = TestShell::new(last_command_outputs);
-        let mut swapper = Swapper::new(Box::new(&mut executor), &path::Path::new(""), "", "");
+        let mut swapper = Swapper::new(Box::new(&mut executor), "", "");
 
         swapper.capture_active_pane();
         swapper.execute_thumbs();
@@ -348,21 +349,13 @@ mod tests {
 /// Main configuration, parsed from command line.
 #[derive(Clap, Debug)]
 #[clap(author, about, version)]
-struct Opt {
-    /// Directory where to execute copyrat.
-    #[clap(long, required = true)]
-    directory: path::PathBuf,
-
+struct BridgeOpt {
     /// Command to execute on selection.
-    #[clap(short, long, default_value = "'tmux set-buffer {}'")]
+    #[clap(short, long, default_value = "tmux set-buffer {}")]
     command: String,
 
-    /// Command to execute on alt selection.
-    #[clap(
-        short,
-        long,
-        default_value = "'tmux set-buffer {} && tmux-paste-buffer'"
-    )]
+    /// Command to execute on uppercased selection.
+    #[clap(short, long, default_value = "tmux set-buffer {} && tmux-paste-buffer")]
     alt_command: String,
 
     /// Retrieve options from tmux.
@@ -372,22 +365,54 @@ struct Opt {
     /// option) as this saves both a command call (about 10ms) and a Regex
     /// compilation.
     #[clap(long)]
-    options_from_tmux: bool,
+    get_options_from_tmux: bool,
 
     /// Optionally capture entire pane history.
     #[clap(long, arg_enum, default_value = "entire-history")]
     capture: tmux::CaptureRegion,
+
+    // Include CLI Options
+    #[clap(flatten)]
+    cli_options: CliOpt,
+}
+
+impl BridgeOpt {
+    /// Try parsing provided options, and update self with the valid values.
+    pub fn merge_map(
+        &mut self,
+        options: &HashMap<String, String>,
+    ) -> Result<(), error::ParseError> {
+        for (name, value) in options {
+            match name.as_ref() {
+                "@copyrat-command" => {
+                    self.command = String::from(value);
+                }
+                "@copyrat-alt-command" => {
+                    self.alt_command = String::from(value);
+                }
+                "@copyrat-capture" => {
+                    self.capture = tmux::CaptureRegion::from_str(&value)?;
+                }
+
+                // Ignore unknown options.
+                _ => (),
+            }
+        }
+
+        // Pass the call to cli_options.
+        self.cli_options.merge_map(options)?;
+
+        Ok(())
+    }
 }
 
 fn main() -> Result<(), error::ParseError> {
-    let opt = Opt::parse();
-    // let dir = args.value_of("dir").unwrap();
-    // let command = args.value_of("command").unwrap();
-    // let upcase_command = args.value_of("upcase_command").unwrap();
+    let mut opt = BridgeOpt::parse();
 
-    // if dir.is_empty() {
-    //   panic!("Invalid tmux-thumbs execution. Are you trying to execute tmux-thumbs directly?")
-    // }
+    if opt.get_options_from_tmux {
+        let tmux_options = tmux::get_options("@copyrat-")?;
+        opt.merge_map(&tmux_options)?;
+    }
 
     let panes: Vec<tmux::Pane> = tmux::list_panes()?;
     let active_pane = panes
@@ -395,23 +420,46 @@ fn main() -> Result<(), error::ParseError> {
         .find(|p| p.is_active)
         .expect("One tmux pane should be active");
 
-    let content = tmux::capture_pane(&active_pane, &opt.capture)?;
+    let buffer = tmux::capture_pane(&active_pane, &opt.capture)?;
 
-    let mut executor = RealShell::new();
+    let selections: Vec<(String, bool)> = if active_pane.in_mode {
+        // TODO: fancy stuff
+        vec![(String::new(), false)]
+    } else {
+        copyrat::run(buffer, &opt.cli_options)
+    };
 
-    let mut swapper = Swapper::new(
-        Box::new(&mut executor),
-        opt.directory.as_path(),
-        &opt.command,
-        &opt.alt_command,
-    );
+    selections.iter().for_each(|(text, b)| {
+        let command = if *b {
+            opt.alt_command.replace("{}", text)
+        } else {
+            opt.command.replace("{}", text)
+        };
+        let args: Vec<&str> = vec![];
 
-    swapper.capture_active_pane();
-    swapper.execute_thumbs();
-    swapper.swap_panes();
-    swapper.wait_thumbs();
-    swapper.retrieve_content();
-    swapper.destroy_content();
-    swapper.execute_command();
+        // Simply execute the command as is and don't mind about potential
+        // errors.
+        process::execute(&command, &args).unwrap();
+    });
+
+    if false {
+        let mut executor = RealShell::new();
+
+        let mut swapper = Swapper::new(
+            Box::new(&mut executor),
+            // opt.directory.as_path(),
+            &opt.command,
+            &opt.alt_command,
+        );
+
+        swapper.capture_active_pane();
+        swapper.execute_thumbs();
+        swapper.swap_panes();
+        swapper.wait_thumbs();
+        swapper.retrieve_content();
+        swapper.destroy_content();
+        swapper.execute_command();
+    }
+
     Ok(())
 }

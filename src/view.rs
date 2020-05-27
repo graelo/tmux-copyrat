@@ -1,8 +1,10 @@
 use super::{colors, state};
 
+use crate::error::ParseError;
 use clap::Clap;
 use std::char;
 use std::io::{stdout, Read, Write};
+use std::str::FromStr;
 use termion::async_stdin;
 use termion::event::Key;
 use termion::input::TermRead;
@@ -30,32 +32,32 @@ pub struct ViewColors {
     /// Foreground color for matches.
     #[clap(long, default_value = "green",
                 parse(try_from_str = colors::parse_color))]
-    match_fg: Box<dyn color::Color>,
+    pub match_fg: Box<dyn color::Color>,
 
     /// Background color for matches.
     #[clap(long, default_value = "black",
                 parse(try_from_str = colors::parse_color))]
-    match_bg: Box<dyn color::Color>,
+    pub match_bg: Box<dyn color::Color>,
 
     /// Foreground color for the focused match.
     #[clap(long, default_value = "blue",
                 parse(try_from_str = colors::parse_color))]
-    focused_fg: Box<dyn color::Color>,
+    pub focused_fg: Box<dyn color::Color>,
 
     /// Background color for the focused match.
     #[clap(long, default_value = "black",
                 parse(try_from_str = colors::parse_color))]
-    focused_bg: Box<dyn color::Color>,
+    pub focused_bg: Box<dyn color::Color>,
 
     /// Foreground color for hints.
     #[clap(long, default_value = "white",
                 parse(try_from_str = colors::parse_color))]
-    hint_fg: Box<dyn color::Color>,
+    pub hint_fg: Box<dyn color::Color>,
 
     /// Background color for hints.
     #[clap(long, default_value = "black",
                 parse(try_from_str = colors::parse_color))]
-    hint_bg: Box<dyn color::Color>,
+    pub hint_bg: Box<dyn color::Color>,
 }
 
 /// Describes if, during rendering, a hint should aligned to the leading edge of
@@ -64,6 +66,20 @@ pub struct ViewColors {
 pub enum HintAlignment {
     Leading,
     Trailing,
+}
+
+impl FromStr for HintAlignment {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<HintAlignment, ParseError> {
+        match s {
+            "leading" => Ok(HintAlignment::Leading),
+            "trailing" => Ok(HintAlignment::Trailing),
+            _ => Err(ParseError::ExpectedString(String::from(
+                "leading or trailing",
+            ))),
+        }
+    }
 }
 
 /// Describes the style of contrast to be used during rendering of the hint's

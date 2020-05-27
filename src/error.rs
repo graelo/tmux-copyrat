@@ -8,6 +8,7 @@ pub enum ParseError {
     ExpectedPaneIdMarker,
     ExpectedInt(std::num::ParseIntError),
     ExpectedBool(std::str::ParseBoolError),
+    ExpectedString(String),
     ProcessFailure(String),
 }
 
@@ -22,6 +23,7 @@ impl fmt::Display for ParseError {
             ParseError::ExpectedPaneIdMarker => write!(f, "Expected pane id marker"),
             ParseError::ExpectedInt(msg) => write!(f, "Expected an int: {}", msg),
             ParseError::ExpectedBool(msg) => write!(f, "Expected a bool: {}", msg),
+            ParseError::ExpectedString(msg) => write!(f, "Expected {}", msg),
             ParseError::ProcessFailure(msg) => write!(f, "{}", msg),
         }
     }
