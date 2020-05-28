@@ -429,13 +429,14 @@ fn main() -> Result<(), error::ParseError> {
         // Screen, preventing copyrat::run to execute.
         let initial_pane = active_pane;
 
-        // Create a new window without switching to it.
-        let temp_pane: tmux::Pane = tmux::create_new_window("[copyrat]")?;
+        // Create a new window without switching to it, with a `sh` command
+        // for faster startup.
+        let temp_pane: tmux::Pane = tmux::create_new_window("[copyrat]", "sh")?;
 
         // Swap the two panes, changing the active pane to be the temp_pane.
         // After swap, temp_pane has the same height than the initial_pane
         // had before being swapped.
-        tmux::swap_panes(&initial_pane, &temp_pane)?;
+        tmux::swap_panes(initial_pane, &temp_pane)?;
 
         // Running copyrat now will render in the newly created temp_pane
         // (locking stdin, writing to its stdout), but this is almost
@@ -443,7 +444,7 @@ fn main() -> Result<(), error::ParseError> {
         let selections = copyrat::run(buffer, &opt.cli_options);
 
         // Swap back the two panes, making initial_pane the active one again.
-        tmux::swap_panes(&temp_pane, &initial_pane)?;
+        tmux::swap_panes(&temp_pane, initial_pane)?;
 
         tmux::kill_pane(&temp_pane)?;
 

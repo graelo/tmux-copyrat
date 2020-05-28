@@ -3,14 +3,9 @@ use super::{colors, state};
 use crate::error::ParseError;
 use clap::Clap;
 use std::char;
-use std::io::{stdout, Read, Write};
+use std::io;
 use std::str::FromStr;
-use termion::async_stdin;
-use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
-use termion::screen::AlternateScreen;
-use termion::{color, cursor, style};
+use termion::{self, color, cursor, event, style};
 
 pub struct View<'a> {
     state: &'a mut state::State<'a>,
@@ -149,7 +144,7 @@ impl<'a> View<'a> {
     /// # Notes
     /// - All trailing whitespaces are trimmed, empty lines are skipped.
     /// - This writes directly on the writer, avoiding extra allocation.
-    fn render_lines(stdout: &mut dyn Write, lines: &Vec<&str>) -> () {
+    fn render_lines(stdout: &mut dyn io::Write, lines: &Vec<&str>) -> () {
         for (index, line) in lines.iter().enumerate() {
             let trimmed_line = line.trim_end();
 
@@ -172,7 +167,7 @@ impl<'a> View<'a> {
     /// # Note
     /// This writes directly on the writer, avoiding extra allocation.
     fn render_matched_text(
-        stdout: &mut dyn Write,
+        stdout: &mut dyn io::Write,
         text: &str,
         focused: bool,
         offset: (usize, usize),
@@ -210,7 +205,7 @@ impl<'a> View<'a> {
     /// # Note
     /// This writes directly on the writer, avoiding extra allocation.
     fn render_matched_hint(
-        stdout: &mut dyn Write,
+        stdout: &mut dyn io::Write,
         hint_text: &str,
         offset: (usize, usize),
         colors: &ViewColors,
@@ -299,7 +294,7 @@ impl<'a> View<'a> {
     /// # Note
     /// Multibyte characters are taken into account, so that the Match's `text`
     /// and `hint` are rendered in their proper position.
-    fn render(&self, stdout: &mut dyn Write) -> () {
+    fn render(&self, stdout: &mut dyn io::Write) -> () {
         write!(stdout, "{}", cursor::Hide).unwrap();
 
         // 1. Trim all lines and render non-empty ones.
@@ -359,7 +354,9 @@ impl<'a> View<'a> {
     /// # Panics
     /// This function panics if termion cannot read the entered keys on stdin.
     /// This function also panics if the user types Insert on a line without hints.
-    fn listen(&mut self, stdin: &mut dyn Read, stdout: &mut dyn Write) -> CaptureEvent {
+    fn listen(&mut self, reader: &mut dyn io::Read, writer: &mut dyn io::Write) -> CaptureEvent {
+        use termion::input::TermRead; // Trait for `reader.keys().next()`.
+
         if self.matches.is_empty() {
             return CaptureEvent::Exit;
         }
@@ -374,11 +371,11 @@ impl<'a> View<'a> {
             .unwrap()
             .clone();
 
-        self.render(stdout);
+        self.render(writer);
 
         loop {
             // This is an option of a result of a key... Let's pop error cases first.
-            let next_key = stdin.keys().next();
+            let next_key = reader.keys().next();
 
             if next_key.is_none() {
                 // Nothing in the buffer. Wait for a bit...
@@ -394,7 +391,7 @@ impl<'a> View<'a> {
 
             match key_res.unwrap() {
                 // Clears an ongoing multi-hint selection, or exit.
-                Key::Esc => {
+                event::Key::Esc => {
                     if self.multi && !typed_hint.is_empty() {
                         typed_hint.clear();
                     } else {
@@ -405,7 +402,7 @@ impl<'a> View<'a> {
                 // In multi-selection mode, this appends the selected hint to the
                 // vector of selections. In normal mode, this returns with the hint
                 // selected.
-                Key::Insert => match self.matches.get(self.focus_index) {
+                event::Key::Insert => match self.matches.get(self.focus_index) {
                     Some(mat) => {
                         chosen.push((mat.text.to_string(), false));
 
@@ -417,15 +414,15 @@ impl<'a> View<'a> {
                 },
 
                 // Move focus to next/prev match.
-                Key::Up => self.prev(),
-                Key::Down => self.next(),
-                Key::Left => self.prev(),
-                Key::Right => self.next(),
+                event::Key::Up => self.prev(),
+                event::Key::Down => self.next(),
+                event::Key::Left => self.prev(),
+                event::Key::Right => self.next(),
 
                 // Pressing space finalizes an ongoing multi-hint selection (without
                 // selecting the focused match). Pressing other characters attempts at
                 // finding a match with a corresponding hint.
-                Key::Char(ch) => {
+                event::Key::Char(ch) => {
                     if ch == ' ' && self.multi {
                         return CaptureEvent::Hint(chosen);
                     }
@@ -468,15 +465,23 @@ impl<'a> View<'a> {
 
             // Render on stdout if we did not exit earlier (move focus,
             // multi-selection).
-            self.render(stdout);
+            self.render(writer);
         }
 
         CaptureEvent::Exit
     }
 
     pub fn present(&mut self) -> Vec<(String, bool)> {
-        let mut stdin = async_stdin();
-        let mut stdout = AlternateScreen::from(stdout().into_raw_mode().unwrap());
+        use std::io::Write;
+        use termion::raw::IntoRawMode;
+        use termion::screen::AlternateScreen;
+
+        let mut stdin = termion::async_stdin();
+        let mut stdout = AlternateScreen::from(
+            io::stdout()
+                .into_raw_mode()
+                .expect("Cannot access alternate screen."),
+        );
 
         let hints = match self.listen(&mut stdin, &mut stdout) {
             CaptureEvent::Exit => vec![],

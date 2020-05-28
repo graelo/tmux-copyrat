@@ -66,9 +66,7 @@ pub struct CliOpt {
     // /// Which existing regexes to use.
     // #[clap(short = "x", long, arg_enum)]
     // regex_id: Vec<regexes::RegexId>,
-
-    // TODO: choose if pre-baked regexes is a good idea
-    // TODO: check if compiled regexes are possible
+    //
     /// Additional regex patterns.
     #[clap(short = "X", long)]
     custom_regex: Vec<String>,
