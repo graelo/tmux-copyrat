@@ -88,6 +88,8 @@ impl FromStr for HintAlignment {
 /// # Note
 /// In practice, this is wrapped in an `Option`, so that the hint's text can be rendered with no style.
 pub enum HintStyle {
+    /// The hint's text will be italicized (leveraging `termion::style::Italic`).
+    Italic,
     /// The hint's text will be underlined (leveraging `termion::style::Underline`).
     Underline,
     /// The hint's text will be surrounded by these chars.
@@ -234,6 +236,21 @@ impl<'a> View<'a> {
                 .unwrap();
             }
             Some(hint_style) => match hint_style {
+                HintStyle::Italic => {
+                    write!(
+                        stdout,
+                        "{goto}{bg_color}{fg_color}{sty}{hint}{sty_reset}{fg_reset}{bg_reset}",
+                        goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+                        fg_color = fg_color,
+                        bg_color = bg_color,
+                        fg_reset = fg_reset,
+                        bg_reset = bg_reset,
+                        sty = style::Italic,
+                        sty_reset = style::NoItalic,
+                        hint = hint_text,
+                    )
+                    .unwrap();
+                }
                 HintStyle::Underline => {
                     write!(
                         stdout,
