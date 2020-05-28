@@ -124,47 +124,6 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> 
     Ok(args)
 }
 
-// pub fn toto() {
-//         let options_command = vec!["tmux", "show", "-g"];
-//         let params: Vec<String> = options_command.iter().map(|arg| arg.to_string()).collect();
-//         let options = self.executor.execute(params);
-//         let lines: Vec<&str> = options.split('\n').collect();
-
-//         let pattern = Regex::new(r#"@thumbs-([\w\-0-9]+) "?(\w+)"?"#).unwrap();
-
-//         let args = lines
-//             .iter()
-//             .flat_map(|line| {
-//                 if let Some(captures) = pattern.captures(line) {
-//                     let name = captures.get(1).unwrap().as_str();
-//                     let value = captures.get(2).unwrap().as_str();
-
-//                     let boolean_params = vec!["reverse", "unique", "contrast"];
-
-//                     if boolean_params.iter().any(|&x| x == name) {
-//                         return vec![format!("--{}", name)];
-//                     }
-
-//                     let string_params = vec![
-//                         "position",
-//                         "fg-color",
-//                         "bg-color",
-//                         "hint-bg-color",
-//                         "hint-fg-color",
-//                         "select-fg-color",
-//                         "select-bg-color",
-//                     ];
-
-//                     if string_params.iter().any(|&x| x == name) {
-//                         return vec![format!("--{}", name), format!("'{}'", value)];
-//                     }
-
-//                     if name.starts_with("regexp") {
-//                         return vec!["--regexp".to_string(), format!("'{}'", value)];
-//                     }
-// }
-// };}
-
 #[derive(Clap, Debug)]
 pub enum CaptureRegion {
     /// The entire history.
@@ -197,6 +156,10 @@ impl FromStr for CaptureRegion {
 ///
 /// `CaptureRegion` specifies if the visible area is captured, or the entire
 /// history.
+///
+/// # TODO
+///
+/// Capture with `capture-pane -J` joins wrapped lines.
 ///
 /// # Note
 ///
@@ -234,16 +197,18 @@ pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, Parse
     // scroll_params,
 }
 
-/// Creates a new named window in the background (without switching to it) and
-/// returns a `Pane` describing the newly created pane.
+/// Creates a new named window in the background (without switching to it)
+/// executing the provided command (probably `sh`) and returns a `Pane`
+/// describing the newly created pane.
 ///
 /// # Note
 ///
 /// Returning a new `Pane` seems overkill, given we mostly take care of its
 /// Id, but it is cleaner.
-pub fn create_new_window(name: &str) -> Result<Pane, ParseError> {
+pub fn create_new_window(name: &str, command: &str) -> Result<Pane, ParseError> {
     let args = vec!["new-window", "-P", "-d", "-n", name, "-F",
-        "#{pane_id}:#{?pane_in_mode,true,false}:#{pane_height}:#{scroll_position}:#{?pane_active,true,false}"];
+        "#{pane_id}:#{?pane_in_mode,true,false}:#{pane_height}:#{scroll_position}:#{?pane_active,true,false}",
+        command];
 
     let output = process::execute("tmux", &args)?;
 
