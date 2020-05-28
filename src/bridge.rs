@@ -351,11 +351,11 @@ mod tests {
 #[clap(author, about, version)]
 struct BridgeOpt {
     /// Command to execute on selection.
-    #[clap(short, long, default_value = "tmux set-buffer {}")]
+    #[clap(long, default_value = "tmux set-buffer {}")]
     command: String,
 
     /// Command to execute on uppercased selection.
-    #[clap(short, long, default_value = "tmux set-buffer {} && tmux-paste-buffer")]
+    #[clap(long, default_value = "tmux set-buffer {} && tmux-paste-buffer")]
     alt_command: String,
 
     /// Retrieve options from tmux.
@@ -364,7 +364,7 @@ struct BridgeOpt {
     /// You should consider reading them from the config file (the default
     /// option) as this saves both a command call (about 10ms) and a Regex
     /// compilation.
-    #[clap(long)]
+    #[clap(short = "T", long)]
     get_options_from_tmux: bool,
 
     /// Optionally capture entire pane history.
@@ -415,6 +415,7 @@ fn main() -> Result<(), error::ParseError> {
     }
 
     let panes: Vec<tmux::Pane> = tmux::list_panes()?;
+
     let active_pane = panes
         .iter()
         .find(|p| p.is_active)
@@ -423,22 +424,48 @@ fn main() -> Result<(), error::ParseError> {
     let buffer = tmux::capture_pane(&active_pane, &opt.capture)?;
 
     let selections: Vec<(String, bool)> = if active_pane.in_mode {
-        // TODO: fancy stuff
-        vec![(String::new(), false)]
+        // If the current pane is in copy mode, we have to dance a little with
+        // Panes, because the current pane has already locked the Alternate
+        // Screen, preventing copyrat::run to execute.
+        let initial_pane = active_pane;
+
+        // Create a new window without switching to it.
+        let temp_pane: tmux::Pane = tmux::create_new_window("[copyrat]")?;
+
+        // Swap the two panes, changing the active pane to be the temp_pane.
+        // After swap, temp_pane has the same height than the initial_pane
+        // had before being swapped.
+        tmux::swap_panes(&initial_pane, &temp_pane)?;
+
+        // Running copyrat now will render in the newly created temp_pane
+        // (locking stdin, writing to its stdout), but this is almost
+        // transparent to the user.
+        let selections = copyrat::run(buffer, &opt.cli_options);
+
+        // Swap back the two panes, making initial_pane the active one again.
+        tmux::swap_panes(&temp_pane, &initial_pane)?;
+
+        tmux::kill_pane(&temp_pane)?;
+
+        selections
     } else {
         copyrat::run(buffer, &opt.cli_options)
     };
 
-    selections.iter().for_each(|(text, b)| {
-        let command = if *b {
+    // Execute a command on each selection.
+    // TODO: consider getting rid of multi-selection mode.
+    selections.iter().for_each(|(text, uppercased)| {
+        let raw_command = if *uppercased {
             opt.alt_command.replace("{}", text)
         } else {
             opt.command.replace("{}", text)
         };
-        let args: Vec<&str> = vec![];
+        let mut it = raw_command.split(' ').into_iter();
+        let command = it.next().unwrap();
+        let args: Vec<&str> = it.collect();
 
-        // Simply execute the command as is and don't mind about potential
-        // errors.
+        // Simply execute the command as is, and let the program crash on
+        // potential errors because it is not our responsibility.
         process::execute(&command, &args).unwrap();
     });
 

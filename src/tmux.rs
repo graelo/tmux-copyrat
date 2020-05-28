@@ -78,15 +78,18 @@ pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
     let args = vec![
         "list-panes",
         "-F",
-        "#{pane_id}:#{?pane_in_mode,1,0}:#{pane_height}:#{scroll_position}:#{?pane_active,active,nope}",
+        "#{pane_id}:#{?pane_in_mode,true,false}:#{pane_height}:#{scroll_position}:#{?pane_active,true,false}",
         ];
 
     let output = process::execute("tmux", &args)?;
 
     // Each call to `Pane::parse` returns a `Result<Pane, _>`. All results
     // are collected into a Result<Vec<Pane>, _>, thanks to `collect()`.
-    let result: Result<Vec<Pane>, ParseError> =
-        output.split('\n').map(|line| Pane::parse(line)).collect();
+    let result: Result<Vec<Pane>, ParseError> = output
+        .trim_end() // trim last '\n' as it would create an empty line
+        .split('\n')
+        .map(|line| Pane::parse(line))
+        .collect();
 
     result
 }
@@ -203,7 +206,7 @@ impl FromStr for CaptureRegion {
 /// position. To support both cases, the implementation always provides those
 /// parameters to tmux.
 pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, ParseError> {
-    let mut args = format!("capture-pane -t {id} -p", id = pane.id);
+    let mut args = format!("capture-pane -t %{id} -p", id = pane.id);
 
     let region_str = match region {
         CaptureRegion::VisibleArea => {
@@ -229,6 +232,48 @@ pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, Parse
     // "tmux capture-pane -t {} -p{} | {}/target/release/thumbs -f '%U:%H' -t {} {}; tmux swap-pane -t {}; tmux wait-for -S {}",
     // active_pane_id,
     // scroll_params,
+}
+
+/// Creates a new named window in the background (without switching to it) and
+/// returns a `Pane` describing the newly created pane.
+///
+/// # Note
+///
+/// Returning a new `Pane` seems overkill, given we mostly take care of its
+/// Id, but it is cleaner.
+pub fn create_new_window(name: &str) -> Result<Pane, ParseError> {
+    let args = vec!["new-window", "-P", "-d", "-n", name, "-F",
+        "#{pane_id}:#{?pane_in_mode,true,false}:#{pane_height}:#{scroll_position}:#{?pane_active,true,false}"];
+
+    let output = process::execute("tmux", &args)?;
+
+    let pane = Pane::parse(output.trim_end())?; // trim last '\n' as it would create an empty line
+
+    Ok(pane)
+}
+
+/// Ask tmux to swap two `Pane`s and change the active pane to be the target
+/// `Pane`.
+pub fn swap_panes(pane_a: &Pane, pane_b: &Pane) -> Result<(), ParseError> {
+    let pa_id = format!("%{}", pane_a.id);
+    let pb_id = format!("%{}", pane_b.id);
+
+    let args = vec!["swap-pane", "-s", &pa_id, "-t", &pb_id];
+
+    process::execute("tmux", &args)?;
+
+    Ok(())
+}
+
+/// Ask tmux to kill the provided `Pane`.
+pub fn kill_pane(pane: &Pane) -> Result<(), ParseError> {
+    let p_id = format!("%{}", pane.id);
+
+    let args = vec!["kill-pane", "-t", &p_id];
+
+    process::execute("tmux", &args)?;
+
+    Ok(())
 }
 
 #[cfg(test)]

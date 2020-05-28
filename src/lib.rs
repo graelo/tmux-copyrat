@@ -24,6 +24,7 @@ pub fn run(buffer: String, opt: &CliOpt) -> Vec<(String, bool)> {
     let hint_style = match &opt.hint_style {
         None => None,
         Some(style) => match style {
+            HintStyleCli::Italic => Some(view::HintStyle::Italic),
             HintStyleCli::Underline => Some(view::HintStyle::Underline),
             HintStyleCli::Surround => {
                 let (open, close) = opt.hint_surroundings;
@@ -118,6 +119,7 @@ pub struct CliOpt {
 /// as we cannot directly parse into view::HintStyle.
 #[derive(Debug, Clap)]
 enum HintStyleCli {
+    Italic,
     Underline,
     Surround,
 }
