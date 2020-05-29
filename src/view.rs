@@ -23,6 +23,14 @@ pub struct View<'a> {
 /// - `hint_*` colors are used to render the hints.
 #[derive(Clap, Debug)]
 pub struct ViewColors {
+    /// Foreground color for base text.
+    #[clap(long, default_value = "blue", parse(try_from_str = colors::parse_color))]
+    pub text_fg: Box<dyn color::Color>,
+
+    /// Background color for base text.
+    #[clap(long, default_value = "white", parse(try_from_str = colors::parse_color))]
+    pub text_bg: Box<dyn color::Color>,
+
     /// Foreground color for matches.
     #[clap(long, default_value = "green",
                 parse(try_from_str = colors::parse_color))]
@@ -143,15 +151,19 @@ impl<'a> View<'a> {
     /// # Notes
     /// - All trailing whitespaces are trimmed, empty lines are skipped.
     /// - This writes directly on the writer, avoiding extra allocation.
-    fn render_lines(stdout: &mut dyn io::Write, lines: &Vec<&str>) -> () {
+    fn render_base_text(stdout: &mut dyn io::Write, lines: &Vec<&str>, colors: &ViewColors) -> () {
         for (index, line) in lines.iter().enumerate() {
             let trimmed_line = line.trim_end();
 
             if !trimmed_line.is_empty() {
                 write!(
                     stdout,
-                    "{goto}{text}",
+                    "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
                     goto = cursor::Goto(1, index as u16 + 1),
+                    fg_color = color::Fg(colors.text_fg.as_ref()),
+                    bg_color = color::Bg(colors.text_bg.as_ref()),
+                    fg_reset = color::Fg(color::Reset),
+                    bg_reset = color::Bg(color::Reset),
                     text = &trimmed_line,
                 )
                 .unwrap();
@@ -159,9 +171,9 @@ impl<'a> View<'a> {
         }
     }
 
-    /// Render the Match's `text` field on provided writer.
+    /// Render the Match's `text` field on provided writer using the `match_*g` color.
     ///
-    /// If a Mach is "focused", then it is rendered with a specific color.
+    /// If a Mach is "focused", it is then rendered with the `focused_*g` colors.
     ///
     /// # Note
     /// This writes directly on the writer, avoiding extra allocation.
@@ -173,7 +185,7 @@ impl<'a> View<'a> {
         colors: &ViewColors,
     ) {
         // To help identify it, the match thas has focus is rendered with a dedicated color.
-        let (text_fg_color, text_bg_color) = if focused {
+        let (fg_color, bg_color) = if focused {
             (&colors.focused_fg, &colors.focused_bg)
         } else {
             (&colors.match_fg, &colors.match_bg)
@@ -184,8 +196,8 @@ impl<'a> View<'a> {
             stdout,
             "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
             goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
-            fg_color = color::Fg(text_fg_color.as_ref()),
-            bg_color = color::Bg(text_bg_color.as_ref()),
+            fg_color = color::Fg(fg_color.as_ref()),
+            bg_color = color::Bg(bg_color.as_ref()),
             fg_reset = color::Fg(color::Reset),
             bg_reset = color::Bg(color::Reset),
             text = &text,
@@ -308,9 +320,9 @@ impl<'a> View<'a> {
     /// # Note
     /// Multibyte characters are taken into account, so that the Match's `text`
     /// and `hint` are rendered in their proper position.
-    fn render(&self, stdout: &mut dyn io::Write) -> () {
+    fn full_render(&self, stdout: &mut dyn io::Write) -> () {
         // 1. Trim all lines and render non-empty ones.
-        View::render_lines(stdout, self.state.lines);
+        View::render_base_text(stdout, self.state.lines, &self.rendering_colors);
 
         for (index, mat) in self.matches.iter().enumerate() {
             // 2. Render the match's text.
@@ -385,7 +397,7 @@ impl<'a> View<'a> {
             .unwrap()
             .clone();
 
-        self.render(writer);
+        self.full_render(writer);
 
         loop {
             // This is an option of a result of a key... Let's pop error cases first.
@@ -448,7 +460,7 @@ impl<'a> View<'a> {
             }
 
             // Render on stdout if we did not exit earlier.
-            self.render(writer);
+            self.full_render(writer);
         }
 
         Event::Exit
@@ -497,22 +509,36 @@ path: /usr/local/bin/git
 
 path: /usr/local/bin/cargo";
         let lines: Vec<&str> = content.split('\n').collect();
+        let colors = ViewColors {
+            text_fg: Box::new(color::Black),
+            text_bg: Box::new(color::White),
+            focused_fg: Box::new(color::Red),
+            focused_bg: Box::new(color::Blue),
+            match_fg: Box::new(color::Green),
+            match_bg: Box::new(color::Magenta),
+            hint_fg: Box::new(color::Yellow),
+            hint_bg: Box::new(color::Cyan),
+        };
 
         let mut writer = vec![];
-        View::render_lines(&mut writer, &lines);
+        View::render_base_text(&mut writer, &lines, &colors);
 
         let goto1 = cursor::Goto(1, 1);
         let goto2 = cursor::Goto(1, 2);
         let goto3 = cursor::Goto(1, 3);
         let goto6 = cursor::Goto(1, 6);
         assert_eq!(
-      writer,
-      format!(
-        "{}some text{}* e006b06 - (12 days ago) swapper: Make quotes{}path: /usr/local/bin/git{}path: /usr/local/bin/cargo",
-        goto1, goto2, goto3, goto6,
-      )
-      .as_bytes()
-    );
+            writer,
+            format!(
+                "{g1}{bg}{fg}some text{fg_reset}{bg_reset}{g2}{bg}{fg}* e006b06 - (12 days ago) swapper: Make quotes{fg_reset}{bg_reset}{g3}{bg}{fg}path: /usr/local/bin/git{fg_reset}{bg_reset}{g6}{bg}{fg}path: /usr/local/bin/cargo{fg_reset}{bg_reset}",
+                g1 = goto1, g2 = goto2, g3 = goto3, g6 = goto6,
+                fg = color::Fg(colors.text_fg.as_ref()),
+                bg = color::Bg(colors.text_bg.as_ref()),
+                fg_reset = color::Fg(color::Reset),
+                bg_reset = color::Bg(color::Reset),
+                )
+            .as_bytes()
+            );
     }
 
     #[test]
@@ -522,6 +548,8 @@ path: /usr/local/bin/cargo";
         let focused = true;
         let offset: (usize, usize) = (3, 1);
         let colors = ViewColors {
+            text_fg: Box::new(color::Black),
+            text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
             match_fg: Box::new(color::Green),
@@ -554,6 +582,8 @@ path: /usr/local/bin/cargo";
         let focused = false;
         let offset: (usize, usize) = (3, 1);
         let colors = ViewColors {
+            text_fg: Box::new(color::Black),
+            text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
             match_fg: Box::new(color::Green),
@@ -585,6 +615,8 @@ path: /usr/local/bin/cargo";
         let hint_text = "eo";
         let offset: (usize, usize) = (3, 1);
         let colors = ViewColors {
+            text_fg: Box::new(color::Black),
+            text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
             match_fg: Box::new(color::Green),
@@ -625,6 +657,8 @@ path: /usr/local/bin/cargo";
         let hint_text = "eo";
         let offset: (usize, usize) = (3, 1);
         let colors = ViewColors {
+            text_fg: Box::new(color::Black),
+            text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
             match_fg: Box::new(color::Green),
@@ -667,6 +701,8 @@ path: /usr/local/bin/cargo";
         let hint_text = "eo";
         let offset: (usize, usize) = (3, 1);
         let colors = ViewColors {
+            text_fg: Box::new(color::Black),
+            text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
             match_fg: Box::new(color::Green),
@@ -716,6 +752,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let mut state = state::State::new(&lines, &alphabet, &custom_regexes);
         let rendering_colors = ViewColors {
+            text_fg: Box::new(color::Black),
+            text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
             match_fg: Box::new(color::Green),
@@ -736,18 +774,20 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         };
 
         let mut writer = vec![];
-        view.render(&mut writer);
+        view.full_render(&mut writer);
 
-        let hide = cursor::Hide;
         let goto1 = cursor::Goto(1, 1);
         let goto3 = cursor::Goto(1, 3);
 
         let expected = format!(
-            "{hide}{goto1}lorem 127.0.0.1 lorem\
-        {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -",
-            hide = hide,
+            "{goto1}{bg}{fg}lorem 127.0.0.1 lorem{fg_reset}{bg_reset}\
+        {goto3}{bg}{fg}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
             goto1 = goto1,
             goto3 = goto3,
+            fg = color::Fg(rendering_colors.text_fg.as_ref()),
+            bg = color::Bg(rendering_colors.text_bg.as_ref()),
+            fg_reset = color::Fg(color::Reset),
+            bg_reset = color::Bg(color::Reset),
         );
 
         // println!("{:?}", writer);
@@ -775,6 +815,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let unique_hint = false;
 
         let rendering_colors = ViewColors {
+            text_fg: Box::new(color::Black),
+            text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
             match_fg: Box::new(color::Green),
@@ -795,19 +837,21 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         );
 
         let mut writer = vec![];
-        view.render(&mut writer);
+        view.full_render(&mut writer);
 
         let expected_content = {
-            let hide = cursor::Hide;
             let goto1 = cursor::Goto(1, 1);
             let goto3 = cursor::Goto(1, 3);
 
             format!(
-                "{hide}{goto1}lorem 127.0.0.1 lorem\
-        {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -",
-                hide = hide,
+                "{goto1}{bg}{fg}lorem 127.0.0.1 lorem{fg_reset}{bg_reset}\
+        {goto3}{bg}{fg}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
                 goto1 = goto1,
                 goto3 = goto3,
+                fg = color::Fg(rendering_colors.text_fg.as_ref()),
+                bg = color::Bg(rendering_colors.text_bg.as_ref()),
+                fg_reset = color::Fg(color::Reset),
+                bg_reset = color::Bg(color::Reset)
             )
         };
 
