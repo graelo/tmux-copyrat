@@ -10,14 +10,18 @@ mod tmux;
 #[derive(Clap, Debug)]
 #[clap(author, about, version)]
 struct BridgeOpt {
-    /// Command to execute on selection.
-    #[clap(long, default_value = "tmux set-buffer {}")]
-    command: String,
+    ///// Command to execute on selection.
+    //#[clap(long, default_value = "tmux set-buffer {}")]
+    //command: String,
 
-    /// Command to execute on uppercased selection.
-    #[clap(long, default_value = "tmux set-buffer {} && tmux-paste-buffer")]
-    alt_command: String,
-
+    ///// Command to execute on uppercased selection.
+    /////
+    ///// This defaults to pasting in the original pane.
+    //#[clap(
+    //    long,
+    //    default_value = "tmux set-buffer {} && tmux paste-buffer -t '#{active_pane}"
+    //)]
+    //alt_command: String,
     /// Don't read options from Tmux.
     ///
     /// By default, options formatted like `copyrat-*` are read from tmux.
@@ -52,12 +56,12 @@ impl BridgeOpt {
     ) -> Result<(), error::ParseError> {
         for (name, value) in options {
             match name.as_ref() {
-                "@copyrat-command" => {
-                    self.command = String::from(value);
-                }
-                "@copyrat-alt-command" => {
-                    self.alt_command = String::from(value);
-                }
+                // "@copyrat-command" => {
+                //     self.command = String::from(value);
+                // }
+                // "@copyrat-alt-command" => {
+                //     self.alt_command = String::from(value);
+                // }
                 "@copyrat-capture" => {
                     self.capture_region = tmux::CaptureRegion::from_str(&value)?;
                 }
@@ -104,23 +108,44 @@ fn main() -> Result<(), error::ParseError> {
 
     tmux::swap_pane_with(&temp_pane_spec)?;
 
-    // Execute a command on each selection.
     // TODO: consider getting rid of multi-selection mode.
-    selections.iter().for_each(|(text, uppercased)| {
-        let raw_command = if *uppercased {
-            opt.alt_command.replace("{}", text)
-        } else {
-            opt.command.replace("{}", text)
-        };
 
-        let mut it = raw_command.split(' ').into_iter();
-        let command = it.next().unwrap();
-        let args: Vec<&str> = it.collect();
+    // Execute a command on each group of selections (normal and uppercased).
+    let (normal_selections, uppercased_selections): (Vec<(String, bool)>, Vec<(String, bool)>) =
+        selections
+            .into_iter()
+            .partition(|(_text, uppercased)| !*uppercased);
 
+    let buffer_selections: String = normal_selections
+        .into_iter()
+        .map(|(text, _)| text)
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    if buffer_selections.len() > 0 {
+        let args = vec!["set-buffer", &buffer_selections];
         // Simply execute the command as is, and let the program crash on
         // potential errors because it is not our responsibility.
-        process::execute(&command, &args).unwrap();
-    });
+        process::execute("tmux", &args).unwrap();
+    }
+
+    let buffer_selections: String = uppercased_selections
+        .into_iter()
+        .map(|(text, _)| text)
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    if buffer_selections.len() > 0 {
+        let args = vec!["set-buffer", &buffer_selections];
+        // Simply execute the command as is, and let the program crash on
+        // potential errors because it is not our responsibility.
+        process::execute("tmux", &args).unwrap();
+
+        let args = vec!["paste-buffer", "-t", active_pane.id.as_str()];
+        // Simply execute the command as is, and let the program crash on
+        // potential errors because it is not our responsibility.
+        process::execute("tmux", &args).unwrap();
+    }
 
     Ok(())
 }

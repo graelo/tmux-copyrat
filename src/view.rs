@@ -83,6 +83,8 @@ impl FromStr for HintAlignment {
 /// # Note
 /// In practice, this is wrapped in an `Option`, so that the hint's text can be rendered with no style.
 pub enum HintStyle {
+    /// The hint's text will be bold (leveraging `termion::style::Bold`).
+    Bold,
     /// The hint's text will be italicized (leveraging `termion::style::Italic`).
     Italic,
     /// The hint's text will be underlined (leveraging `termion::style::Underline`).
@@ -231,6 +233,21 @@ impl<'a> View<'a> {
                 .unwrap();
             }
             Some(hint_style) => match hint_style {
+                HintStyle::Bold => {
+                    write!(
+                        stdout,
+                        "{goto}{bg_color}{fg_color}{sty}{hint}{sty_reset}{fg_reset}{bg_reset}",
+                        goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+                        fg_color = fg_color,
+                        bg_color = bg_color,
+                        fg_reset = fg_reset,
+                        bg_reset = bg_reset,
+                        sty = style::Bold,
+                        sty_reset = style::NoBold,
+                        hint = hint_text,
+                    )
+                    .unwrap();
+                }
                 HintStyle::Italic => {
                     write!(
                         stdout,
@@ -433,11 +450,10 @@ impl<'a> View<'a> {
                     typed_hint.push_str(&lower_key);
 
                     // Find the match that corresponds to the entered key.
-                    let selection = self
-            .matches
-            .iter()
-            // Avoid cloning typed_hint for comparison.
-            .find(|&mat| mat.hint.as_deref().unwrap_or_default() == &typed_hint);
+                    let selection = self.matches
+                        .iter()
+                        // Avoid cloning typed_hint for comparison.
+                        .find(|&mat| mat.hint.as_deref().unwrap_or_default() == &typed_hint);
 
                     match selection {
                         Some(mat) => {
