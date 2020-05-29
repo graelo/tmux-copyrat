@@ -136,6 +136,7 @@ impl FromStr for HintStyleCli {
     }
 }
 
+/// Try to parse a `&str` into a tuple of `char`s.
 fn parse_chars(src: &str) -> Result<(char, char), error::ParseError> {
     if src.len() != 2 {
         return Err(error::ParseError::ExpectedSurroundingPair);
