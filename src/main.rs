@@ -17,22 +17,18 @@ fn main() {
 
     // Execute copyrat over the buffer (will take control over stdout).
     // This returns the selected matches.
-    let selections: Vec<(String, bool)> = run(buffer, &opt);
+    let selection: Option<(String, bool)> = run(buffer, &opt);
 
     // Early exit, signaling no selections were found.
-    if selections.is_empty() {
+    if selection.is_none() {
         std::process::exit(1);
     }
 
-    let output = selections
-        .iter()
-        .map(|(text, _)| text.as_str())
-        .collect::<Vec<&str>>()
-        .join("\n");
+    let (text, _) = selection.unwrap();
 
     // Write output to a target_path if provided, else print to original stdout.
     match opt.target_path {
-        None => println!("{}", output),
+        None => println!("{}", text),
         Some(target) => {
             let mut file = OpenOptions::new()
                 .create(true)
@@ -41,7 +37,7 @@ fn main() {
                 .open(target)
                 .expect("Unable to open the target file");
 
-            file.write(output.as_bytes()).unwrap();
+            file.write(text.as_bytes()).unwrap();
         }
     }
 }

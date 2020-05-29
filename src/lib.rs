@@ -16,7 +16,7 @@ pub mod view;
 /// # Note
 ///
 /// Maybe the decision to take ownership of the buffer is a bit bold.
-pub fn run(buffer: String, opt: &CliOpt) -> Vec<(String, bool)> {
+pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
     let lines: Vec<&str> = buffer.split('\n').collect();
 
     let mut state = state::State::new(&lines, &opt.alphabet, &opt.custom_regex);
@@ -34,10 +34,9 @@ pub fn run(buffer: String, opt: &CliOpt) -> Vec<(String, bool)> {
         },
     };
 
-    let selections: Vec<(String, bool)> = {
+    let selection: Option<(String, bool)> = {
         let mut viewbox = view::View::new(
             &mut state,
-            opt.multi_selection,
             opt.reverse,
             opt.unique_hint,
             &opt.hint_alignment,
@@ -48,7 +47,7 @@ pub fn run(buffer: String, opt: &CliOpt) -> Vec<(String, bool)> {
         viewbox.present()
     };
 
-    selections
+    selection
 }
 
 /// Main configuration, parsed from command line.
@@ -71,10 +70,6 @@ pub struct CliOpt {
     /// Additional regex patterns.
     #[clap(short = "X", long)]
     custom_regex: Vec<String>,
-
-    /// Enable multi-selection.
-    #[clap(short, long)]
-    multi_selection: bool,
 
     /// Reverse the order for assigned hints.
     #[clap(short, long)]
@@ -161,9 +156,6 @@ impl CliOpt {
                 }
                 "@copyrat-regex-id" => (), // TODO
                 "@copyrat-custom-regex" => self.custom_regex = vec![String::from(value)],
-                "@copyrat-multi-selection" => {
-                    self.multi_selection = value.parse::<bool>()?;
-                }
                 "@copyrat-reverse" => {
                     self.reverse = value.parse::<bool>()?;
                 }

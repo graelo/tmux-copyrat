@@ -11,7 +11,6 @@ pub struct View<'a> {
     state: &'a mut state::State<'a>,
     matches: Vec<state::Match<'a>>,
     focus_index: usize,
-    multi: bool,
     hint_alignment: &'a HintAlignment,
     rendering_colors: &'a ViewColors,
     hint_style: Option<HintStyle>,
@@ -94,17 +93,16 @@ pub enum HintStyle {
 }
 
 /// Returned value after the `View` has finished listening to events.
-enum CaptureEvent {
+enum Event {
     /// Exit with no selected matches,
     Exit,
     /// A vector of matched text and whether it was selected with uppercase.
-    Hint(Vec<(String, bool)>),
+    Match((String, bool)),
 }
 
 impl<'a> View<'a> {
     pub fn new(
         state: &'a mut state::State<'a>,
-        multi: bool,
         reversed: bool,
         unique_hint: bool,
         hint_alignment: &'a HintAlignment,
@@ -118,7 +116,6 @@ impl<'a> View<'a> {
             state,
             matches,
             focus_index,
-            multi,
             hint_alignment,
             rendering_colors,
             hint_style,
@@ -312,8 +309,6 @@ impl<'a> View<'a> {
     /// Multibyte characters are taken into account, so that the Match's `text`
     /// and `hint` are rendered in their proper position.
     fn render(&self, stdout: &mut dyn io::Write) -> () {
-        write!(stdout, "{}", cursor::Hide).unwrap();
-
         // 1. Trim all lines and render non-empty ones.
         View::render_lines(stdout, self.state.lines);
 
@@ -365,21 +360,23 @@ impl<'a> View<'a> {
         stdout.flush().unwrap();
     }
 
-    /// Listen to keys entered on stdin, moving focus accordingly, and selecting
-    /// one or multiple matches.
+    /// Listen to keys entered on stdin, moving focus accordingly, or
+    /// selecting one match.
     ///
     /// # Panics
-    /// This function panics if termion cannot read the entered keys on stdin.
-    /// This function also panics if the user types Insert on a line without hints.
-    fn listen(&mut self, reader: &mut dyn io::Read, writer: &mut dyn io::Write) -> CaptureEvent {
+    ///
+    /// - This function panics if termion cannot read the entered keys on stdin.
+    /// - This function also panics if the user types Insert on a line without hints.
+    fn listen(&mut self, reader: &mut dyn io::Read, writer: &mut dyn io::Write) -> Event {
         use termion::input::TermRead; // Trait for `reader.keys().next()`.
 
         if self.matches.is_empty() {
-            return CaptureEvent::Exit;
+            return Event::Exit;
         }
 
-        let mut chosen = vec![];
-        let mut typed_hint: String = "".to_owned();
+        let mut typed_hint = String::new();
+
+        // TODO: simplify
         let longest_hint = self
             .matches
             .iter()
@@ -407,28 +404,9 @@ impl<'a> View<'a> {
             }
 
             match key_res.unwrap() {
-                // Clears an ongoing multi-hint selection, or exit.
                 event::Key::Esc => {
-                    if self.multi && !typed_hint.is_empty() {
-                        typed_hint.clear();
-                    } else {
-                        break;
-                    }
+                    break;
                 }
-
-                // In multi-selection mode, this appends the selected hint to the
-                // vector of selections. In normal mode, this returns with the hint
-                // selected.
-                event::Key::Insert => match self.matches.get(self.focus_index) {
-                    Some(mat) => {
-                        chosen.push((mat.text.to_string(), false));
-
-                        if !self.multi {
-                            return CaptureEvent::Hint(chosen);
-                        }
-                    }
-                    None => panic!("Match not found?"),
-                },
 
                 // Move focus to next/prev match.
                 event::Key::Up => self.prev(),
@@ -436,39 +414,29 @@ impl<'a> View<'a> {
                 event::Key::Left => self.prev(),
                 event::Key::Right => self.next(),
 
-                // Pressing space finalizes an ongoing multi-hint selection (without
-                // selecting the focused match). Pressing other characters attempts at
-                // finding a match with a corresponding hint.
+                // TODO: use a Trie or another data structure to determine
+                // if the entered key belongs to a longer hint.
+                // Attempts at finding a match with a corresponding hint.
                 event::Key::Char(ch) => {
-                    if ch == ' ' && self.multi {
-                        return CaptureEvent::Hint(chosen);
-                    }
-
                     let key = ch.to_string();
                     let lower_key = key.to_lowercase();
 
                     typed_hint.push_str(&lower_key);
 
                     // Find the match that corresponds to the entered key.
-                    let selection = self.matches
+                    let found = self.matches
                         .iter()
                         // Avoid cloning typed_hint for comparison.
                         .find(|&mat| mat.hint.as_deref().unwrap_or_default() == &typed_hint);
 
-                    match selection {
+                    match found {
                         Some(mat) => {
-                            chosen.push((mat.text.to_string(), key != lower_key));
-
-                            if self.multi {
-                                typed_hint.clear();
-                            } else {
-                                return CaptureEvent::Hint(chosen);
-                            }
+                            let text = mat.text.to_string();
+                            let uppercased = key != lower_key;
+                            return Event::Match((text, uppercased));
                         }
                         None => {
-                            // TODO: use a Trie or another data structure to determine
-                            // if the entered key belongs to a longer hint.
-                            if !self.multi && typed_hint.len() >= longest_hint.len() {
+                            if typed_hint.len() >= longest_hint.len() {
                                 break;
                             }
                         }
@@ -479,15 +447,18 @@ impl<'a> View<'a> {
                 _ => (),
             }
 
-            // Render on stdout if we did not exit earlier (move focus,
-            // multi-selection).
+            // Render on stdout if we did not exit earlier.
             self.render(writer);
         }
 
-        CaptureEvent::Exit
+        Event::Exit
     }
 
-    pub fn present(&mut self) -> Vec<(String, bool)> {
+    /// Configure the terminal and display the `View`.
+    ///
+    /// - Setup steps: switch to alternate screen, switch to raw mode, hide the cursor.
+    /// - Teardown steps: show cursor, back to main screen.
+    pub fn present(&mut self) -> Option<(String, bool)> {
         use std::io::Write;
         use termion::raw::IntoRawMode;
         use termion::screen::AlternateScreen;
@@ -499,14 +470,16 @@ impl<'a> View<'a> {
                 .expect("Cannot access alternate screen."),
         );
 
-        let hints = match self.listen(&mut stdin, &mut stdout) {
-            CaptureEvent::Exit => vec![],
-            CaptureEvent::Hint(chosen) => chosen,
+        write!(stdout, "{}", cursor::Hide).unwrap();
+
+        let selection = match self.listen(&mut stdin, &mut stdout) {
+            Event::Exit => None,
+            Event::Match((text, uppercased)) => Some((text, uppercased)),
         };
 
         write!(stdout, "{}", cursor::Show).unwrap();
 
-        hints
+        selection
     }
 }
 
@@ -757,7 +730,6 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             state: &mut state,
             matches: vec![], // no matches
             focus_index: 0,
-            multi: false,
             hint_alignment: &hint_alignment,
             rendering_colors: &rendering_colors,
             hint_style: None,
@@ -799,7 +771,6 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let custom_regexes = [].to_vec();
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let mut state = state::State::new(&lines, &alphabet, &custom_regexes);
-        let multi = false;
         let reversed = true;
         let unique_hint = false;
 
@@ -816,7 +787,6 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         let view = View::new(
             &mut state,
-            multi,
             reversed,
             unique_hint,
             &hint_alignment,
