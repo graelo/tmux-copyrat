@@ -10,18 +10,6 @@ mod tmux;
 #[derive(Clap, Debug)]
 #[clap(author, about, version)]
 struct BridgeOpt {
-    ///// Command to execute on selection.
-    //#[clap(long, default_value = "tmux set-buffer {}")]
-    //command: String,
-
-    ///// Command to execute on uppercased selection.
-    /////
-    ///// This defaults to pasting in the original pane.
-    //#[clap(
-    //    long,
-    //    default_value = "tmux set-buffer {} && tmux paste-buffer -t '#{active_pane}"
-    //)]
-    //alt_command: String,
     /// Don't read options from Tmux.
     ///
     /// By default, options formatted like `copyrat-*` are read from tmux.
@@ -50,23 +38,16 @@ struct BridgeOpt {
 
 impl BridgeOpt {
     /// Try parsing provided options, and update self with the valid values.
+    /// Unknown options are simply ignored.
     pub fn merge_map(
         &mut self,
         options: &HashMap<String, String>,
     ) -> Result<(), error::ParseError> {
         for (name, value) in options {
             match name.as_ref() {
-                // "@copyrat-command" => {
-                //     self.command = String::from(value);
-                // }
-                // "@copyrat-alt-command" => {
-                //     self.alt_command = String::from(value);
-                // }
                 "@copyrat-capture" => {
                     self.capture_region = tmux::CaptureRegion::from_str(&value)?;
                 }
-
-                // Ignore unknown options.
                 _ => (),
             }
         }
@@ -89,6 +70,7 @@ fn main() -> Result<(), error::ParseError> {
         opt.merge_map(&tmux_options)?;
     }
 
+    // Identify active pane and capture its content.
     let panes: Vec<tmux::Pane> = tmux::list_panes()?;
 
     let active_pane = panes
@@ -108,6 +90,8 @@ fn main() -> Result<(), error::ParseError> {
 
     tmux::swap_pane_with(&temp_pane_spec)?;
 
+    // Finally copy selection to a tmux buffer, and paste it to the active
+    // buffer if it was uppercased.
     // TODO: consider getting rid of multi-selection mode.
 
     // Execute a command on each group of selections (normal and uppercased).
