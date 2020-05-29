@@ -97,6 +97,12 @@ impl FromStr for PaneId {
     }
 }
 
+impl PaneId {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 impl fmt::Display for PaneId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.0)
