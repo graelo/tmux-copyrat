@@ -1,6 +1,7 @@
 use clap::Clap;
 use regex::Regex;
 use std::collections::HashMap;
+use std::fmt;
 use std::str::FromStr;
 
 use copyrat::error::ParseError;
@@ -8,8 +9,8 @@ use copyrat::process;
 
 #[derive(Debug, PartialEq)]
 pub struct Pane {
-    /// Pane identifier.
-    pub id: u32,
+    /// Pane identifier, e.g. `%37`.
+    pub id: PaneId,
     /// Describes if the pane is in some mode.
     pub in_mode: bool,
     /// Number of lines in the pane.
@@ -24,7 +25,9 @@ pub struct Pane {
     pub is_active: bool,
 }
 
-impl Pane {
+impl FromStr for Pane {
+    type Err = ParseError;
+
     /// Parse a string containing tmux panes status into a new `Pane`.
     ///
     /// This returns a `Result<Pane, ParseError>` as this call can obviously
@@ -37,17 +40,20 @@ impl Pane {
     ///
     /// For definitions, look at `Pane` type,
     /// and at the tmux man page for definitions.
-    pub fn parse(src: &str) -> Result<Pane, ParseError> {
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
         let items: Vec<&str> = src.split(':').collect();
         assert_eq!(items.len(), 5, "tmux should have returned 5 items per line");
 
         let mut iter = items.iter();
 
+        // Pane id must be start with '%' followed by a `u32`
         let id_str = iter.next().unwrap();
-        if !id_str.starts_with('%') {
-            return Err(ParseError::ExpectedPaneIdMarker);
-        }
-        let id = id_str[1..].parse::<u32>()?;
+        let id = PaneId::from_str(id_str)?;
+        // if !id_str.starts_with('%') {
+        //     return Err(ParseError::ExpectedPaneIdMarker);
+        // }
+        // let id = id_str[1..].parse::<u32>()?;
+        // let id = format!("%{}", id);
 
         let in_mode = iter.next().unwrap().parse::<bool>()?;
 
@@ -73,6 +79,58 @@ impl Pane {
     }
 }
 
+#[derive(Debug, PartialEq)]
+pub struct PaneId(String);
+
+impl FromStr for PaneId {
+    type Err = ParseError;
+
+    /// Parse into PaneId. The `&str` must be start with '%'
+    /// followed by a `u32`.
+    fn from_str(src: &str) -> Result<Self, Self::Err> {
+        if !src.starts_with('%') {
+            return Err(ParseError::ExpectedPaneIdMarker);
+        }
+        let id = src[1..].parse::<u32>()?;
+        let id = format!("%{}", id);
+        Ok(PaneId(id))
+    }
+}
+
+impl fmt::Display for PaneId {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Clap, Debug)]
+pub enum CaptureRegion {
+    /// The entire history.
+    ///
+    /// This will end up sending `-S - -E -` to `tmux capture-pane`.
+    EntireHistory,
+    /// The visible area.
+    VisibleArea,
+    ///// Region from start line to end line
+    /////
+    ///// This works as defined in tmux's docs (order does not matter).
+    //Region(i32, i32),
+}
+
+impl FromStr for CaptureRegion {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<Self, ParseError> {
+        match s {
+            "leading" => Ok(CaptureRegion::EntireHistory),
+            "trailing" => Ok(CaptureRegion::VisibleArea),
+            _ => Err(ParseError::ExpectedString(String::from(
+                "entire-history or visible-area",
+            ))),
+        }
+    }
+}
+
 /// Returns a list of `Pane` from the current tmux session.
 pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
     let args = vec![
@@ -88,7 +146,7 @@ pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
     let result: Result<Vec<Pane>, ParseError> = output
         .trim_end() // trim last '\n' as it would create an empty line
         .split('\n')
-        .map(|line| Pane::parse(line))
+        .map(|line| Pane::from_str(line))
         .collect();
 
     result
@@ -124,34 +182,6 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> 
     Ok(args)
 }
 
-#[derive(Clap, Debug)]
-pub enum CaptureRegion {
-    /// The entire history.
-    ///
-    /// This will end up sending `-S - -E -` to `tmux capture-pane`.
-    EntireHistory,
-    /// The visible area.
-    VisibleArea,
-    ///// Region from start line to end line
-    /////
-    ///// This works as defined in tmux's docs (order does not matter).
-    //Region(i32, i32),
-}
-
-impl FromStr for CaptureRegion {
-    type Err = ParseError;
-
-    fn from_str(s: &str) -> Result<Self, ParseError> {
-        match s {
-            "leading" => Ok(CaptureRegion::EntireHistory),
-            "trailing" => Ok(CaptureRegion::VisibleArea),
-            _ => Err(ParseError::ExpectedString(String::from(
-                "entire-history or visible-area",
-            ))),
-        }
-    }
-}
-
 /// Returns the entire Pane content as a `String`.
 ///
 /// `CaptureRegion` specifies if the visible area is captured, or the entire
@@ -169,11 +199,10 @@ impl FromStr for CaptureRegion {
 /// position. To support both cases, the implementation always provides those
 /// parameters to tmux.
 pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, ParseError> {
-    let mut args = format!("capture-pane -t %{id} -p", id = pane.id);
+    let mut args = format!("capture-pane -t {pane_id} -p", pane_id = pane.id);
 
     let region_str = match region {
         CaptureRegion::VisibleArea => {
-            // Will capture the visible area.
             // Providing start/end helps support both copy and normal modes.
             format!(
                 " -S {start} -E {end}",
@@ -190,51 +219,12 @@ pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, Parse
 
     let output = process::execute("tmux", &args)?;
     Ok(output)
-
-    // format!(
-    // "tmux capture-pane -t {} -p{} | {}/target/release/thumbs -f '%U:%H' -t {} {}; tmux swap-pane -t {}; tmux wait-for -S {}",
-    // active_pane_id,
-    // scroll_params,
 }
 
-/// Creates a new named window in the background (without switching to it)
-/// executing the provided command (probably `sh`) and returns a `Pane`
-/// describing the newly created pane.
-///
-/// # Note
-///
-/// Returning a new `Pane` seems overkill, given we mostly take care of its
-/// Id, but it is cleaner.
-pub fn create_new_window(name: &str, command: &str) -> Result<Pane, ParseError> {
-    let args = vec!["new-window", "-P", "-d", "-n", name, "-F",
-        "#{pane_id}:#{?pane_in_mode,true,false}:#{pane_height}:#{scroll_position}:#{?pane_active,true,false}",
-        command];
-
-    let output = process::execute("tmux", &args)?;
-
-    let pane = Pane::parse(output.trim_end())?; // trim last '\n' as it would create an empty line
-
-    Ok(pane)
-}
-
-/// Ask tmux to swap two `Pane`s and change the active pane to be the target
-/// `Pane`.
-pub fn swap_panes(pane_a: &Pane, pane_b: &Pane) -> Result<(), ParseError> {
-    let pa_id = format!("%{}", pane_a.id);
-    let pb_id = format!("%{}", pane_b.id);
-
-    let args = vec!["swap-pane", "-s", &pa_id, "-t", &pb_id];
-
-    process::execute("tmux", &args)?;
-
-    Ok(())
-}
-
-/// Ask tmux to kill the provided `Pane`.
-pub fn kill_pane(pane: &Pane) -> Result<(), ParseError> {
-    let p_id = format!("%{}", pane.id);
-
-    let args = vec!["kill-pane", "-t", &p_id];
+/// Ask tmux to swap the current Pane with the target_pane (uses Tmux format).
+pub fn swap_pane_with(target_pane: &str) -> Result<(), ParseError> {
+    // -Z: keep the window zoomed if it was zoomed.
+    let args = vec!["swap-pane", "-Z", "-s", target_pane];
 
     process::execute("tmux", &args)?;
 
@@ -244,25 +234,28 @@ pub fn kill_pane(pane: &Pane) -> Result<(), ParseError> {
 #[cfg(test)]
 mod tests {
     use super::Pane;
+    use super::PaneId;
     use copyrat::error;
+    use std::str::FromStr;
 
     #[test]
     fn test_parse_pass() {
         let output = vec!["%52:false:62:3:false", "%53:false:23::true"];
         let panes: Result<Vec<Pane>, error::ParseError> =
-            output.iter().map(|&line| Pane::parse(line)).collect();
+            output.iter().map(|&line| Pane::from_str(line)).collect();
         let panes = panes.expect("Could not parse tmux panes");
 
         let expected = vec![
             Pane {
-                id: 52,
+                id: PaneId::from_str("%52").unwrap(),
                 in_mode: false,
                 height: 62,
                 scroll_position: 3,
                 is_active: false,
             },
             Pane {
-                id: 53,
+                // id: PaneId::from_str("%53").unwrap(),
+                id: PaneId(String::from("%53")),
                 in_mode: false,
                 height: 23,
                 scroll_position: 0,
