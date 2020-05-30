@@ -59,7 +59,7 @@ pub struct CliOpt {
     /// Possible values are "{A}", "{A}-homerow", "{A}-left-hand",
     /// "{A}-right-hand", where "{A}" is one of "qwerty", "azerty", "qwertz",
     /// "dvorak", "colemak". Examples: "qwerty", "dvorak-homerow".
-    #[clap(short = "k", long, default_value = "qwerty",
+    #[clap(short = "k", long, default_value = "dvorak",
                 parse(try_from_str = alphabets::parse_alphabet))]
     alphabet: alphabets::Alphabet,
 

@@ -1,8 +1,8 @@
-use super::alphabets::Alphabet;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 
+use crate::alphabets::Alphabet;
 use crate::regexes::{EXCLUDE_PATTERNS, PATTERNS};
 
 #[derive(Clone)]
@@ -37,19 +37,19 @@ impl<'a> PartialEq for Match<'a> {
 pub struct State<'a> {
     pub lines: &'a Vec<&'a str>,
     alphabet: &'a Alphabet,
-    regexp: &'a Vec<String>,
+    custom_regexes: &'a Vec<String>,
 }
 
 impl<'a> State<'a> {
     pub fn new(
         lines: &'a Vec<&'a str>,
         alphabet: &'a Alphabet,
-        regexp: &'a Vec<String>,
+        custom_regexes: &'a Vec<String>,
     ) -> State<'a> {
         State {
             lines,
             alphabet,
-            regexp,
+            custom_regexes,
         }
     }
 
@@ -62,7 +62,7 @@ impl<'a> State<'a> {
             .collect::<Vec<_>>();
 
         let custom_patterns = self
-            .regexp
+            .custom_regexes
             .iter()
             .map(|regexp| ("custom", Regex::new(regexp).expect("Invalid custom regexp")))
             .collect::<Vec<_>>();
@@ -123,8 +123,7 @@ impl<'a> State<'a> {
             }
         }
 
-        // let alphabet = super::alphabets::get_alphabet(self.alphabet);
-        let mut hints = self.alphabet.hints(matches.len());
+        let mut hints = self.alphabet.make_hints(matches.len());
 
         // This looks wrong but we do a pop after
         if !reverse {
