@@ -57,8 +57,12 @@ pub struct CliOpt {
     /// Alphabet to draw hints from.
     ///
     /// Possible values are "{A}", "{A}-homerow", "{A}-left-hand",
-    /// "{A}-right-hand", where "{A}" is one of "qwerty", "azerty", "qwertz",
-    /// "dvorak", "colemak". Examples: "qwerty", "dvorak-homerow".
+    /// "{A}-right-hand", where "{A}" is one of "qwerty", "azerty", "qwertz"
+    /// "dvorak", "colemak".
+    ///
+    /// # Examples
+    ///
+    /// "qwerty", "dvorak-homerow", "azerty-right-hand".
     #[clap(short = "k", long, default_value = "dvorak",
                 parse(try_from_str = alphabets::parse_alphabet))]
     alphabet: alphabets::Alphabet,
