@@ -111,14 +111,13 @@ enum Event {
 impl<'a> View<'a> {
     pub fn new(
         state: &'a mut state::State<'a>,
-        reversed: bool,
         unique_hint: bool,
         hint_alignment: &'a HintAlignment,
         rendering_colors: &'a ViewColors,
         hint_style: Option<HintStyle>,
     ) -> View<'a> {
-        let matches = state.matches(reversed, unique_hint);
-        let focus_index = if reversed { matches.len() - 1 } else { 0 };
+        let matches = state.matches(unique_hint);
+        let focus_index = if state.reverse { matches.len() - 1 } else { 0 };
 
         View {
             state,
@@ -426,8 +425,20 @@ impl<'a> View<'a> {
                 event::Key::Left => self.prev(),
                 event::Key::Right => self.next(),
 
-                event::Key::Char(_ch @ 'n') => self.next(),
-                event::Key::Char(_ch @ 'N') => self.prev(),
+                event::Key::Char(_ch @ 'n') => {
+                    if self.state.reverse {
+                        self.prev()
+                    } else {
+                        self.next()
+                    }
+                }
+                event::Key::Char(_ch @ 'N') => {
+                    if self.state.reverse {
+                        self.next()
+                    } else {
+                        self.prev()
+                    }
+                }
 
                 // TODO: use a Trie or another data structure to determine
                 // if the entered key belongs to a longer hint.
@@ -753,7 +764,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         let custom_regexes = [].to_vec();
         let alphabet = alphabets::Alphabet("abcd".to_string());
-        let mut state = state::State::new(&lines, &alphabet, &custom_regexes);
+        let mut state = state::State::new(&lines, &alphabet, &custom_regexes, false);
         let rendering_colors = ViewColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -813,8 +824,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         let custom_regexes = [].to_vec();
         let alphabet = alphabets::Alphabet("abcd".to_string());
-        let mut state = state::State::new(&lines, &alphabet, &custom_regexes);
-        let reversed = true;
+        let reverse = true;
+        let mut state = state::State::new(&lines, &alphabet, &custom_regexes, reverse);
         let unique_hint = false;
 
         let rendering_colors = ViewColors {
@@ -832,7 +843,6 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         let view = View::new(
             &mut state,
-            reversed,
             unique_hint,
             &hint_alignment,
             &rendering_colors,

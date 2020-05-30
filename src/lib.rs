@@ -19,7 +19,7 @@ pub mod view;
 pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
     let lines: Vec<&str> = buffer.split('\n').collect();
 
-    let mut state = state::State::new(&lines, &opt.alphabet, &opt.custom_regex);
+    let mut state = state::State::new(&lines, &opt.alphabet, &opt.custom_regex, opt.reverse);
 
     let hint_style = match &opt.hint_style {
         None => None,
@@ -37,7 +37,6 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
     let selection: Option<(String, bool)> = {
         let mut viewbox = view::View::new(
             &mut state,
-            opt.reverse,
             opt.unique_hint,
             &opt.hint_alignment,
             &opt.colors,
