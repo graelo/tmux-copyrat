@@ -38,6 +38,7 @@ pub struct State<'a> {
     pub lines: &'a Vec<&'a str>,
     alphabet: &'a Alphabet,
     custom_regexes: &'a Vec<String>,
+    pub reverse: bool,
 }
 
 impl<'a> State<'a> {
@@ -45,15 +46,17 @@ impl<'a> State<'a> {
         lines: &'a Vec<&'a str>,
         alphabet: &'a Alphabet,
         custom_regexes: &'a Vec<String>,
+        reverse: bool,
     ) -> State<'a> {
         State {
             lines,
             alphabet,
             custom_regexes,
+            reverse,
         }
     }
 
-    pub fn matches(&self, reverse: bool, unique: bool) -> Vec<Match<'a>> {
+    pub fn matches(&self, unique: bool) -> Vec<Match<'a>> {
         let mut matches = Vec::new();
 
         let exclude_patterns = EXCLUDE_PATTERNS
@@ -126,7 +129,7 @@ impl<'a> State<'a> {
         let mut hints = self.alphabet.make_hints(matches.len());
 
         // This looks wrong but we do a pop after
-        if !reverse {
+        if !self.reverse {
             hints.reverse();
         } else {
             matches.reverse();
@@ -152,7 +155,7 @@ impl<'a> State<'a> {
             }
         }
 
-        if reverse {
+        if self.reverse {
             matches.reverse();
         }
 
@@ -174,7 +177,7 @@ mod tests {
         let lines = split("lorem 127.0.0.1 lorem 255.255.255.255 lorem 127.0.0.1 lorem");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.first().unwrap().hint.clone().unwrap(), "a");
@@ -186,7 +189,7 @@ mod tests {
         let lines = split("lorem 127.0.0.1 lorem 255.255.255.255 lorem 127.0.0.1 lorem");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, true);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(true);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.first().unwrap().hint.clone().unwrap(), "a");
@@ -198,7 +201,7 @@ mod tests {
         let lines = split("latest sha256:30557a29d5abc51e5f1d5b472e79b7e296f595abcf19fe6b9199dbbc809c6ff4 20 hours ago");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(
@@ -212,7 +215,7 @@ mod tests {
         let lines = split("path: [32m/var/log/nginx.log[m\npath: [32mtest/log/nginx-2.log:32[mfolder/.nginx@4df2.log");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text, "/var/log/nginx.log");
@@ -225,7 +228,7 @@ mod tests {
         let lines = split("Lorem /tmp/foo/bar_lol, lorem\n Lorem /var/log/boot-strap.log lorem ../log/kern.log lorem");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text.clone(), "/tmp/foo/bar_lol");
@@ -241,7 +244,7 @@ mod tests {
         let lines = split("Lorem ~/.gnu/.config.txt, lorem");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.get(0).unwrap().text.clone(), "~/.gnu/.config.txt");
@@ -253,7 +256,7 @@ mod tests {
             split("Lorem ipsum 123e4567-e89b-12d3-a456-426655440000 lorem\n Lorem lorem lorem");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
     }
@@ -263,7 +266,7 @@ mod tests {
         let lines = split("Lorem fd70b5695 5246ddf f924213 lorem\n Lorem 973113963b491874ab2e372ee60d4b4cb75f717c lorem");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 4);
         assert_eq!(results.get(0).unwrap().text.clone(), "fd70b5695");
@@ -281,7 +284,7 @@ mod tests {
             split("Lorem ipsum 127.0.0.1 lorem\n Lorem 255.255.10.255 lorem 127.0.0.1 lorem");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text.clone(), "127.0.0.1");
@@ -294,7 +297,7 @@ mod tests {
         let lines = split("Lorem ipsum fe80::2:202:fe4 lorem\n Lorem 2001:67c:670:202:7ba8:5e41:1591:d723 lorem fe80::2:1 lorem ipsum fe80:22:312:fe::1%eth0");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 4);
         assert_eq!(results.get(0).unwrap().text.clone(), "fe80::2:202:fe4");
@@ -316,7 +319,7 @@ mod tests {
         );
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 2);
         assert_eq!(results.get(0).unwrap().pattern.clone(), "markdown_url");
@@ -336,7 +339,7 @@ mod tests {
         let lines = split("Lorem ipsum https://www.rust-lang.org/tools lorem\n Lorem ipsumhttps://crates.io lorem https://github.io?foo=bar lorem ssh://github.io");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 4);
         assert_eq!(
@@ -360,7 +363,7 @@ mod tests {
         let lines = split("Lorem 0xfd70b5695 0x5246ddf lorem\n Lorem 0x973113tlorem");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text.clone(), "0xfd70b5695");
@@ -374,7 +377,7 @@ mod tests {
             split("Lorem #fd7b56 lorem #FF00FF\n Lorem #00fF05 lorem #abcd00 lorem #afRR00");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 4);
         assert_eq!(results.get(0).unwrap().text.clone(), "#fd7b56");
@@ -388,7 +391,7 @@ mod tests {
         let lines = split("Lorem QmRdbNSxDJBXmssAc9fvTtux4duptMvfSGiGuq6yHAQVKQ lorem Qmfoobar");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(
@@ -403,7 +406,7 @@ mod tests {
       split("Lorem 5695 52463 lorem\n Lorem 973113 lorem 99999 lorem 8888 lorem\n   23456 lorem 5432 lorem 23444");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 8);
     }
@@ -413,7 +416,7 @@ mod tests {
         let lines = split("Lorem lorem\n--- a/src/main.rs");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.get(0).unwrap().text.clone(), "src/main.rs");
@@ -424,7 +427,7 @@ mod tests {
         let lines = split("Lorem lorem\n+++ b/src/main.rs");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.get(0).unwrap().text.clone(), "src/main.rs");
@@ -439,7 +442,7 @@ mod tests {
             .map(|&s| s.to_string())
             .collect();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &custom).matches(false, false);
+        let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 9);
         assert_eq!(results.get(0).unwrap().text.clone(), "http://foo.bar");
