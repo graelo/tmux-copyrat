@@ -426,6 +426,9 @@ impl<'a> View<'a> {
                 event::Key::Left => self.prev(),
                 event::Key::Right => self.next(),
 
+                event::Key::Char(_ch @ 'n') => self.next(),
+                event::Key::Char(_ch @ 'N') => self.prev(),
+
                 // TODO: use a Trie or another data structure to determine
                 // if the entered key belongs to a longer hint.
                 // Attempts at finding a match with a corresponding hint.
