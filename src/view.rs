@@ -352,20 +352,18 @@ impl<'a> View<'a> {
 
             // 3. Render the hint (e.g. "eo") as an overlay on top of the rendered matched text,
             // aligned at its leading or the trailing edge.
-            if let Some(ref hint) = mat.hint {
-                let extra_offset = match self.hint_alignment {
-                    HintAlignment::Leading => 0,
-                    HintAlignment::Trailing => text.len() - hint.len(),
-                };
+            let extra_offset = match self.hint_alignment {
+                HintAlignment::Leading => 0,
+                HintAlignment::Trailing => text.len() - mat.hint.len(),
+            };
 
-                View::render_matched_hint(
-                    stdout,
-                    hint,
-                    (offset_x + extra_offset, offset_y),
-                    &self.rendering_colors,
-                    &self.hint_style,
-                );
-            }
+            View::render_matched_hint(
+                stdout,
+                &mat.hint,
+                (offset_x + extra_offset, offset_y),
+                &self.rendering_colors,
+                &self.hint_style,
+            );
         }
 
         stdout.flush().unwrap();
@@ -391,7 +389,7 @@ impl<'a> View<'a> {
         let longest_hint = self
             .matches
             .iter()
-            .filter_map(|m| m.hint.clone())
+            .map(|m| &m.hint)
             .max_by(|x, y| x.len().cmp(&y.len()))
             .unwrap()
             .clone();
@@ -453,7 +451,7 @@ impl<'a> View<'a> {
                     let found = self.matches
                         .iter()
                         // Avoid cloning typed_hint for comparison.
-                        .find(|&mat| mat.hint.as_deref().unwrap_or_default() == &typed_hint);
+                        .find(|&mat| &mat.hint == &typed_hint);
 
                     match found {
                         Some(mat) => {
