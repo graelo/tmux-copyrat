@@ -11,7 +11,7 @@ pub struct Match<'a> {
     pub y: i32,
     pub pattern: &'a str,
     pub text: &'a str,
-    pub hint: Option<String>,
+    pub hint: String,
 }
 
 impl<'a> fmt::Debug for Match<'a> {
@@ -19,11 +19,7 @@ impl<'a> fmt::Debug for Match<'a> {
         write!(
             f,
             "Match {{ x: {}, y: {}, pattern: {}, text: {}, hint: <{}> }}",
-            self.x,
-            self.y,
-            self.pattern,
-            self.text,
-            self.hint.clone().unwrap_or("<undefined>".to_string())
+            self.x, self.y, self.pattern, self.text, self.hint,
         )
     }
 }
@@ -31,6 +27,24 @@ impl<'a> fmt::Debug for Match<'a> {
 impl<'a> PartialEq for Match<'a> {
     fn eq(&self, other: &Match) -> bool {
         self.x == other.x && self.y == other.y
+    }
+}
+
+/// Internal surrogate for `Match`, before a Hint has been associated.
+struct RawMatch<'a> {
+    pub x: i32,
+    pub y: i32,
+    pub pattern: &'a str,
+    pub text: &'a str,
+}
+
+impl<'a> fmt::Debug for RawMatch<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "RawMatch {{ x: {}, y: {}, pattern: {}, text: {} }}",
+            self.x, self.y, self.pattern, self.text,
+        )
     }
 }
 
@@ -57,109 +71,153 @@ impl<'a> State<'a> {
     }
 
     pub fn matches(&self, unique: bool) -> Vec<Match<'a>> {
-        let mut matches = Vec::new();
+        let mut raw_matches = self.raw_matches();
 
-        let exclude_patterns = EXCLUDE_PATTERNS
-            .iter()
-            .map(|tuple| (tuple.0, Regex::new(tuple.1).unwrap()))
-            .collect::<Vec<_>>();
-
-        let custom_patterns = self
-            .custom_regexes
-            .iter()
-            .map(|regexp| ("custom", Regex::new(regexp).expect("Invalid custom regexp")))
-            .collect::<Vec<_>>();
-
-        let patterns = PATTERNS
-            .iter()
-            .map(|tuple| (tuple.0, Regex::new(tuple.1).unwrap()))
-            .collect::<Vec<_>>();
-
-        let all_patterns = [exclude_patterns, custom_patterns, patterns].concat();
-
-        for (index, line) in self.lines.iter().enumerate() {
-            let mut chunk: &str = line;
-            let mut offset: i32 = 0;
-
-            loop {
-                let submatches = all_patterns
-                    .iter()
-                    .filter_map(|tuple| match tuple.1.find_iter(chunk).nth(0) {
-                        Some(m) => Some((tuple.0, tuple.1.clone(), m)),
-                        None => None,
-                    })
-                    .collect::<Vec<_>>();
-                let first_match_option = submatches
-                    .iter()
-                    .min_by(|x, y| x.2.start().cmp(&y.2.start()));
-
-                if let Some(first_match) = first_match_option {
-                    let (name, pattern, matching) = first_match;
-                    let text = matching.as_str();
-
-                    if let Some(captures) = pattern.captures(text) {
-                        let (subtext, substart) = if let Some(capture) = captures.get(1) {
-                            (capture.as_str(), capture.start())
-                        } else {
-                            (matching.as_str(), 0)
-                        };
-
-                        // Never hint or broke bash color sequences
-                        if *name != "bash" {
-                            matches.push(Match {
-                                x: offset + matching.start() as i32 + substart as i32,
-                                y: index as i32,
-                                pattern: name,
-                                text: subtext,
-                                hint: None,
-                            });
-                        }
-
-                        chunk = chunk.get(matching.end()..).expect("Unknown chunk");
-                        offset += matching.end() as i32;
-                    } else {
-                        panic!("No matching?");
-                    }
-                } else {
-                    break;
-                }
-            }
+        if self.reverse {
+            raw_matches.reverse();
         }
 
-        let mut hints = self.alphabet.make_hints(matches.len());
-
-        // This looks wrong but we do a pop after
-        if !self.reverse {
-            hints.reverse();
-        } else {
-            matches.reverse();
-            hints.reverse();
-        }
-
-        if unique {
-            let mut previous: HashMap<&str, String> = HashMap::new();
-
-            for mat in &mut matches {
-                if let Some(previous_hint) = previous.get(mat.text) {
-                    mat.hint = Some(previous_hint.clone());
-                } else if let Some(hint) = hints.pop() {
-                    mat.hint = Some(hint.to_string().clone());
-                    previous.insert(mat.text, hint.to_string().clone());
-                }
-            }
-        } else {
-            for mat in &mut matches {
-                if let Some(hint) = hints.pop() {
-                    mat.hint = Some(hint.to_string().clone());
-                }
-            }
-        }
+        let mut matches = self.associate_hints(&raw_matches, unique);
 
         if self.reverse {
             matches.reverse();
         }
 
         matches
+    }
+
+    fn raw_matches(&self) -> Vec<RawMatch<'a>> {
+        let mut matches = Vec::new();
+
+        let exclude_regexes = EXCLUDE_PATTERNS
+            .iter()
+            .map(|&(name, pattern)| (name, Regex::new(pattern).unwrap()))
+            .collect::<Vec<_>>();
+
+        let custom_regexes = self
+            .custom_regexes
+            .iter()
+            .map(|pattern| {
+                (
+                    "custom",
+                    Regex::new(pattern).expect("Invalid custom regexp"),
+                )
+            })
+            .collect::<Vec<_>>();
+
+        let regexes = PATTERNS
+            .iter()
+            .map(|&(name, pattern)| (name, Regex::new(pattern).unwrap()))
+            .collect::<Vec<_>>();
+
+        let all_regexes = [exclude_regexes, custom_regexes, regexes].concat();
+
+        for (index, line) in self.lines.iter().enumerate() {
+            // Remainder of the line to be searched for matches.
+            // This advances iteratively, until no matches can be found.
+            let mut chunk: &str = line;
+            let mut offset: i32 = 0;
+
+            // Use all avail regexes to match the chunk and select the match
+            // occuring the earliest on the chunk. Save its matched text and
+            // position in a `Match` struct.
+            loop {
+                let chunk_matches = all_regexes
+                    .iter()
+                    .filter_map(|(&ref name, regex)| match regex.find_iter(chunk).nth(0) {
+                        Some(m) => Some((name, regex.clone(), m)),
+                        None => None,
+                    })
+                    .collect::<Vec<_>>();
+
+                if chunk_matches.is_empty() {
+                    break;
+                }
+
+                let first_match = chunk_matches
+                    .iter()
+                    .min_by(|x, y| x.2.start().cmp(&y.2.start()))
+                    .unwrap();
+
+                let (name, pattern, matching) = first_match;
+                let text = matching.as_str();
+
+                let captures = pattern
+                    .captures(text)
+                    .expect("At this stage the regex must have matched.");
+
+                // Handle both capturing and non-capturing patterns.
+                let (subtext, substart) = if let Some(capture) = captures.get(1) {
+                    (capture.as_str(), capture.start())
+                } else {
+                    (text, 0)
+                };
+
+                // Never hint or break ansi color sequences.
+                if *name != "ansi_colors" {
+                    matches.push(RawMatch {
+                        x: offset + matching.start() as i32 + substart as i32,
+                        y: index as i32,
+                        pattern: name,
+                        text: subtext,
+                    });
+                }
+
+                chunk = chunk.get(matching.end()..).expect("Unknown chunk");
+                offset += matching.end() as i32;
+            }
+        }
+
+        matches
+    }
+
+    /// Associate a hint to each `RawMatch`, returning a vector of `Match`es.
+    ///
+    /// If `unique` is `true`, all duplicate matches will have the same hint.
+    /// For copying matched text, this seems easier and more natural.
+    /// If `unique` is `false`, duplicate matches will have their own hint.
+    fn associate_hints(&self, raw_matches: &Vec<RawMatch<'a>>, unique: bool) -> Vec<Match<'a>> {
+        let hints = self.alphabet.make_hints(raw_matches.len());
+        let mut hints_iter = hints.iter();
+
+        let mut result: Vec<Match<'a>> = vec![];
+
+        if unique {
+            // Map (text, hint)
+            let mut known: HashMap<&str, &str> = HashMap::new();
+
+            for raw_mat in raw_matches {
+                let hint: &str = known.entry(raw_mat.text).or_insert(
+                    hints_iter
+                        .next()
+                        .expect("We should have as many hints as necessary, even invisible ones."),
+                );
+
+                result.push(Match {
+                    x: raw_mat.x,
+                    y: raw_mat.y,
+                    pattern: raw_mat.pattern,
+                    text: raw_mat.text,
+                    hint: hint.to_string(),
+                });
+            }
+        } else {
+            for raw_mat in raw_matches {
+                let hint = hints_iter
+                    .next()
+                    .expect("We should have as many hints as necessary, even invisible ones.");
+
+                result.push(Match {
+                    x: raw_mat.x,
+                    y: raw_mat.y,
+                    pattern: raw_mat.pattern,
+                    text: raw_mat.text,
+                    hint: hint.to_string(),
+                });
+            }
+        }
+
+        result
     }
 }
 
@@ -180,8 +238,8 @@ mod tests {
         let results = State::new(&lines, &alphabet, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
-        assert_eq!(results.first().unwrap().hint.clone().unwrap(), "a");
-        assert_eq!(results.last().unwrap().hint.clone().unwrap(), "c");
+        assert_eq!(results.first().unwrap().hint, "a");
+        assert_eq!(results.last().unwrap().hint, "c");
     }
 
     #[test]
@@ -192,8 +250,8 @@ mod tests {
         let results = State::new(&lines, &alphabet, &custom, false).matches(true);
 
         assert_eq!(results.len(), 3);
-        assert_eq!(results.first().unwrap().hint.clone().unwrap(), "a");
-        assert_eq!(results.last().unwrap().hint.clone().unwrap(), "a");
+        assert_eq!(results.first().unwrap().hint, "a");
+        assert_eq!(results.last().unwrap().hint, "a");
     }
 
     #[test]
@@ -211,7 +269,7 @@ mod tests {
     }
 
     #[test]
-    fn match_bash() {
+    fn match_ansi_colors() {
         let lines = split("path: [32m/var/log/nginx.log[m\npath: [32mtest/log/nginx-2.log:32[mfolder/.nginx@4df2.log");
         let custom = [].to_vec();
         let alphabet = Alphabet("abcd".to_string());

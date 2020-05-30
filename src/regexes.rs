@@ -1,5 +1,5 @@
 pub const EXCLUDE_PATTERNS: [(&'static str, &'static str); 1] =
-    [("bash", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
+    [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
 
 pub const PATTERNS: [(&'static str, &'static str); 14] = [
     ("markdown_url", r"\[[^]]*\]\(([^)]+)\)"),
