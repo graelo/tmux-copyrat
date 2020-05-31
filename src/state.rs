@@ -1,4 +1,5 @@
 use regex::Regex;
+use sequence_trie::SequenceTrie;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -70,6 +71,8 @@ impl<'a> State<'a> {
         }
     }
 
+    /// Returns a vector of `Match`es, each corresponding to a pattern match
+    /// in the lines, its location (x, y), and associated hint.
     pub fn matches(&self, unique: bool) -> Vec<Match<'a>> {
         let mut raw_matches = self.raw_matches();
 
@@ -86,6 +89,9 @@ impl<'a> State<'a> {
         matches
     }
 
+    /// Internal function that searches the state lines for pattern matches.
+    /// Returns a vector of `RawMatch`es (text, location, pattern id) without
+    /// an associated hint. The hint is attached to `Match`, not to `RawMatch`.
     fn raw_matches(&self) -> Vec<RawMatch<'a>> {
         let mut matches = Vec::new();
 
@@ -218,6 +224,24 @@ impl<'a> State<'a> {
         }
 
         result
+    }
+
+    /// Builds a `SequenceTrie` that helps determine if a sequence of keys
+    /// entered by the user corresponds to a match. This kind of lookup
+    /// directly returns a reference to the corresponding `Match` if any.
+    pub fn build_lookup_trie(matches: &'a Vec<Match<'a>>) -> SequenceTrie<char, usize> {
+        let mut trie = SequenceTrie::new();
+
+        for (index, mat) in matches.iter().enumerate() {
+            let hint_chars = mat.hint.chars().collect::<Vec<char>>();
+
+            // no need to insert twice the same hint
+            if trie.get(&hint_chars).is_none() {
+                trie.insert_owned(hint_chars, index);
+            }
+        }
+
+        trie
     }
 }
 
