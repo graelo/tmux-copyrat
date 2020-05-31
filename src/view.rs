@@ -1,15 +1,17 @@
-use super::{colors, state};
-
-use crate::error::ParseError;
 use clap::Clap;
+use sequence_trie::SequenceTrie;
 use std::char;
 use std::io;
 use std::str::FromStr;
 use termion::{self, color, cursor, event, style};
 
+use crate::error::ParseError;
+use crate::{colors, state};
+
 pub struct View<'a> {
     state: &'a mut state::State<'a>,
     matches: Vec<state::Match<'a>>,
+    lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
     hint_alignment: &'a HintAlignment,
     rendering_colors: &'a ViewColors,
@@ -117,11 +119,13 @@ impl<'a> View<'a> {
         hint_style: Option<HintStyle>,
     ) -> View<'a> {
         let matches = state.matches(unique_hint);
+        let lookup_trie = state::State::build_lookup_trie(&matches);
         let focus_index = if state.reverse { matches.len() - 1 } else { 0 };
 
         View {
             state,
             matches,
+            lookup_trie,
             focus_index,
             hint_alignment,
             rendering_colors,
@@ -385,15 +389,6 @@ impl<'a> View<'a> {
 
         let mut typed_hint = String::new();
 
-        // TODO: simplify
-        let longest_hint = self
-            .matches
-            .iter()
-            .map(|m| &m.hint)
-            .max_by(|x, y| x.len().cmp(&y.len()))
-            .unwrap()
-            .clone();
-
         self.full_render(writer);
 
         loop {
@@ -447,21 +442,26 @@ impl<'a> View<'a> {
 
                     typed_hint.push_str(&lower_key);
 
-                    // Find the match that corresponds to the entered key.
-                    let found = self.matches
-                        .iter()
-                        // Avoid cloning typed_hint for comparison.
-                        .find(|&mat| &mat.hint == &typed_hint);
-
-                    match found {
-                        Some(mat) => {
-                            let text = mat.text.to_string();
-                            let uppercased = key != lower_key;
-                            return Event::Match((text, uppercased));
-                        }
+                    match self
+                        .lookup_trie
+                        .get_node(&typed_hint.chars().collect::<Vec<char>>())
+                    {
                         None => {
-                            if typed_hint.len() >= longest_hint.len() {
-                                break;
+                            // An unknown key was entered.
+                            return Event::Exit;
+                        }
+                        Some(node) => {
+                            if node.is_leaf() {
+                                // The last key of a hint was entered.
+                                let match_index = node.value().expect("By construction, the Lookup Trie should have a value for each leaf.");
+                                let mat = self.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
+                                let text = mat.text.to_string();
+                                let uppercased = key != lower_key;
+                                return Event::Match((text, uppercased));
+                            } else {
+                                // The prefix of a hint was entered, but we
+                                // still need more keys.
+                                continue;
                             }
                         }
                     }
@@ -779,6 +779,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let view = View {
             state: &mut state,
             matches: vec![], // no matches
+            lookup_trie: SequenceTrie::new(),
             focus_index: 0,
             hint_alignment: &hint_alignment,
             rendering_colors: &rendering_colors,
