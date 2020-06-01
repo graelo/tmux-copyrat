@@ -1,5 +1,11 @@
 use crate::error;
 
+/// Catalog of available alphabets.
+///
+/// # Note
+///
+/// Keep in mind letters 'n' and 'y' are systematically removed at runtime to
+/// prevent conflict with navigation and yank/copy keys.
 const ALPHABETS: [(&'static str, &'static str); 21] = [
     // ("abcd", "abcd"),
     ("qwerty", "asdfqwerzxcvjklmiuopghtybn"),
@@ -24,7 +30,7 @@ const ALPHABETS: [(&'static str, &'static str); 21] = [
     ("colemak-right-hand", "neioluymjhk"),
     (
         "longest",
-        "aoeuqjkxpyhtnsgcrlmwvzfidb;,~<>'@!#$%^&*~1234567890",
+        "aoeuqjkxpyhtnsgcrlmwvzfidb-;,~<>'@!#$%^&*~1234567890",
     ),
 ];
 
@@ -33,13 +39,14 @@ const ALPHABETS: [(&'static str, &'static str); 21] = [
 /// # Note
 ///
 /// Letters 'n' and 'N' are systematically removed to prevent conflict with
-/// navigation keys (arrows and 'n' 'N').
+/// navigation keys (arrows and 'n' 'N'). Letters 'y' and 'Y' are also removed
+/// to prevent conflict with yank/copy.
 pub fn parse_alphabet(src: &str) -> Result<Alphabet, error::ParseError> {
     let alphabet_pair = ALPHABETS.iter().find(|&(name, _letters)| name == &src);
 
     match alphabet_pair {
         Some((_name, letters)) => {
-            let letters = letters.replace(&['n', 'N'][..], "");
+            let letters = letters.replace(&['n', 'N', 'y', 'Y'][..], "");
             Ok(Alphabet(letters.to_string()))
         }
         None => Err(error::ParseError::UnknownAlphabet),
