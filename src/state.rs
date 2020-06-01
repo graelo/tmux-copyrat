@@ -1,12 +1,14 @@
+use std::collections;
+use std::fmt;
+
 use regex::Regex;
 use sequence_trie::SequenceTrie;
-use std::collections::HashMap;
-use std::fmt;
 
 use crate::alphabets::Alphabet;
 use crate::regexes::{NamedPattern, EXCLUDE_PATTERNS, PATTERNS};
 
-#[derive(Clone)]
+/// Represents matched text, its location on screen, the pattern that created
+/// it, and the associated hint.
 pub struct Match<'a> {
     pub x: i32,
     pub y: i32,
@@ -22,12 +24,6 @@ impl<'a> fmt::Debug for Match<'a> {
             "Match {{ x: {}, y: {}, pattern: {}, text: {}, hint: <{}> }}",
             self.x, self.y, self.pattern, self.text, self.hint,
         )
-    }
-}
-
-impl<'a> PartialEq for Match<'a> {
-    fn eq(&self, other: &Match) -> bool {
-        self.x == other.x && self.y == other.y
     }
 }
 
@@ -49,6 +45,7 @@ impl<'a> fmt::Debug for RawMatch<'a> {
     }
 }
 
+/// Holds data for the `View`.
 pub struct State<'a> {
     pub lines: &'a Vec<&'a str>,
     alphabet: &'a Alphabet,
@@ -95,6 +92,13 @@ impl<'a> State<'a> {
     /// Internal function that searches the state lines for pattern matches.
     /// Returns a vector of `RawMatch`es (text, location, pattern id) without
     /// an associated hint. The hint is attached to `Match`, not to `RawMatch`.
+    ///
+    /// # Notes
+    ///
+    /// Custom regexes have priority over other regexes.
+    ///
+    /// If no named patterns were specified, it will search for all available
+    /// patterns from the `PATTERNS` catalog.
     fn raw_matches(&self) -> Vec<RawMatch<'a>> {
         let mut matches = Vec::new();
 
@@ -141,7 +145,7 @@ impl<'a> State<'a> {
                 let chunk_matches = all_regexes
                     .iter()
                     .filter_map(|(&ref name, regex)| match regex.find_iter(chunk).nth(0) {
-                        Some(m) => Some((name, regex.clone(), m)),
+                        Some(m) => Some((name, regex, m)),
                         None => None,
                     })
                     .collect::<Vec<_>>();
@@ -150,12 +154,12 @@ impl<'a> State<'a> {
                     break;
                 }
 
-                let first_match = chunk_matches
+                // First match on the chunk.
+                let (name, pattern, matching) = chunk_matches
                     .iter()
                     .min_by(|x, y| x.2.start().cmp(&y.2.start()))
                     .unwrap();
 
-                let (name, pattern, matching) = first_match;
                 let text = matching.as_str();
 
                 let captures = pattern
@@ -200,7 +204,7 @@ impl<'a> State<'a> {
 
         if unique {
             // Map (text, hint)
-            let mut known: HashMap<&str, &str> = HashMap::new();
+            let mut known: collections::HashMap<&str, &str> = collections::HashMap::new();
 
             for raw_mat in raw_matches {
                 let hint: &str = known.entry(raw_mat.text).or_insert(
