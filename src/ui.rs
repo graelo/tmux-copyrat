@@ -314,7 +314,7 @@ impl<'a> Ui<'a> {
     /// and `hint` are rendered in their proper position.
     fn full_render(&self, stdout: &mut dyn io::Write) -> () {
         // 1. Trim all lines and render non-empty ones.
-        Ui::render_base_text(stdout, self.model.lines, &self.rendering_colors);
+        Ui::render_base_text(stdout, &self.model.lines, &self.rendering_colors);
 
         for (index, mat) in self.matches.iter().enumerate() {
             let focused = index == self.focus_index;
@@ -798,12 +798,10 @@ path: /usr/local/bin/cargo";
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
-        let lines = content.split('\n').collect();
-
         let named_pat = vec![];
         let custom_regexes = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
-        let mut model = model::Model::new(&lines, &alphabet, &named_pat, &custom_regexes, false);
+        let mut model = model::Model::new(content, &alphabet, &named_pat, &custom_regexes, false);
         let rendering_colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -861,13 +859,11 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
-        let lines = content.split('\n').collect();
-
         let named_pat = vec![];
         let custom_regexes = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let reverse = true;
-        let mut model = model::Model::new(&lines, &alphabet, &named_pat, &custom_regexes, reverse);
+        let mut model = model::Model::new(content, &alphabet, &named_pat, &custom_regexes, reverse);
         let unique_hint = false;
         let wrap_around = false;
 
