@@ -45,8 +45,8 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
             &mut model,
             opt.unique_hint,
             opt.focus_wrap_around,
-            &opt.hint_alignment,
             &opt.colors,
+            &opt.hint_alignment,
             hint_style,
         );
 
