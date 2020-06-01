@@ -282,20 +282,23 @@ impl<'a> View<'a> {
                 &self.rendering_colors,
             );
 
-            // 3. Render the hint (e.g. "eo") as an overlay on top of the rendered matched text,
-            // aligned at its leading or the trailing edge.
-            let extra_offset = match self.hint_alignment {
-                HintAlignment::Leading => 0,
-                HintAlignment::Trailing => text.len() - mat.hint.len(),
-            };
+            if !focused {
+                // 3. If not focused, render the hint (e.g. "eo") as an overlay on
+                // top of the rendered matched text, aligned at its leading or the
+                // trailing edge.
+                let extra_offset = match self.hint_alignment {
+                    HintAlignment::Leading => 0,
+                    HintAlignment::Trailing => text.len() - mat.hint.len(),
+                };
 
-            View::render_matched_hint(
-                stdout,
-                &mat.hint,
-                (offset_x + extra_offset, offset_y),
-                &self.rendering_colors,
-                &self.hint_style,
-            );
+                View::render_matched_hint(
+                    stdout,
+                    &mat.hint,
+                    (offset_x + extra_offset, offset_y),
+                    &self.rendering_colors,
+                    &self.hint_style,
+                );
+            }
         }
 
         stdout.flush().unwrap();
@@ -891,25 +894,28 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
       )
         };
 
-        let expected_match2_hint = {
-            let goto11_3 = cursor::Goto(11, 3);
+        // Because reverse is true, this second match is focused,
+        // then the hint should not be rendered.
 
-            format!(
-                "{goto11_3}{hint_bg}{hint_fg}a{fg_reset}{bg_reset}",
-                goto11_3 = goto11_3,
-                hint_fg = color::Fg(rendering_colors.hint_fg.as_ref()),
-                hint_bg = color::Bg(rendering_colors.hint_bg.as_ref()),
-                fg_reset = color::Fg(color::Reset),
-                bg_reset = color::Bg(color::Reset)
-            )
-        };
+        // let expected_match2_hint = {
+        //     let goto11_3 = cursor::Goto(11, 3);
+
+        //     format!(
+        //         "{goto11_3}{hint_bg}{hint_fg}a{fg_reset}{bg_reset}",
+        //         goto11_3 = goto11_3,
+        //         hint_fg = color::Fg(rendering_colors.hint_fg.as_ref()),
+        //         hint_bg = color::Bg(rendering_colors.hint_bg.as_ref()),
+        //         fg_reset = color::Fg(color::Reset),
+        //         bg_reset = color::Bg(color::Reset)
+        //     )
+        // };
 
         let expected = [
             expected_content,
             expected_match1_text,
             expected_match1_hint,
             expected_match2_text,
-            expected_match2_hint,
+            // expected_match2_hint,
         ]
         .concat();
 
