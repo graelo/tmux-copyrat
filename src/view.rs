@@ -360,6 +360,15 @@ impl<'a> View<'a> {
                     }
                 }
 
+                event::Key::Char(_ch @ 'y') => {
+                    let text = self.matches.get(self.focus_index).unwrap().text;
+                    return Event::Match((text.to_string(), false));
+                }
+                event::Key::Char(_ch @ 'Y') => {
+                    let text = self.matches.get(self.focus_index).unwrap().text;
+                    return Event::Match((text.to_string(), true));
+                }
+
                 // TODO: use a Trie or another data structure to determine
                 // if the entered key belongs to a longer hint.
                 // Attempts at finding a match with a corresponding hint.
