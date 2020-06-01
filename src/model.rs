@@ -46,7 +46,7 @@ impl<'a> fmt::Debug for RawMatch<'a> {
 }
 
 /// Holds data for the `View`.
-pub struct State<'a> {
+pub struct Model<'a> {
     pub lines: &'a Vec<&'a str>,
     alphabet: &'a Alphabet,
     named_patterns: &'a Vec<NamedPattern>,
@@ -54,15 +54,15 @@ pub struct State<'a> {
     pub reverse: bool,
 }
 
-impl<'a> State<'a> {
+impl<'a> Model<'a> {
     pub fn new(
         lines: &'a Vec<&'a str>,
         alphabet: &'a Alphabet,
         named_patterns: &'a Vec<NamedPattern>,
         custom_regexes: &'a Vec<String>,
         reverse: bool,
-    ) -> State<'a> {
-        State {
+    ) -> Model<'a> {
+        Model {
             lines,
             alphabet,
             named_patterns,
@@ -89,7 +89,7 @@ impl<'a> State<'a> {
         matches
     }
 
-    /// Internal function that searches the state lines for pattern matches.
+    /// Internal function that searches the model's lines for pattern matches.
     /// Returns a vector of `RawMatch`es (text, location, pattern id) without
     /// an associated hint. The hint is attached to `Match`, not to `RawMatch`.
     ///
@@ -274,7 +274,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.first().unwrap().hint, "a");
@@ -287,7 +287,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(true);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(true);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.first().unwrap().hint, "a");
@@ -300,7 +300,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(
@@ -315,7 +315,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text, "/var/log/nginx.log");
@@ -329,7 +329,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text, "/tmp/foo/bar_lol");
@@ -343,7 +343,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.get(0).unwrap().text, "~/.gnu/.config.txt");
@@ -356,7 +356,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
     }
@@ -367,7 +367,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 4);
         assert_eq!(results.get(0).unwrap().text, "fd70b5695");
@@ -386,7 +386,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text, "127.0.0.1");
@@ -400,7 +400,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 4);
         assert_eq!(results.get(0).unwrap().text, "fe80::2:202:fe4");
@@ -420,7 +420,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 2);
         assert_eq!(results.get(0).unwrap().pattern, "markdown_url");
@@ -435,7 +435,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 4);
         assert_eq!(
@@ -457,7 +457,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text, "0xfd70b5695");
@@ -472,7 +472,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 4);
         assert_eq!(results.get(0).unwrap().text, "#fd7b56");
@@ -487,7 +487,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(
@@ -503,7 +503,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 8);
     }
@@ -514,7 +514,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.get(0).unwrap().text, "src/main.rs");
@@ -526,7 +526,7 @@ mod tests {
         let named_pat = vec![];
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.get(0).unwrap().text, "src/main.rs");
@@ -542,7 +542,7 @@ mod tests {
             .map(|&s| s.to_string())
             .collect();
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 9);
         assert_eq!(results.get(0).unwrap().text, "http://foo.bar");
@@ -571,7 +571,7 @@ mod tests {
 
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
-        let results = State::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
+        let results = Model::new(&lines, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 2);
         assert_eq!(results.get(0).unwrap().text, "http://foo.bar");

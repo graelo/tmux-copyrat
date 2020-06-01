@@ -1,16 +1,17 @@
-use clap::Clap;
-use sequence_trie::SequenceTrie;
 use std::char;
 use std::io;
 use std::str::FromStr;
+
+use clap::Clap;
+use sequence_trie::SequenceTrie;
 use termion::{self, color, cursor, event, style};
 
 use crate::error::ParseError;
-use crate::{colors, state};
+use crate::{colors, model};
 
 pub struct View<'a> {
-    state: &'a mut state::State<'a>,
-    matches: Vec<state::Match<'a>>,
+    model: &'a mut model::Model<'a>,
+    matches: Vec<model::Match<'a>>,
     lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
     hint_alignment: &'a HintAlignment,
@@ -112,18 +113,18 @@ enum Event {
 
 impl<'a> View<'a> {
     pub fn new(
-        state: &'a mut state::State<'a>,
+        model: &'a mut model::Model<'a>,
         unique_hint: bool,
         hint_alignment: &'a HintAlignment,
         rendering_colors: &'a ViewColors,
         hint_style: Option<HintStyle>,
     ) -> View<'a> {
-        let matches = state.matches(unique_hint);
-        let lookup_trie = state::State::build_lookup_trie(&matches);
-        let focus_index = if state.reverse { matches.len() - 1 } else { 0 };
+        let matches = model.matches(unique_hint);
+        let lookup_trie = model::Model::build_lookup_trie(&matches);
+        let focus_index = if model.reverse { matches.len() - 1 } else { 0 };
 
         View {
-            state,
+            model,
             matches,
             lookup_trie,
             focus_index,
@@ -147,7 +148,7 @@ impl<'a> View<'a> {
         }
     }
 
-    /// Render entire state lines on provided writer.
+    /// Render entire model lines on provided writer.
     ///
     /// This renders the basic content on which matches and hints can be rendered.
     ///
@@ -325,7 +326,7 @@ impl<'a> View<'a> {
     /// and `hint` are rendered in their proper position.
     fn full_render(&self, stdout: &mut dyn io::Write) -> () {
         // 1. Trim all lines and render non-empty ones.
-        View::render_base_text(stdout, self.state.lines, &self.rendering_colors);
+        View::render_base_text(stdout, self.model.lines, &self.rendering_colors);
 
         for (index, mat) in self.matches.iter().enumerate() {
             // 2. Render the match's text.
@@ -335,7 +336,7 @@ impl<'a> View<'a> {
             // instance ´ + e = é. Consequently the hint offset has to be adjusted
             // to the left.
             let offset_x = {
-                let line = &self.state.lines[mat.y as usize];
+                let line = &self.model.lines[mat.y as usize];
                 let prefix = &line[0..mat.x as usize];
                 let adjust = prefix.len() - prefix.chars().count();
                 (mat.x as usize) - (adjust)
@@ -419,14 +420,14 @@ impl<'a> View<'a> {
                 event::Key::Right => self.next(),
 
                 event::Key::Char(_ch @ 'n') => {
-                    if self.state.reverse {
+                    if self.model.reverse {
                         self.prev()
                     } else {
                         self.next()
                     }
                 }
                 event::Key::Char(_ch @ 'N') => {
-                    if self.state.reverse {
+                    if self.model.reverse {
                         self.next()
                     } else {
                         self.prev()
@@ -763,7 +764,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let named_pat = vec![];
         let custom_regexes = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
-        let mut state = state::State::new(&lines, &alphabet, &named_pat, &custom_regexes, false);
+        let mut model = model::Model::new(&lines, &alphabet, &named_pat, &custom_regexes, false);
         let rendering_colors = ViewColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -778,7 +779,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         // create a view without any match
         let view = View {
-            state: &mut state,
+            model: &mut model,
             matches: vec![], // no matches
             lookup_trie: SequenceTrie::new(),
             focus_index: 0,
@@ -826,7 +827,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let custom_regexes = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let reverse = true;
-        let mut state = state::State::new(&lines, &alphabet, &named_pat, &custom_regexes, reverse);
+        let mut model = model::Model::new(&lines, &alphabet, &named_pat, &custom_regexes, reverse);
         let unique_hint = false;
 
         let rendering_colors = ViewColors {
@@ -843,7 +844,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let hint_style = None;
 
         let view = View::new(
-            &mut state,
+            &mut model,
             unique_hint,
             &hint_alignment,
             &rendering_colors,

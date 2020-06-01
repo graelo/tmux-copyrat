@@ -6,9 +6,9 @@ use std::str::FromStr;
 pub mod alphabets;
 pub mod colors;
 pub mod error;
+pub mod model;
 pub mod process;
 pub mod regexes;
-pub mod state;
 pub mod view;
 
 /// Run copyrat on an input string `buffer`, configured by `Opt`.
@@ -19,7 +19,7 @@ pub mod view;
 pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
     let lines: Vec<&str> = buffer.split('\n').collect();
 
-    let mut state = state::State::new(
+    let mut model = model::Model::new(
         &lines,
         &opt.alphabet,
         &opt.named_pattern,
@@ -42,7 +42,7 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
 
     let selection: Option<(String, bool)> = {
         let mut viewbox = view::View::new(
-            &mut state,
+            &mut model,
             opt.unique_hint,
             &opt.hint_alignment,
             &opt.colors,
