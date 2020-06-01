@@ -7,44 +7,6 @@ use sequence_trie::SequenceTrie;
 use crate::alphabets::Alphabet;
 use crate::regexes::{NamedPattern, EXCLUDE_PATTERNS, PATTERNS};
 
-/// Represents matched text, its location on screen, the pattern that created
-/// it, and the associated hint.
-pub struct Match<'a> {
-    pub x: i32,
-    pub y: i32,
-    pub pattern: &'a str,
-    pub text: &'a str,
-    pub hint: String,
-}
-
-impl<'a> fmt::Debug for Match<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Match {{ x: {}, y: {}, pattern: {}, text: {}, hint: <{}> }}",
-            self.x, self.y, self.pattern, self.text, self.hint,
-        )
-    }
-}
-
-/// Internal surrogate for `Match`, before a Hint has been associated.
-struct RawMatch<'a> {
-    pub x: i32,
-    pub y: i32,
-    pub pattern: &'a str,
-    pub text: &'a str,
-}
-
-impl<'a> fmt::Debug for RawMatch<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "RawMatch {{ x: {}, y: {}, pattern: {}, text: {} }}",
-            self.x, self.y, self.pattern, self.text,
-        )
-    }
-}
-
 /// Holds data for the `Ui`.
 pub struct Model<'a> {
     pub lines: &'a Vec<&'a str>,
@@ -256,6 +218,44 @@ impl<'a> Model<'a> {
         }
 
         trie
+    }
+}
+
+/// Represents matched text, its location on screen, the pattern that created
+/// it, and the associated hint.
+pub struct Match<'a> {
+    pub x: i32,
+    pub y: i32,
+    pub pattern: &'a str,
+    pub text: &'a str,
+    pub hint: String,
+}
+
+impl<'a> fmt::Debug for Match<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "Match {{ x: {}, y: {}, pattern: {}, text: {}, hint: <{}> }}",
+            self.x, self.y, self.pattern, self.text, self.hint,
+        )
+    }
+}
+
+/// Internal surrogate for `Match`, before a Hint has been associated.
+struct RawMatch<'a> {
+    pub x: i32,
+    pub y: i32,
+    pub pattern: &'a str,
+    pub text: &'a str,
+}
+
+impl<'a> fmt::Debug for RawMatch<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
+            "RawMatch {{ x: {}, y: {}, pattern: {}, text: {} }}",
+            self.x, self.y, self.pattern, self.text,
+        )
     }
 }
 
