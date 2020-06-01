@@ -44,6 +44,7 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
         let mut viewbox = view::View::new(
             &mut model,
             opt.unique_hint,
+            opt.focus_wrap_around,
             &opt.hint_alignment,
             &opt.colors,
             hint_style,
@@ -94,6 +95,10 @@ pub struct CliOpt {
     /// Align hint with its match.
     #[clap(short = "a", long, arg_enum, default_value = "leading")]
     hint_alignment: view::HintAlignment,
+
+    /// Move focus back to first/last match.
+    #[clap(long)]
+    focus_wrap_around: bool,
 
     /// Optional hint styling.
     ///

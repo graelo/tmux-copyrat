@@ -14,6 +14,7 @@ pub struct View<'a> {
     matches: Vec<model::Match<'a>>,
     lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
+    focus_wrap_around: bool,
     hint_alignment: &'a HintAlignment,
     rendering_colors: &'a ViewColors,
     hint_style: Option<HintStyle>,
@@ -115,6 +116,7 @@ impl<'a> View<'a> {
     pub fn new(
         model: &'a mut model::Model<'a>,
         unique_hint: bool,
+        focus_wrap_around: bool,
         hint_alignment: &'a HintAlignment,
         rendering_colors: &'a ViewColors,
         hint_style: Option<HintStyle>,
@@ -128,6 +130,7 @@ impl<'a> View<'a> {
             matches,
             lookup_trie,
             focus_index,
+            focus_wrap_around,
             hint_alignment,
             rendering_colors,
             hint_style,
@@ -136,15 +139,31 @@ impl<'a> View<'a> {
 
     /// Move focus onto the previous hint.
     pub fn prev(&mut self) {
-        if self.focus_index > 0 {
-            self.focus_index -= 1;
+        if self.focus_wrap_around {
+            if self.focus_index == 0 {
+                self.focus_index = self.matches.len() - 1;
+            } else {
+                self.focus_index -= 1;
+            }
+        } else {
+            if self.focus_index > 0 {
+                self.focus_index -= 1;
+            }
         }
     }
 
     /// Move focus onto the next hint.
     pub fn next(&mut self) {
-        if self.focus_index < self.matches.len() - 1 {
-            self.focus_index += 1;
+        if self.focus_wrap_around {
+            if self.focus_index == self.matches.len() - 1 {
+                self.focus_index = 0;
+            } else {
+                self.focus_index += 1;
+            }
+        } else {
+            if self.focus_index < self.matches.len() - 1 {
+                self.focus_index += 1;
+            }
         }
     }
 
@@ -380,7 +399,6 @@ impl<'a> View<'a> {
     /// # Panics
     ///
     /// - This function panics if termion cannot read the entered keys on stdin.
-    /// - This function also panics if the user types Insert on a line without hints.
     fn listen(&mut self, reader: &mut dyn io::Read, writer: &mut dyn io::Write) -> Event {
         use termion::input::TermRead; // Trait for `reader.keys().next()`.
 
@@ -783,6 +801,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             matches: vec![], // no matches
             lookup_trie: SequenceTrie::new(),
             focus_index: 0,
+            focus_wrap_around: false,
             hint_alignment: &hint_alignment,
             rendering_colors: &rendering_colors,
             hint_style: None,
@@ -829,6 +848,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let reverse = true;
         let mut model = model::Model::new(&lines, &alphabet, &named_pat, &custom_regexes, reverse);
         let unique_hint = false;
+        let wrap_around = false;
 
         let rendering_colors = ViewColors {
             text_fg: Box::new(color::Black),
@@ -846,6 +866,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let view = View::new(
             &mut model,
             unique_hint,
+            wrap_around,
             &hint_alignment,
             &rendering_colors,
             hint_style,
