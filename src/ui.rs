@@ -368,7 +368,7 @@ impl<'a> Ui<'a> {
 
             if next_key.is_none() {
                 // Nothing in the buffer. Wait for a bit...
-                std::thread::sleep(std::time::Duration::from_millis(50));
+                std::thread::sleep(std::time::Duration::from_millis(25));
                 continue;
             }
 
