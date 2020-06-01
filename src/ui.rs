@@ -15,8 +15,8 @@ pub struct Ui<'a> {
     lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
     focus_wrap_around: bool,
-    hint_alignment: &'a HintAlignment,
     rendering_colors: &'a UiColors,
+    hint_alignment: &'a HintAlignment,
     hint_style: Option<HintStyle>,
 }
 
@@ -25,8 +25,8 @@ impl<'a> Ui<'a> {
         model: &'a mut model::Model<'a>,
         unique_hint: bool,
         focus_wrap_around: bool,
-        hint_alignment: &'a HintAlignment,
         rendering_colors: &'a UiColors,
+        hint_alignment: &'a HintAlignment,
         hint_style: Option<HintStyle>,
     ) -> Ui<'a> {
         let matches = model.matches(unique_hint);
@@ -39,8 +39,8 @@ impl<'a> Ui<'a> {
             lookup_trie,
             focus_index,
             focus_wrap_around,
-            hint_alignment,
             rendering_colors,
+            hint_alignment,
             hint_style,
         }
     }
@@ -823,8 +823,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             lookup_trie: SequenceTrie::new(),
             focus_index: 0,
             focus_wrap_around: false,
-            hint_alignment: &hint_alignment,
             rendering_colors: &rendering_colors,
+            hint_alignment: &hint_alignment,
             hint_style: None,
         };
 
@@ -888,8 +888,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             &mut model,
             unique_hint,
             wrap_around,
-            &hint_alignment,
             &rendering_colors,
+            &hint_alignment,
             hint_style,
         );
 
