@@ -5,6 +5,7 @@ pub enum ParseError {
     ExpectedSurroundingPair,
     UnknownAlphabet,
     UnknownColor,
+    UnknownPatternName,
     ExpectedPaneIdMarker,
     ExpectedInt(std::num::ParseIntError),
     ExpectedBool(std::str::ParseBoolError),
@@ -20,6 +21,7 @@ impl fmt::Display for ParseError {
             ParseError::UnknownColor => {
                 write!(f, "Expected ANSI color name (magenta, cyan, black, ...)")
             }
+            ParseError::UnknownPatternName => write!(f, "Expected a known pattern name"),
             ParseError::ExpectedPaneIdMarker => write!(f, "Expected pane id marker"),
             ParseError::ExpectedInt(msg) => write!(f, "Expected an int: {}", msg),
             ParseError::ExpectedBool(msg) => write!(f, "Expected a bool: {}", msg),

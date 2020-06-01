@@ -760,9 +760,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         let lines = content.split('\n').collect();
 
-        let custom_regexes = [].to_vec();
+        let named_pat = vec![];
+        let custom_regexes = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
-        let mut state = state::State::new(&lines, &alphabet, &custom_regexes, false);
+        let mut state = state::State::new(&lines, &alphabet, &named_pat, &custom_regexes, false);
         let rendering_colors = ViewColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -821,10 +822,11 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         let lines = content.split('\n').collect();
 
-        let custom_regexes = [].to_vec();
+        let named_pat = vec![];
+        let custom_regexes = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let reverse = true;
-        let mut state = state::State::new(&lines, &alphabet, &custom_regexes, reverse);
+        let mut state = state::State::new(&lines, &alphabet, &named_pat, &custom_regexes, reverse);
         let unique_hint = false;
 
         let rendering_colors = ViewColors {

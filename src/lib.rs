@@ -19,7 +19,13 @@ pub mod view;
 pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
     let lines: Vec<&str> = buffer.split('\n').collect();
 
-    let mut state = state::State::new(&lines, &opt.alphabet, &opt.custom_regex, opt.reverse);
+    let mut state = state::State::new(
+        &lines,
+        &opt.alphabet,
+        &opt.named_pattern,
+        &opt.custom_regex,
+        opt.reverse,
+    );
 
     let hint_style = match &opt.hint_style {
         None => None,
@@ -66,15 +72,15 @@ pub struct CliOpt {
                 parse(try_from_str = alphabets::parse_alphabet))]
     alphabet: alphabets::Alphabet,
 
-    // /// Which existing regexes to use.
-    // #[clap(short = "x", long, arg_enum)]
-    // regex_id: Vec<regexes::RegexId>,
-    //
+    /// Pattern names to use (all if not specified).
+    #[clap(short = "x", long = "--pattern-name", parse(try_from_str = regexes::parse_pattern_name))]
+    named_pattern: Vec<regexes::NamedPattern>,
+
     /// Additional regex patterns.
     #[clap(short = "X", long)]
     custom_regex: Vec<String>,
 
-    /// Reverse the order for assigned hints.
+    /// Assign hints starting from the bottom of the screen.
     #[clap(short, long)]
     reverse: bool,
 
