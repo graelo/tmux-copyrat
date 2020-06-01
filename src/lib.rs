@@ -17,10 +17,8 @@ pub mod ui;
 ///
 /// Maybe the decision to take ownership of the buffer is a bit bold.
 pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
-    let lines: Vec<&str> = buffer.split('\n').collect();
-
     let mut model = model::Model::new(
-        &lines,
+        &buffer,
         &opt.alphabet,
         &opt.named_pattern,
         &opt.custom_regex,
