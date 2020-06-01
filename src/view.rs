@@ -436,28 +436,29 @@ impl<'a> View<'a> {
 
                     typed_hint.push_str(&lower_key);
 
-                    match self
+                    let node = self
                         .lookup_trie
-                        .get_node(&typed_hint.chars().collect::<Vec<char>>())
-                    {
-                        None => {
-                            // An unknown key was entered.
-                            return Event::Exit;
-                        }
-                        Some(node) => {
-                            if node.is_leaf() {
-                                // The last key of a hint was entered.
-                                let match_index = node.value().expect("By construction, the Lookup Trie should have a value for each leaf.");
-                                let mat = self.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
-                                let text = mat.text.to_string();
-                                let uppercased = key != lower_key;
-                                return Event::Match((text, uppercased));
-                            } else {
-                                // The prefix of a hint was entered, but we
-                                // still need more keys.
-                                continue;
-                            }
-                        }
+                        .get_node(&typed_hint.chars().collect::<Vec<char>>());
+
+                    if node.is_none() {
+                        // An unknown key was entered.
+                        return Event::Exit;
+                    }
+
+                    let node = node.unwrap();
+                    if node.is_leaf() {
+                        // The last key of a hint was entered.
+                        let match_index = node.value().expect(
+                            "By construction, the Lookup Trie should have a value for each leaf.",
+                        );
+                        let mat = self.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
+                        let text = mat.text.to_string();
+                        let uppercased = key != lower_key;
+                        return Event::Match((text, uppercased));
+                    } else {
+                        // The prefix of a hint was entered, but we
+                        // still need more keys.
+                        continue;
                     }
                 }
 
