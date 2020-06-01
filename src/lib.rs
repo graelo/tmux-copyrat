@@ -9,7 +9,7 @@ pub mod error;
 pub mod model;
 pub mod process;
 pub mod regexes;
-pub mod view;
+pub mod ui;
 
 /// Run copyrat on an input string `buffer`, configured by `Opt`.
 ///
@@ -30,18 +30,18 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
     let hint_style = match &opt.hint_style {
         None => None,
         Some(style) => match style {
-            HintStyleCli::Bold => Some(view::HintStyle::Bold),
-            HintStyleCli::Italic => Some(view::HintStyle::Italic),
-            HintStyleCli::Underline => Some(view::HintStyle::Underline),
+            HintStyleCli::Bold => Some(ui::HintStyle::Bold),
+            HintStyleCli::Italic => Some(ui::HintStyle::Italic),
+            HintStyleCli::Underline => Some(ui::HintStyle::Underline),
             HintStyleCli::Surround => {
                 let (open, close) = opt.hint_surroundings;
-                Some(view::HintStyle::Surround(open, close))
+                Some(ui::HintStyle::Surround(open, close))
             }
         },
     };
 
     let selection: Option<(String, bool)> = {
-        let mut viewbox = view::View::new(
+        let mut ui = ui::Ui::new(
             &mut model,
             opt.unique_hint,
             opt.focus_wrap_around,
@@ -50,7 +50,7 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
             hint_style,
         );
 
-        viewbox.present()
+        ui.present()
     };
 
     selection
@@ -90,11 +90,11 @@ pub struct CliOpt {
     unique_hint: bool,
 
     #[clap(flatten)]
-    colors: view::ViewColors,
+    colors: ui::UiColors,
 
     /// Align hint with its match.
     #[clap(short = "a", long, arg_enum, default_value = "leading")]
-    hint_alignment: view::HintAlignment,
+    hint_alignment: ui::HintAlignment,
 
     /// Move focus back to first/last match.
     #[clap(long)]
@@ -124,7 +124,7 @@ pub struct CliOpt {
 }
 
 /// Type introduced due to parsing limitation,
-/// as we cannot directly parse into view::HintStyle.
+/// as we cannot directly parse into ui::HintStyle.
 #[derive(Debug, Clap)]
 enum HintStyleCli {
     Bold,
@@ -185,7 +185,7 @@ impl CliOpt {
                 "@copyrat-hint-bg" => self.colors.hint_bg = colors::parse_color(value)?,
 
                 "@copyrat-hint-alignment" => {
-                    self.hint_alignment = view::HintAlignment::from_str(&value)?
+                    self.hint_alignment = ui::HintAlignment::from_str(&value)?
                 }
                 "@copyrat-hint-style" => self.hint_style = Some(HintStyleCli::from_str(&value)?),
 

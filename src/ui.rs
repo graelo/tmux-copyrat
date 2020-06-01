@@ -9,31 +9,31 @@ use termion::{self, color, cursor, event, style};
 use crate::error::ParseError;
 use crate::{colors, model};
 
-pub struct View<'a> {
+pub struct Ui<'a> {
     model: &'a mut model::Model<'a>,
     matches: Vec<model::Match<'a>>,
     lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
     focus_wrap_around: bool,
     hint_alignment: &'a HintAlignment,
-    rendering_colors: &'a ViewColors,
+    rendering_colors: &'a UiColors,
     hint_style: Option<HintStyle>,
 }
 
-impl<'a> View<'a> {
+impl<'a> Ui<'a> {
     pub fn new(
         model: &'a mut model::Model<'a>,
         unique_hint: bool,
         focus_wrap_around: bool,
         hint_alignment: &'a HintAlignment,
-        rendering_colors: &'a ViewColors,
+        rendering_colors: &'a UiColors,
         hint_style: Option<HintStyle>,
-    ) -> View<'a> {
+    ) -> Ui<'a> {
         let matches = model.matches(unique_hint);
         let lookup_trie = model::Model::build_lookup_trie(&matches);
         let focus_index = if model.reverse { matches.len() - 1 } else { 0 };
 
-        View {
+        Ui {
             model,
             matches,
             lookup_trie,
@@ -108,7 +108,7 @@ impl<'a> View<'a> {
     /// # Notes
     /// - All trailing whitespaces are trimmed, empty lines are skipped.
     /// - This writes directly on the writer, avoiding extra allocation.
-    fn render_base_text(stdout: &mut dyn io::Write, lines: &Vec<&str>, colors: &ViewColors) -> () {
+    fn render_base_text(stdout: &mut dyn io::Write, lines: &Vec<&str>, colors: &UiColors) -> () {
         for (index, line) in lines.iter().enumerate() {
             let trimmed_line = line.trim_end();
 
@@ -140,7 +140,7 @@ impl<'a> View<'a> {
         text: &str,
         focused: bool,
         offset: (usize, usize),
-        colors: &ViewColors,
+        colors: &UiColors,
     ) {
         // To help identify it, the match thas has focus is rendered with a dedicated color.
         let (fg_color, bg_color) = if focused {
@@ -177,7 +177,7 @@ impl<'a> View<'a> {
         stdout: &mut dyn io::Write,
         hint_text: &str,
         offset: (usize, usize),
-        colors: &ViewColors,
+        colors: &UiColors,
         hint_style: &Option<HintStyle>,
     ) {
         let fg_color = color::Fg(colors.hint_fg.as_ref());
@@ -271,7 +271,7 @@ impl<'a> View<'a> {
 
         let (offset_x, offset_y) = self.match_offsets(mat);
 
-        View::render_matched_text(
+        Ui::render_matched_text(
             stdout,
             text,
             focused,
@@ -288,7 +288,7 @@ impl<'a> View<'a> {
                 HintAlignment::Trailing => text.len() - mat.hint.len(),
             };
 
-            View::render_matched_hint(
+            Ui::render_matched_hint(
                 stdout,
                 &mat.hint,
                 (offset_x + extra_offset, offset_y),
@@ -298,7 +298,7 @@ impl<'a> View<'a> {
         }
     }
 
-    /// Full nender the view on the provided writer.
+    /// Full nender the Ui on the provided writer.
     ///
     /// This renders in 3 phases:
     /// - all lines are rendered verbatim
@@ -314,7 +314,7 @@ impl<'a> View<'a> {
     /// and `hint` are rendered in their proper position.
     fn full_render(&self, stdout: &mut dyn io::Write) -> () {
         // 1. Trim all lines and render non-empty ones.
-        View::render_base_text(stdout, self.model.lines, &self.rendering_colors);
+        Ui::render_base_text(stdout, self.model.lines, &self.rendering_colors);
 
         for (index, mat) in self.matches.iter().enumerate() {
             let focused = index == self.focus_index;
@@ -472,7 +472,7 @@ impl<'a> View<'a> {
         Event::Exit
     }
 
-    /// Configure the terminal and display the `View`.
+    /// Configure the terminal and display the `Ui`.
     ///
     /// - Setup steps: switch to alternate screen, switch to raw mode, hide the cursor.
     /// - Teardown steps: show cursor, back to main screen.
@@ -539,7 +539,7 @@ pub enum HintStyle {
     Surround(char, char),
 }
 
-/// Returned value after the `View` has finished listening to events.
+/// Returned value after the `Ui` has finished listening to events.
 enum Event {
     /// Exit with no selected matches,
     Exit,
@@ -561,7 +561,7 @@ path: /usr/local/bin/git
 
 path: /usr/local/bin/cargo";
         let lines: Vec<&str> = content.split('\n').collect();
-        let colors = ViewColors {
+        let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
@@ -573,7 +573,7 @@ path: /usr/local/bin/cargo";
         };
 
         let mut writer = vec![];
-        View::render_base_text(&mut writer, &lines, &colors);
+        Ui::render_base_text(&mut writer, &lines, &colors);
 
         let goto1 = cursor::Goto(1, 1);
         let goto2 = cursor::Goto(1, 2);
@@ -599,7 +599,7 @@ path: /usr/local/bin/cargo";
         let text = "https://en.wikipedia.org/wiki/Barcelona";
         let focused = true;
         let offset: (usize, usize) = (3, 1);
-        let colors = ViewColors {
+        let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
@@ -610,7 +610,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        View::render_matched_text(&mut writer, text, focused, offset, &colors);
+        Ui::render_matched_text(&mut writer, text, focused, offset, &colors);
 
         assert_eq!(
             writer,
@@ -633,7 +633,7 @@ path: /usr/local/bin/cargo";
         let text = "https://en.wikipedia.org/wiki/Barcelona";
         let focused = false;
         let offset: (usize, usize) = (3, 1);
-        let colors = ViewColors {
+        let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
@@ -644,7 +644,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        View::render_matched_text(&mut writer, text, focused, offset, &colors);
+        Ui::render_matched_text(&mut writer, text, focused, offset, &colors);
 
         assert_eq!(
             writer,
@@ -666,7 +666,7 @@ path: /usr/local/bin/cargo";
         let mut writer = vec![];
         let hint_text = "eo";
         let offset: (usize, usize) = (3, 1);
-        let colors = ViewColors {
+        let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
@@ -680,7 +680,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = None;
 
-        View::render_matched_hint(
+        Ui::render_matched_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -708,7 +708,7 @@ path: /usr/local/bin/cargo";
         let mut writer = vec![];
         let hint_text = "eo";
         let offset: (usize, usize) = (3, 1);
-        let colors = ViewColors {
+        let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
@@ -722,7 +722,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = Some(HintStyle::Underline);
 
-        View::render_matched_hint(
+        Ui::render_matched_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -752,7 +752,7 @@ path: /usr/local/bin/cargo";
         let mut writer = vec![];
         let hint_text = "eo";
         let offset: (usize, usize) = (3, 1);
-        let colors = ViewColors {
+        let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
@@ -766,7 +766,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = Some(HintStyle::Surround('{', '}'));
 
-        View::render_matched_hint(
+        Ui::render_matched_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -804,7 +804,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let custom_regexes = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let mut model = model::Model::new(&lines, &alphabet, &named_pat, &custom_regexes, false);
-        let rendering_colors = ViewColors {
+        let rendering_colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
@@ -816,8 +816,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         };
         let hint_alignment = HintAlignment::Leading;
 
-        // create a view without any match
-        let view = View {
+        // create a Ui without any match
+        let ui = Ui {
             model: &mut model,
             matches: vec![], // no matches
             lookup_trie: SequenceTrie::new(),
@@ -829,7 +829,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         };
 
         let mut writer = vec![];
-        view.full_render(&mut writer);
+        ui.full_render(&mut writer);
 
         let goto1 = cursor::Goto(1, 1);
         let goto3 = cursor::Goto(1, 3);
@@ -848,7 +848,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         // println!("{:?}", writer);
         // println!("{:?}", expected.as_bytes());
 
-        // println!("matches: {}", view.matches.len());
+        // println!("matches: {}", ui.matches.len());
         // println!("lines: {}", lines.len());
 
         assert_eq!(writer, expected.as_bytes());
@@ -871,7 +871,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let unique_hint = false;
         let wrap_around = false;
 
-        let rendering_colors = ViewColors {
+        let rendering_colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
@@ -884,7 +884,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let hint_alignment = HintAlignment::Leading;
         let hint_style = None;
 
-        let view = View::new(
+        let ui = Ui::new(
             &mut model,
             unique_hint,
             wrap_around,
@@ -894,7 +894,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         );
 
         let mut writer = vec![];
-        view.full_render(&mut writer);
+        ui.full_render(&mut writer);
 
         let expected_content = {
             let goto1 = cursor::Goto(1, 1);
@@ -984,7 +984,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         //   .find(|(_idx, (&l, &r))| l != r);
         // println!("{:?}", diff_point);
 
-        assert_eq!(2, view.matches.len());
+        assert_eq!(2, ui.matches.len());
 
         assert_eq!(writer, expected.as_bytes());
     }
@@ -996,7 +996,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 /// - `normal_*` colors are used to render other matched text.
 /// - `hint_*` colors are used to render the hints.
 #[derive(Clap, Debug)]
-pub struct ViewColors {
+pub struct UiColors {
     /// Foreground color for base text.
     #[clap(long, default_value = "bright-cyan", parse(try_from_str = colors::parse_color))]
     pub text_fg: Box<dyn color::Color>,

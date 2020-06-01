@@ -45,7 +45,7 @@ impl<'a> fmt::Debug for RawMatch<'a> {
     }
 }
 
-/// Holds data for the `View`.
+/// Holds data for the `Ui`.
 pub struct Model<'a> {
     pub lines: &'a Vec<&'a str>,
     alphabet: &'a Alphabet,
