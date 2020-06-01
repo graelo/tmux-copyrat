@@ -45,8 +45,10 @@ impl<'a> View<'a> {
         }
     }
 
-    /// Move focus onto the previous hint.
-    pub fn prev(&mut self) {
+    /// Move focus onto the previous hint, returning both the index of the
+    /// previously focused match, and the index of the newly focused one.
+    fn prev_focus_index(&mut self) -> (usize, usize) {
+        let old_index = self.focus_index;
         if self.focus_wrap_around {
             if self.focus_index == 0 {
                 self.focus_index = self.matches.len() - 1;
@@ -58,10 +60,14 @@ impl<'a> View<'a> {
                 self.focus_index -= 1;
             }
         }
+        let new_index = self.focus_index;
+        (old_index, new_index)
     }
 
-    /// Move focus onto the next hint.
-    pub fn next(&mut self) {
+    /// Move focus onto the next hint, returning both the index of the
+    /// previously focused match, and the index of the newly focused one.
+    fn next_focus_index(&mut self) -> (usize, usize) {
+        let old_index = self.focus_index;
         if self.focus_wrap_around {
             if self.focus_index == self.matches.len() - 1 {
                 self.focus_index = 0;
@@ -73,6 +79,26 @@ impl<'a> View<'a> {
                 self.focus_index += 1;
             }
         }
+        let new_index = self.focus_index;
+        (old_index, new_index)
+    }
+
+    /// Returns screen offset of a given `Match`.
+    ///
+    /// If multibyte characters occur before the hint (in the "prefix"), then
+    /// their compouding takes less space on screen when printed: for
+    /// instance ´ + e = é. Consequently the hint offset has to be adjusted
+    /// to the left.
+    fn match_offsets(&self, mat: &model::Match<'a>) -> (usize, usize) {
+        let offset_x = {
+            let line = &self.model.lines[mat.y as usize];
+            let prefix = &line[0..mat.x as usize];
+            let adjust = prefix.len() - prefix.chars().count();
+            (mat.x as usize) - (adjust)
+        };
+        let offset_y = mat.y as usize;
+
+        (offset_x, offset_y)
     }
 
     /// Render entire model lines on provided writer.
@@ -107,6 +133,7 @@ impl<'a> View<'a> {
     /// If a Mach is "focused", it is then rendered with the `focused_*g` colors.
     ///
     /// # Note
+    ///
     /// This writes directly on the writer, avoiding extra allocation.
     fn render_matched_text(
         stdout: &mut dyn io::Write,
@@ -237,7 +264,41 @@ impl<'a> View<'a> {
         }
     }
 
-    /// Render the view on the provided writer.
+    /// Convenience function that renders both the matched text and its hint,
+    /// if focused.
+    fn render_match(&self, stdout: &mut dyn io::Write, mat: &model::Match<'a>, focused: bool) {
+        let text = mat.text;
+
+        let (offset_x, offset_y) = self.match_offsets(mat);
+
+        View::render_matched_text(
+            stdout,
+            text,
+            focused,
+            (offset_x, offset_y),
+            &self.rendering_colors,
+        );
+
+        if !focused {
+            // If not focused, render the hint (e.g. "eo") as an overlay on
+            // top of the rendered matched text, aligned at its leading or the
+            // trailing edge.
+            let extra_offset = match self.hint_alignment {
+                HintAlignment::Leading => 0,
+                HintAlignment::Trailing => text.len() - mat.hint.len(),
+            };
+
+            View::render_matched_hint(
+                stdout,
+                &mat.hint,
+                (offset_x + extra_offset, offset_y),
+                &self.rendering_colors,
+                &self.hint_style,
+            );
+        }
+    }
+
+    /// Full nender the view on the provided writer.
     ///
     /// This renders in 3 phases:
     /// - all lines are rendered verbatim
@@ -256,50 +317,30 @@ impl<'a> View<'a> {
         View::render_base_text(stdout, self.model.lines, &self.rendering_colors);
 
         for (index, mat) in self.matches.iter().enumerate() {
-            // 2. Render the match's text.
-
-            // If multibyte characters occur before the hint (in the "prefix"), then
-            // their compouding takes less space on screen when printed: for
-            // instance ´ + e = é. Consequently the hint offset has to be adjusted
-            // to the left.
-            let offset_x = {
-                let line = &self.model.lines[mat.y as usize];
-                let prefix = &line[0..mat.x as usize];
-                let adjust = prefix.len() - prefix.chars().count();
-                (mat.x as usize) - (adjust)
-            };
-            let offset_y = mat.y as usize;
-
-            let text = &mat.text;
-
             let focused = index == self.focus_index;
-
-            View::render_matched_text(
-                stdout,
-                text,
-                focused,
-                (offset_x, offset_y),
-                &self.rendering_colors,
-            );
-
-            if !focused {
-                // 3. If not focused, render the hint (e.g. "eo") as an overlay on
-                // top of the rendered matched text, aligned at its leading or the
-                // trailing edge.
-                let extra_offset = match self.hint_alignment {
-                    HintAlignment::Leading => 0,
-                    HintAlignment::Trailing => text.len() - mat.hint.len(),
-                };
-
-                View::render_matched_hint(
-                    stdout,
-                    &mat.hint,
-                    (offset_x + extra_offset, offset_y),
-                    &self.rendering_colors,
-                    &self.hint_style,
-                );
-            }
+            self.render_match(stdout, mat, focused);
         }
+
+        stdout.flush().unwrap();
+    }
+
+    /// Render the previous match with its hint, and render the newly focused
+    /// match without its hint. This is more efficient than a full render.
+    fn diff_render(
+        &self,
+        stdout: &mut dyn io::Write,
+        old_focus_index: usize,
+        new_focus_index: usize,
+    ) {
+        // Render the previously focused match as non-focused
+        let mat = self.matches.get(old_focus_index).unwrap();
+        let focused = false;
+        self.render_match(stdout, mat, focused);
+
+        // Render the previously focused match as non-focused
+        let mat = self.matches.get(new_focus_index).unwrap();
+        let focused = true;
+        self.render_match(stdout, mat, focused);
 
         stdout.flush().unwrap();
     }
@@ -327,7 +368,7 @@ impl<'a> View<'a> {
 
             if next_key.is_none() {
                 // Nothing in the buffer. Wait for a bit...
-                std::thread::sleep(std::time::Duration::from_millis(100));
+                std::thread::sleep(std::time::Duration::from_millis(50));
                 continue;
             }
 
@@ -343,26 +384,40 @@ impl<'a> View<'a> {
                 }
 
                 // Move focus to next/prev match.
-                event::Key::Up => self.prev(),
-                event::Key::Down => self.next(),
-                event::Key::Left => self.prev(),
-                event::Key::Right => self.next(),
-
+                event::Key::Up => {
+                    let (old_index, focused_index) = self.prev_focus_index();
+                    self.diff_render(writer, old_index, focused_index);
+                }
+                event::Key::Down => {
+                    let (old_index, focused_index) = self.next_focus_index();
+                    self.diff_render(writer, old_index, focused_index);
+                }
+                event::Key::Left => {
+                    let (old_index, focused_index) = self.prev_focus_index();
+                    self.diff_render(writer, old_index, focused_index);
+                }
+                event::Key::Right => {
+                    let (old_index, focused_index) = self.next_focus_index();
+                    self.diff_render(writer, old_index, focused_index);
+                }
                 event::Key::Char(_ch @ 'n') => {
-                    if self.model.reverse {
-                        self.prev()
+                    let (old_index, focused_index) = if self.model.reverse {
+                        self.prev_focus_index()
                     } else {
-                        self.next()
-                    }
+                        self.next_focus_index()
+                    };
+                    self.diff_render(writer, old_index, focused_index);
                 }
                 event::Key::Char(_ch @ 'N') => {
-                    if self.model.reverse {
-                        self.next()
+                    let (old_index, focused_index) = if self.model.reverse {
+                        self.next_focus_index()
                     } else {
-                        self.prev()
-                    }
+                        self.prev_focus_index()
+                    };
+                    self.diff_render(writer, old_index, focused_index);
                 }
 
+                // Yank/copy
                 event::Key::Char(_ch @ 'y') => {
                     let text = self.matches.get(self.focus_index).unwrap().text;
                     return Event::Match((text.to_string(), false));
@@ -410,8 +465,7 @@ impl<'a> View<'a> {
                 _ => (),
             }
 
-            // Render on stdout if we did not exit earlier.
-            self.full_render(writer);
+            // End of event processing loop.
         }
 
         Event::Exit
