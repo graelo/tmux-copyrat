@@ -20,98 +20,6 @@ pub struct View<'a> {
     hint_style: Option<HintStyle>,
 }
 
-/// Holds color-related data, for clarity.
-///
-/// - `focus_*` colors are used to render the currently focused matched text.
-/// - `normal_*` colors are used to render other matched text.
-/// - `hint_*` colors are used to render the hints.
-#[derive(Clap, Debug)]
-pub struct ViewColors {
-    /// Foreground color for base text.
-    #[clap(long, default_value = "bright-cyan", parse(try_from_str = colors::parse_color))]
-    pub text_fg: Box<dyn color::Color>,
-
-    /// Background color for base text.
-    #[clap(long, default_value = "bright-white", parse(try_from_str = colors::parse_color))]
-    pub text_bg: Box<dyn color::Color>,
-
-    /// Foreground color for matches.
-    #[clap(long, default_value = "yellow",
-                parse(try_from_str = colors::parse_color))]
-    pub match_fg: Box<dyn color::Color>,
-
-    /// Background color for matches.
-    #[clap(long, default_value = "bright-white",
-                parse(try_from_str = colors::parse_color))]
-    pub match_bg: Box<dyn color::Color>,
-
-    /// Foreground color for the focused match.
-    #[clap(long, default_value = "magenta",
-                parse(try_from_str = colors::parse_color))]
-    pub focused_fg: Box<dyn color::Color>,
-
-    /// Background color for the focused match.
-    #[clap(long, default_value = "bright-white",
-                parse(try_from_str = colors::parse_color))]
-    pub focused_bg: Box<dyn color::Color>,
-
-    /// Foreground color for hints.
-    #[clap(long, default_value = "white",
-                parse(try_from_str = colors::parse_color))]
-    pub hint_fg: Box<dyn color::Color>,
-
-    /// Background color for hints.
-    #[clap(long, default_value = "magenta",
-                parse(try_from_str = colors::parse_color))]
-    pub hint_bg: Box<dyn color::Color>,
-}
-
-/// Describes if, during rendering, a hint should aligned to the leading edge of
-/// the matched text, or to its trailing edge.
-#[derive(Debug, Clap)]
-pub enum HintAlignment {
-    Leading,
-    Trailing,
-}
-
-impl FromStr for HintAlignment {
-    type Err = ParseError;
-
-    fn from_str(s: &str) -> Result<HintAlignment, ParseError> {
-        match s {
-            "leading" => Ok(HintAlignment::Leading),
-            "trailing" => Ok(HintAlignment::Trailing),
-            _ => Err(ParseError::ExpectedString(String::from(
-                "leading or trailing",
-            ))),
-        }
-    }
-}
-
-/// Describes the style of contrast to be used during rendering of the hint's
-/// text.
-///
-/// # Note
-/// In practice, this is wrapped in an `Option`, so that the hint's text can be rendered with no style.
-pub enum HintStyle {
-    /// The hint's text will be bold (leveraging `termion::style::Bold`).
-    Bold,
-    /// The hint's text will be italicized (leveraging `termion::style::Italic`).
-    Italic,
-    /// The hint's text will be underlined (leveraging `termion::style::Underline`).
-    Underline,
-    /// The hint's text will be surrounded by these chars.
-    Surround(char, char),
-}
-
-/// Returned value after the `View` has finished listening to events.
-enum Event {
-    /// Exit with no selected matches,
-    Exit,
-    /// A vector of matched text and whether it was selected with uppercase.
-    Match((String, bool)),
-}
-
 impl<'a> View<'a> {
     pub fn new(
         model: &'a mut model::Model<'a>,
@@ -524,6 +432,52 @@ impl<'a> View<'a> {
 
         selection
     }
+}
+
+/// Describes if, during rendering, a hint should aligned to the leading edge of
+/// the matched text, or to its trailing edge.
+#[derive(Debug, Clap)]
+pub enum HintAlignment {
+    Leading,
+    Trailing,
+}
+
+impl FromStr for HintAlignment {
+    type Err = ParseError;
+
+    fn from_str(s: &str) -> Result<HintAlignment, ParseError> {
+        match s {
+            "leading" => Ok(HintAlignment::Leading),
+            "trailing" => Ok(HintAlignment::Trailing),
+            _ => Err(ParseError::ExpectedString(String::from(
+                "leading or trailing",
+            ))),
+        }
+    }
+}
+
+/// Describes the style of contrast to be used during rendering of the hint's
+/// text.
+///
+/// # Note
+/// In practice, this is wrapped in an `Option`, so that the hint's text can be rendered with no style.
+pub enum HintStyle {
+    /// The hint's text will be bold (leveraging `termion::style::Bold`).
+    Bold,
+    /// The hint's text will be italicized (leveraging `termion::style::Italic`).
+    Italic,
+    /// The hint's text will be underlined (leveraging `termion::style::Underline`).
+    Underline,
+    /// The hint's text will be surrounded by these chars.
+    Surround(char, char),
+}
+
+/// Returned value after the `View` has finished listening to events.
+enum Event {
+    /// Exit with no selected matches,
+    Exit,
+    /// A vector of matched text and whether it was selected with uppercase.
+    Match((String, bool)),
 }
 
 #[cfg(test)]
@@ -964,4 +918,50 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         assert_eq!(writer, expected.as_bytes());
     }
+}
+
+/// Holds color-related data, for clarity.
+///
+/// - `focus_*` colors are used to render the currently focused matched text.
+/// - `normal_*` colors are used to render other matched text.
+/// - `hint_*` colors are used to render the hints.
+#[derive(Clap, Debug)]
+pub struct ViewColors {
+    /// Foreground color for base text.
+    #[clap(long, default_value = "bright-cyan", parse(try_from_str = colors::parse_color))]
+    pub text_fg: Box<dyn color::Color>,
+
+    /// Background color for base text.
+    #[clap(long, default_value = "bright-white", parse(try_from_str = colors::parse_color))]
+    pub text_bg: Box<dyn color::Color>,
+
+    /// Foreground color for matches.
+    #[clap(long, default_value = "yellow",
+                parse(try_from_str = colors::parse_color))]
+    pub match_fg: Box<dyn color::Color>,
+
+    /// Background color for matches.
+    #[clap(long, default_value = "bright-white",
+                parse(try_from_str = colors::parse_color))]
+    pub match_bg: Box<dyn color::Color>,
+
+    /// Foreground color for the focused match.
+    #[clap(long, default_value = "magenta",
+                parse(try_from_str = colors::parse_color))]
+    pub focused_fg: Box<dyn color::Color>,
+
+    /// Background color for the focused match.
+    #[clap(long, default_value = "bright-white",
+                parse(try_from_str = colors::parse_color))]
+    pub focused_bg: Box<dyn color::Color>,
+
+    /// Foreground color for hints.
+    #[clap(long, default_value = "white",
+                parse(try_from_str = colors::parse_color))]
+    pub hint_fg: Box<dyn color::Color>,
+
+    /// Background color for hints.
+    #[clap(long, default_value = "magenta",
+                parse(try_from_str = colors::parse_color))]
+    pub hint_bg: Box<dyn color::Color>,
 }
