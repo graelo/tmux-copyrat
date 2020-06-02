@@ -1,22 +1,23 @@
 [package]
-name = "thumbs"
-version = "0.4.1"
-authors = ["Ferran Basora <fcsonline@gmail.com>"]
+name = "copyrat"
+version = "0.1.0"
+authors = ["Ferran Basora <fcsonline@gmail.com>", "u0xy <u0xy@u0xy.cc>"]
 edition = "2018"
-description = "A lightning fast version copy/pasting like vimium/vimperator"
+description = "This is tmux-copycat on Rust steroids."
 repository = "https://github.com/fcsonline/tmux-thumbs"
-keywords = ["rust", "tmux", "tmux-plugin", "vimium", "vimperator"]
+keywords = ["rust", "tmux", "tmux-plugin", "tmux-copycat"]
 license = "MIT"
 
 [dependencies]
 termion = "1.5"
 regex = "1.3.1"
-clap = "2.33.0"
+clap = { version = "3.0.0-beta.1", features = ["suggestions", "color", "wrap_help", "term_size"]}
+sequence_trie = "0.3.6"
 
 [[bin]]
-name = "thumbs"
+name = "copyrat"
 path = "src/main.rs"
 
 [[bin]]
-name = "tmux-thumbs"
-path = "src/swapper.rs"
+name = "tmux-copyrat"
+path = "src/bridge.rs"
