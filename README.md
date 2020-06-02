@@ -1,8 +1,8 @@
-# tmux-thumbs
+# tmux-copyrat
 
-![](https://travis-ci.com/fcsonline/tmux-thumbs.svg?branch=master)
+![Rust](https://github.com/graelo/tmux-copyrat/workflows/Rust/badge.svg)
 
-A lightning fast version of [tmux-fingers](https://github.com/Morantron/tmux-fingers) written in [Rust](https://www.rust-lang.org/) for copy pasting with vimium/vimperator like hints.
+A hommage to [tmux-copyrat](https://github.com/tmux-plugins/tmux-copycat), written in [Rust](https://www.rust-lang.org/) for copy pasting within [tmux](http://tmux.github.io).
 
 ## Usage
 
@@ -38,20 +38,20 @@ more with `--regexp` parameter.
 Clone the repo:
 
 ```
-git clone https://github.com/fcsonline/tmux-thumbs ~/.tmux/plugins/tmux-thumbs
+git clone https://github.com/graelo/tmux-copyrat ~/.tmux/plugins/tmux-copyrat
 ```
 
 Compile it with [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html):
 
 ```
-cd ~/.tmux/plugins/tmux-thumbs
+cd ~/.tmux/plugins/tmux-copyrat
 cargo build --release
 ```
 
 Source it in your `.tmux.conf`:
 
 ```
-run-shell ~/.tmux/plugins/tmux-thumbs/tmux-thumbs.tmux
+run-shell ~/.tmux/plugins/tmux-copyrat/tmux-copyrat.tmux
 ```
 
 Reload TMUX conf by running:
@@ -65,7 +65,7 @@ tmux source-file ~/.tmux.conf
 You can add this line to your list of [TPM](https://github.com/tmux-plugins/tpm) plugins in `.tmux.conf`:
 
 ```
-set -g @plugin 'fcsonline/tmux-thumbs'
+set -g @plugin 'graelo/tmux-copyrat'
 ```
 
 To be able to install the plugin just hit <kbd>prefix</kbd> + <kbd>I</kbd>. You should now be able to use
@@ -73,26 +73,26 @@ the plugin!
 
 ## Configuration
 
-If you want to customize how is shown your tmux-thumbs hints those all available
+If you want to customize how is shown your tmux-copyrat hints those all available
 parameters to set your perfect profile.
 
 NOTE: for changes to take effect, you'll need to source again your `.tmux.conf` file.
 
-* [@thumbs-key](#thumbs-key)
-* [@thumbs-alphabet](#thumbs-alphabet)
-* [@thumbs-reverse](#thumbs-reverse)
-* [@thumbs-unique](#thumbs-unique)
-* [@thumbs-position](#thumbs-position)
-* [@thumbs-regexp-N](#thumbs-regexp-N)
-* [@thumbs-command](#thumbs-command)
-* [@thumbs-upcase-command](#thumbs-upcase-command)
-* [@thumbs-bg-color](#thumbs-bg-color)
-* [@thumbs-fg-color](#thumbs-fg-color)
-* [@thumbs-hint-bg-color](#thumbs-hint-bg-color)
-* [@thumbs-hint-fg-color](#thumbs-hint-fg-color)
-* [@thumbs-select-fg-color](#thumbs-select-fg-color)
-* [@thumbs-select-bg-color](#thumbs-select-bg-color)
-* [@thumbs-contrast](#thumbs-contrast)
+- [@copyrat-key](#thumbs-key)
+- [@copyrat-alphabet](#thumbs-alphabet)
+- [@copyrat-reverse](#thumbs-reverse)
+- [@copyrat-unique](#thumbs-unique)
+- [@copyrat-position](#thumbs-position)
+- [@copyrat-regexp-N](#thumbs-regexp-N)
+- [@copyrat-command](#thumbs-command)
+- [@copyrat-upcase-command](#thumbs-upcase-command)
+- [@copyrat-bg-color](#thumbs-bg-color)
+- [@copyrat-fg-color](#thumbs-fg-color)
+- [@copyrat-hint-bg-color](#thumbs-hint-bg-color)
+- [@copyrat-hint-fg-color](#thumbs-hint-fg-color)
+- [@copyrat-select-fg-color](#thumbs-select-fg-color)
+- [@copyrat-select-bg-color](#thumbs-select-bg-color)
+- [@copyrat-contrast](#thumbs-contrast)
 
 ### @thumbs-key
 
@@ -291,8 +291,6 @@ This is the list of available colors:
 
 This is the list of available alphabets:
 
-- `numeric`: 1234567890
-- `abcd`: abcd
 - `qwerty`: asdfqwerzxcvjklmiuopghtybn
 - `qwerty-homerow`: asdfjklgh
 - `qwerty-left-hand`: asdfqwerzcxv
@@ -326,7 +324,7 @@ This is the known list of versions of `tmux` compatible with `tmux-thumbs`:
 
 | Version | Compatible |
 |:-------:|:----------:|
-|   3.0a  |     ✅     |
+|   3.0b  |     ✅     |
 |   2.9a  |     ✅     |
 |   2.8   |      ❓    |
 |   2.7   |      ❓    |
