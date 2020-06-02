@@ -1,5 +1,4 @@
 use std::collections;
-use std::fmt;
 
 use regex::Regex;
 use sequence_trie::SequenceTrie;
@@ -227,6 +226,7 @@ impl<'a> Model<'a> {
 
 /// Represents matched text, its location on screen, the pattern that created
 /// it, and the associated hint.
+#[derive(Debug)]
 pub struct Match<'a> {
     pub x: i32,
     pub y: i32,
@@ -235,32 +235,13 @@ pub struct Match<'a> {
     pub hint: String,
 }
 
-impl<'a> fmt::Debug for Match<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "Match {{ x: {}, y: {}, pattern: {}, text: {}, hint: <{}> }}",
-            self.x, self.y, self.pattern, self.text, self.hint,
-        )
-    }
-}
-
 /// Internal surrogate for `Match`, before a Hint has been associated.
+#[derive(Debug)]
 struct RawMatch<'a> {
     pub x: i32,
     pub y: i32,
     pub pattern: &'a str,
     pub text: &'a str,
-}
-
-impl<'a> fmt::Debug for RawMatch<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(
-            f,
-            "RawMatch {{ x: {}, y: {}, pattern: {}, text: {} }}",
-            self.x, self.y, self.pattern, self.text,
-        )
-    }
 }
 
 #[cfg(test)]

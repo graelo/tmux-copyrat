@@ -11,6 +11,8 @@ use crate::{colors, model};
 
 pub struct Ui<'a> {
     model: &'a mut model::Model<'a>,
+    term_width: u16,
+    line_offsets: Vec<usize>,
     matches: Vec<model::Match<'a>>,
     lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
@@ -33,8 +35,13 @@ impl<'a> Ui<'a> {
         let lookup_trie = model::Model::build_lookup_trie(&matches);
         let focus_index = if model.reverse { matches.len() - 1 } else { 0 };
 
+        let (term_width, _) = termion::terminal_size().expect("Cannot read the terminal size.");
+        let line_offsets = get_line_offsets(&model.lines, term_width);
+
         Ui {
             model,
+            term_width,
+            line_offsets,
             matches,
             lookup_trie,
             focus_index,
@@ -43,6 +50,25 @@ impl<'a> Ui<'a> {
             hint_alignment,
             hint_style,
         }
+    }
+
+    /// Convert the `Match` text into the coordinates of the wrapped lines.
+    ///
+    /// Compute the new x offset of the text as the remainder of the line width
+    /// (e.g. the match could start at offset 120 in a 80-width terminal, the new
+    /// offset being 40).
+    ///
+    /// Compute the new y offset of the text as the initial y offset plus any
+    /// additional offset due to previous split lines. This is obtained thanks to
+    /// the `offset_per_line` member.
+    pub fn map_coords_to_wrapped_space(&self, offset_x: usize, offset_y: usize) -> (usize, usize) {
+        let line_width = self.term_width as usize;
+
+        let new_offset_x = offset_x % line_width;
+        let new_offset_y =
+            self.line_offsets.get(offset_y as usize).unwrap() + offset_x / line_width;
+
+        (new_offset_x, new_offset_y)
     }
 
     /// Move focus onto the previous hint, returning both the index of the
@@ -108,7 +134,12 @@ impl<'a> Ui<'a> {
     /// # Notes
     /// - All trailing whitespaces are trimmed, empty lines are skipped.
     /// - This writes directly on the writer, avoiding extra allocation.
-    fn render_base_text(stdout: &mut dyn io::Write, lines: &Vec<&str>, colors: &UiColors) -> () {
+    fn render_base_text(
+        stdout: &mut dyn io::Write,
+        lines: &Vec<&str>,
+        line_offsets: &Vec<usize>,
+        colors: &UiColors,
+    ) -> () {
         write!(
             stdout,
             "{bg_color}{fg_color}",
@@ -117,14 +148,17 @@ impl<'a> Ui<'a> {
         )
         .unwrap();
 
-        for (index, line) in lines.iter().enumerate() {
+        for (line_index, line) in lines.iter().enumerate() {
             let trimmed_line = line.trim_end();
 
             if !trimmed_line.is_empty() {
+                let offset_y: usize =
+                    *(line_offsets.get(line_index)).expect("Cannot get offset_per_line.");
+
                 write!(
                     stdout,
                     "{goto}{text}",
-                    goto = cursor::Goto(1, index as u16 + 1),
+                    goto = cursor::Goto(1, offset_y as u16 + 1),
                     text = &trimmed_line,
                 )
                 .unwrap();
@@ -283,6 +317,7 @@ impl<'a> Ui<'a> {
         let text = mat.text;
 
         let (offset_x, offset_y) = self.match_offsets(mat);
+        let (offset_x, offset_y) = self.map_coords_to_wrapped_space(offset_x, offset_y);
 
         Ui::render_matched_text(
             stdout,
@@ -327,7 +362,12 @@ impl<'a> Ui<'a> {
     /// and `hint` are rendered in their proper position.
     fn full_render(&self, stdout: &mut dyn io::Write) -> () {
         // 1. Trim all lines and render non-empty ones.
-        Ui::render_base_text(stdout, &self.model.lines, &self.rendering_colors);
+        Ui::render_base_text(
+            stdout,
+            &self.model.lines,
+            &self.line_offsets,
+            &self.rendering_colors,
+        );
 
         for (index, mat) in self.matches.iter().enumerate() {
             let focused = index == self.focus_index;
@@ -514,6 +554,23 @@ impl<'a> Ui<'a> {
     }
 }
 
+/// Compute each line's actual y offset if displayed in a terminal of width
+/// `term_width`.
+fn get_line_offsets(lines: &Vec<&str>, term_width: u16) -> Vec<usize> {
+    lines
+        .iter()
+        .scan(0, |offset, &line| {
+            let value = *offset;
+            // amount of extra y space taken by this line
+            let extra = line.trim_end().len() / term_width as usize;
+
+            *offset = *offset + 1 + extra;
+
+            Some(value)
+        })
+        .collect()
+}
+
 /// Describes if, during rendering, a hint should aligned to the leading edge of
 /// the matched text, or to its trailing edge.
 #[derive(Debug, Clap)]
@@ -574,6 +631,8 @@ path: /usr/local/bin/git
 
 path: /usr/local/bin/cargo";
         let lines: Vec<&str> = content.split('\n').collect();
+        let line_offsets: Vec<usize> = (0..lines.len()).collect();
+
         let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -586,7 +645,7 @@ path: /usr/local/bin/cargo";
         };
 
         let mut writer = vec![];
-        Ui::render_base_text(&mut writer, &lines, &colors);
+        Ui::render_base_text(&mut writer, &lines, &line_offsets, &colors);
 
         let goto1 = cursor::Goto(1, 1);
         let goto2 = cursor::Goto(1, 2);
@@ -815,6 +874,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let custom_regexes = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let mut model = model::Model::new(content, &alphabet, &named_pat, &custom_regexes, false);
+        let term_width: u16 = 80;
+        let line_offsets = get_line_offsets(&model.lines, term_width);
         let rendering_colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -830,6 +891,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         // create a Ui without any match
         let ui = Ui {
             model: &mut model,
+            term_width,
+            line_offsets,
             matches: vec![], // no matches
             lookup_trie: SequenceTrie::new(),
             focus_index: 0,
