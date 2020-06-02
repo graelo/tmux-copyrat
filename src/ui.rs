@@ -35,7 +35,7 @@ impl<'a> Ui<'a> {
         let lookup_trie = model::Model::build_lookup_trie(&matches);
         let focus_index = if model.reverse { matches.len() - 1 } else { 0 };
 
-        let (term_width, _) = termion::terminal_size().expect("Cannot read the terminal size.");
+        let (term_width, _) = termion::terminal_size().unwrap_or((80u16, 30u16)); // .expect("Cannot read the terminal size.");
         let line_offsets = get_line_offsets(&model.lines, term_width);
 
         Ui {
