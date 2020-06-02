@@ -1,25 +1,36 @@
-name: Rust
+name: Rust CI
 
-on: [push]
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - 'master'
+
+env:
+  CARGO_TERM_COLOR: always
 
 jobs:
   build-mac:
     runs-on: macos-latest
-
     steps:
     - uses: actions/checkout@v2
 
     - name: Build
       run: cargo build --release
 
+    - name: Run tests
+      run: cargo test --verbose
+
     - uses: actions/upload-artifact@v2
       with:
         name: copyrat-macos.zip
         path: ./target/release/*copyrat
 
+
   build-linux:
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
 
@@ -30,6 +41,9 @@ jobs:
 
     - name: Build
       run: cargo build --release
+
+    - name: Run tests
+      run: cargo test --verbose
 
     - uses: actions/upload-artifact@v2
       with:
