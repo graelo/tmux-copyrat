@@ -196,13 +196,14 @@ impl<'a> Ui<'a> {
         let bg_color = color::Bg(colors.hint_bg.as_ref());
         let fg_reset = color::Fg(color::Reset);
         let bg_reset = color::Bg(color::Reset);
+        let goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1);
 
         match hint_style {
             None => {
                 write!(
                     stdout,
                     "{goto}{bg_color}{fg_color}{hint}{fg_reset}{bg_reset}",
-                    goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+                    goto = goto,
                     fg_color = fg_color,
                     bg_color = bg_color,
                     fg_reset = fg_reset,
@@ -216,7 +217,7 @@ impl<'a> Ui<'a> {
                     write!(
                         stdout,
                         "{goto}{bg_color}{fg_color}{sty}{hint}{sty_reset}{fg_reset}{bg_reset}",
-                        goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+                        goto = goto,
                         fg_color = fg_color,
                         bg_color = bg_color,
                         fg_reset = fg_reset,
@@ -231,7 +232,7 @@ impl<'a> Ui<'a> {
                     write!(
                         stdout,
                         "{goto}{bg_color}{fg_color}{sty}{hint}{sty_reset}{fg_reset}{bg_reset}",
-                        goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+                        goto = goto,
                         fg_color = fg_color,
                         bg_color = bg_color,
                         fg_reset = fg_reset,
@@ -246,7 +247,7 @@ impl<'a> Ui<'a> {
                     write!(
                         stdout,
                         "{goto}{bg_color}{fg_color}{sty}{hint}{sty_reset}{fg_reset}{bg_reset}",
-                        goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+                        goto = goto,
                         fg_color = fg_color,
                         bg_color = bg_color,
                         fg_reset = fg_reset,
@@ -261,7 +262,7 @@ impl<'a> Ui<'a> {
                     write!(
                         stdout,
                         "{goto}{bg_color}{fg_color}{bra}{hint}{bra_close}{fg_reset}{bg_reset}",
-                        goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+                        goto = goto,
                         fg_color = fg_color,
                         bg_color = bg_color,
                         fg_reset = fg_reset,
