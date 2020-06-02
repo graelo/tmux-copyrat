@@ -109,23 +109,35 @@ impl<'a> Ui<'a> {
     /// - All trailing whitespaces are trimmed, empty lines are skipped.
     /// - This writes directly on the writer, avoiding extra allocation.
     fn render_base_text(stdout: &mut dyn io::Write, lines: &Vec<&str>, colors: &UiColors) -> () {
+        write!(
+            stdout,
+            "{bg_color}{fg_color}",
+            fg_color = color::Fg(colors.text_fg.as_ref()),
+            bg_color = color::Bg(colors.text_bg.as_ref()),
+        )
+        .unwrap();
+
         for (index, line) in lines.iter().enumerate() {
             let trimmed_line = line.trim_end();
 
             if !trimmed_line.is_empty() {
                 write!(
                     stdout,
-                    "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
+                    "{goto}{text}",
                     goto = cursor::Goto(1, index as u16 + 1),
-                    fg_color = color::Fg(colors.text_fg.as_ref()),
-                    bg_color = color::Bg(colors.text_bg.as_ref()),
-                    fg_reset = color::Fg(color::Reset),
-                    bg_reset = color::Bg(color::Reset),
                     text = &trimmed_line,
                 )
                 .unwrap();
             }
         }
+
+        write!(
+            stdout,
+            "{fg_reset}{bg_reset}",
+            fg_reset = color::Fg(color::Reset),
+            bg_reset = color::Bg(color::Reset),
+        )
+        .unwrap();
     }
 
     /// Render the Match's `text` field on provided writer using the `match_*g` color.
@@ -582,7 +594,7 @@ path: /usr/local/bin/cargo";
         assert_eq!(
             writer,
             format!(
-                "{g1}{bg}{fg}some text{fg_reset}{bg_reset}{g2}{bg}{fg}* e006b06 - (12 days ago) swapper: Make quotes{fg_reset}{bg_reset}{g3}{bg}{fg}path: /usr/local/bin/git{fg_reset}{bg_reset}{g6}{bg}{fg}path: /usr/local/bin/cargo{fg_reset}{bg_reset}",
+                "{bg}{fg}{g1}some text{g2}* e006b06 - (12 days ago) swapper: Make quotes{g3}path: /usr/local/bin/git{g6}path: /usr/local/bin/cargo{fg_reset}{bg_reset}",
                 g1 = goto1, g2 = goto2, g3 = goto3, g6 = goto6,
                 fg = color::Fg(colors.text_fg.as_ref()),
                 bg = color::Bg(colors.text_bg.as_ref()),
@@ -833,8 +845,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let goto3 = cursor::Goto(1, 3);
 
         let expected = format!(
-            "{goto1}{bg}{fg}lorem 127.0.0.1 lorem{fg_reset}{bg_reset}\
-        {goto3}{bg}{fg}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
+            "{bg}{fg}{goto1}lorem 127.0.0.1 lorem\
+        {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
             goto1 = goto1,
             goto3 = goto3,
             fg = color::Fg(rendering_colors.text_fg.as_ref()),
@@ -897,8 +909,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             let goto3 = cursor::Goto(1, 3);
 
             format!(
-                "{goto1}{bg}{fg}lorem 127.0.0.1 lorem{fg_reset}{bg_reset}\
-        {goto3}{bg}{fg}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
+                "{bg}{fg}{goto1}lorem 127.0.0.1 lorem\
+        {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
                 goto1 = goto1,
                 goto3 = goto3,
                 fg = color::Fg(rendering_colors.text_fg.as_ref()),
