@@ -205,7 +205,7 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> 
 /// position. To support both cases, the implementation always provides those
 /// parameters to tmux.
 pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, ParseError> {
-    let mut args = format!("capture-pane -t {pane_id} -p", pane_id = pane.id);
+    let mut args = format!("capture-pane -t {pane_id} -J -p", pane_id = pane.id);
 
     let region_str = match region {
         CaptureRegion::VisibleArea => {
