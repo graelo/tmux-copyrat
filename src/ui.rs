@@ -1,4 +1,5 @@
 use std::char;
+use std::cmp;
 use std::io;
 use std::str::FromStr;
 
@@ -560,10 +561,18 @@ fn get_line_offsets(lines: &Vec<&str>, term_width: u16) -> Vec<usize> {
     lines
         .iter()
         .scan(0, |offset, &line| {
+            // Save the value to return (yield is in unstable).
             let value = *offset;
-            // amount of extra y space taken by this line
-            let extra = line.trim_end().len() / term_width as usize;
 
+            let line_width = line.trim_end().chars().count() as isize;
+
+            // Amount of extra y space taken by this line.
+            // If the line has n chars, on a term of width n, this does not
+            // produce an extra line; it needs to exceed the width by 1 char.
+            // In case the width is 0, we need to clamp line_width - 1 first.
+            let extra = cmp::max(0, line_width - 1) as usize / term_width as usize;
+
+            // Update the offset of the next line.
             *offset = *offset + 1 + extra;
 
             Some(value)
