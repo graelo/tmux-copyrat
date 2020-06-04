@@ -3,6 +3,10 @@ use crate::error;
 pub const EXCLUDE_PATTERNS: [(&'static str, &'static str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
 
+/// Holds all the regex patterns that are currently supported.
+///
+/// The email address was obtained at https://www.regular-expressions.info/email.html.
+/// Others were obtained from Ferran Basora.
 pub const PATTERNS: [(&'static str, &'static str); 15] = [
     ("markdown-url", r"\[[^]]*\]\(([^)]+)\)"),
     (
@@ -21,7 +25,7 @@ pub const PATTERNS: [(&'static str, &'static str); 15] = [
     ),
     ("ipfs", r"Qm[0-9a-zA-Z]{44}"),
     ("sha", r"[0-9a-f]{7,40}"),
-    ("ip", r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"),
+    ("ipv4", r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"),
     ("ipv6", r"[A-f0-9:]+:+[A-f0-9:]+[%\w\d]+"),
     ("mem-address", r"0x[0-9a-fA-F]+"),
     ("number", r"[0-9]{4,}"),
