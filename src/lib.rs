@@ -20,8 +20,9 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
     let mut model = model::Model::new(
         &buffer,
         &opt.alphabet,
-        &opt.named_pattern,
-        &opt.custom_regex,
+        opt.use_all_patterns,
+        &opt.named_patterns,
+        &opt.custom_patterns,
         opt.reverse,
     );
 
@@ -71,13 +72,17 @@ pub struct CliOpt {
                 parse(try_from_str = alphabets::parse_alphabet))]
     alphabet: alphabets::Alphabet,
 
-    /// Pattern names to use (all if not specified).
-    #[clap(short = "x", long = "--pattern-name", parse(try_from_str = regexes::parse_pattern_name))]
-    named_pattern: Vec<regexes::NamedPattern>,
+    /// Use all available regex patterns.
+    #[clap(short = "A", long = "--all-patterns")]
+    use_all_patterns: bool,
 
-    /// Additional regex patterns.
-    #[clap(short = "X", long)]
-    custom_regex: Vec<String>,
+    /// Pattern names to use ("email", ... see doc).
+    #[clap(short = "x", long = "--pattern-name", parse(try_from_str = regexes::parse_pattern_name))]
+    named_patterns: Vec<regexes::NamedPattern>,
+
+    /// Additional regex patterns ("foo*bar", etc).
+    #[clap(short = "X", long = "--custom-pattern")]
+    custom_patterns: Vec<String>,
 
     /// Assign hints starting from the bottom of the screen.
     #[clap(short, long)]
@@ -91,7 +96,7 @@ pub struct CliOpt {
     colors: ui::UiColors,
 
     /// Align hint with its match.
-    #[clap(short = "a", long, arg_enum, default_value = "leading")]
+    #[clap(long, arg_enum, default_value = "leading")]
     hint_alignment: ui::HintAlignment,
 
     /// Move focus back to first/last match.
@@ -166,8 +171,10 @@ impl CliOpt {
                 "@copyrat-alphabet" => {
                     self.alphabet = alphabets::parse_alphabet(value)?;
                 }
-                "@copyrat-regex-id" => (), // TODO
-                "@copyrat-custom-regex" => self.custom_regex = vec![String::from(value)],
+                "@copyrat-pattern-name" => {
+                    self.named_patterns = vec![regexes::parse_pattern_name(value)?]
+                }
+                "@copyrat-custom-pattern" => self.custom_patterns = vec![String::from(value)],
                 "@copyrat-reverse" => {
                     self.reverse = value.parse::<bool>()?;
                 }

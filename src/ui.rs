@@ -879,10 +879,19 @@ path: /usr/local/bin/cargo";
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
+        let use_all_patterns = true;
         let named_pat = vec![];
-        let custom_regexes = vec![];
+        let custom_patterns = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
-        let mut model = model::Model::new(content, &alphabet, &named_pat, &custom_regexes, false);
+        let reverse = false;
+        let mut model = model::Model::new(
+            content,
+            &alphabet,
+            use_all_patterns,
+            &named_pat,
+            &custom_patterns,
+            reverse,
+        );
         let term_width: u16 = 80;
         let line_offsets = get_line_offsets(&model.lines, term_width);
         let rendering_colors = UiColors {
@@ -944,11 +953,19 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
+        let use_all_patterns = true;
         let named_pat = vec![];
-        let custom_regexes = vec![];
+        let custom_patterns = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let reverse = true;
-        let mut model = model::Model::new(content, &alphabet, &named_pat, &custom_regexes, reverse);
+        let mut model = model::Model::new(
+            content,
+            &alphabet,
+            use_all_patterns,
+            &named_pat,
+            &custom_patterns,
+            reverse,
+        );
         let unique_hint = false;
         let wrap_around = false;
 
@@ -1071,11 +1088,11 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
     }
 }
 
-/// Holds color-related data, for clarity.
-///
-/// - `focus_*` colors are used to render the currently focused matched text.
-/// - `normal_*` colors are used to render other matched text.
-/// - `hint_*` colors are used to render the hints.
+// /// Holds color-related data, for clarity.
+// ///
+// /// - `focus_*` colors are used to render the currently focused matched text.
+// /// - `normal_*` colors are used to render other matched text.
+// /// - `hint_*` colors are used to render the hints.
 #[derive(Clap, Debug)]
 pub struct UiColors {
     /// Foreground color for base text.
