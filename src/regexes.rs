@@ -28,7 +28,7 @@ pub const PATTERNS: [(&'static str, &'static str); 15] = [
     ("ipv4", r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"),
     ("ipv6", r"[A-f0-9:]+:+[A-f0-9:]+[%\w\d]+"),
     ("mem-address", r"0x[0-9a-fA-F]+"),
-    ("number", r"[0-9]{4,}"),
+    ("digits", r"[0-9]{4,}"),
 ];
 
 /// Type-safe string Pattern Name (newtype).
