@@ -360,7 +360,7 @@ mod tests {
     }
 
     #[test]
-    fn match_ips() {
+    fn match_ipv4s() {
         let buffer = "Lorem ipsum 127.0.0.1 lorem\n Lorem 255.255.10.255 lorem 127.0.0.1 lorem";
         let named_pat = vec![];
         let custom = vec![];
@@ -368,8 +368,11 @@ mod tests {
         let results = Model::new(buffer, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
+        assert_eq!(results.get(0).unwrap().pattern, "ipv4");
         assert_eq!(results.get(0).unwrap().text, "127.0.0.1");
+        assert_eq!(results.get(1).unwrap().pattern, "ipv4");
         assert_eq!(results.get(1).unwrap().text, "255.255.10.255");
+        assert_eq!(results.get(2).unwrap().pattern, "ipv4");
         assert_eq!(results.get(2).unwrap().text, "127.0.0.1");
     }
 
