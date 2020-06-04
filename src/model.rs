@@ -401,9 +401,9 @@ mod tests {
         let results = Model::new(buffer, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 2);
-        assert_eq!(results.get(0).unwrap().pattern, "markdown_url");
+        assert_eq!(results.get(0).unwrap().pattern, "markdown-url");
         assert_eq!(results.get(0).unwrap().text, "https://github.io?foo=bar");
-        assert_eq!(results.get(1).unwrap().pattern, "markdown_url");
+        assert_eq!(results.get(1).unwrap().pattern, "markdown-url");
         assert_eq!(results.get(1).unwrap().text, "http://cdn.com/img.jpg");
     }
 
@@ -460,8 +460,11 @@ mod tests {
         let results = Model::new(buffer, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 3);
+        assert_eq!(results.get(0).unwrap().pattern, "mem-address");
         assert_eq!(results.get(0).unwrap().text, "0xfd70b5695");
+        assert_eq!(results.get(1).unwrap().pattern, "mem-address");
         assert_eq!(results.get(1).unwrap().text, "0x5246ddf");
+        assert_eq!(results.get(2).unwrap().pattern, "mem-address");
         assert_eq!(results.get(2).unwrap().text, "0x973113");
     }
 
@@ -515,6 +518,7 @@ mod tests {
         let results = Model::new(buffer, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
+        assert_eq!(results.get(0).unwrap().pattern, "diff-a");
         assert_eq!(results.get(0).unwrap().text, "src/main.rs");
     }
 
@@ -527,6 +531,7 @@ mod tests {
         let results = Model::new(buffer, &alphabet, &named_pat, &custom, false).matches(false);
 
         assert_eq!(results.len(), 1);
+        assert_eq!(results.get(0).unwrap().pattern, "diff-b");
         assert_eq!(results.get(0).unwrap().text, "src/main.rs");
     }
 
