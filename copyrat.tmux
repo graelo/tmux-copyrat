@@ -53,13 +53,11 @@ tmux bind-key ${keyswitch} -T ${keytable}
 
 setup_binding() {
 	local key=$1
-	local pattern_name=$2
+	local pattern_name="$2"
 	local window_name=$(tmux show-option -gqv @copyrat-window-name)
-	tmux bind-key -T ${keytable} $key new-window -d -n ${window_name} "${BINARY} --window-name ${window_name} --reverse --unique"
+	tmux bind-key -T ${keytable} $key new-window -d -n ${window_name} "${BINARY} --window-name ${window_name} --reverse --unique ${pattern_name}"
 }
 
-# prefix + t + Space searches for all known regexes (noisy and slower)
-setup_pattern_binding "space" ""
 # prefix + t + p searches for absolute & relative paths
 setup_pattern_binding "p" "--pattern-name path"
 # prefix + t + u searches for URLs
@@ -84,8 +82,12 @@ setup_pattern_binding "m" "--pattern-name mem-address"
 setup_pattern_binding "4" "--pattern-name ipv4"
 # prefix + t + 6 searches for IPV6
 setup_pattern_binding "6" "--pattern-name ipv6"
+# prefix + t + Space searches for all known patterns (noisy and potentially slower)
+setup_pattern_binding "space" "--all-patterns"
 
-# tmux bind-key -T ${keytable} "/" command-prompt "search:" new-window -d -n ${COPYRAT_WINDOW_NAME} "${BINARY} --window-name ${COPYRAT_WINDOW_NAME} --reverse --unique --custom-regex '%%'"
+# prefix + t + / prompts for a pattern and search for it
+tmux bind-key -T ${keytable} "/" command-prompt -p "search:" 'new-window -d -n ${COPYRAT_WINDOW_NAME} "${BINARY} --window-name ${COPYRAT_WINDOW_NAME} --reverse --unique --custom-pattern %%"'
+
 
 # Auto-install is currently disabled as it requires the user to have cargo installed.
 # if [ ! -f "$BINARY" ]; then
