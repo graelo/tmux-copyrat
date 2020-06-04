@@ -430,6 +430,28 @@ mod tests {
     }
 
     #[test]
+    fn match_emails() {
+        let buffer =
+            "Lorem ipsum <first.last+social@example.com> john@server.department.company.com lorem";
+        let named_pat = vec![];
+        let custom = vec![];
+        let alphabet = Alphabet("abcd".to_string());
+        let results = Model::new(buffer, &alphabet, &named_pat, &custom, false).matches(false);
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(results.get(0).unwrap().pattern, "email");
+        assert_eq!(
+            results.get(0).unwrap().text,
+            "first.last+social@example.com"
+        );
+        assert_eq!(results.get(1).unwrap().pattern, "email");
+        assert_eq!(
+            results.get(1).unwrap().text,
+            "john@server.department.company.com"
+        );
+    }
+
+    #[test]
     fn match_addresses() {
         let buffer = "Lorem 0xfd70b5695 0x5246ddf lorem\n Lorem 0x973113tlorem";
         let named_pat = vec![];
