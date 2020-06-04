@@ -3,12 +3,13 @@ use crate::error;
 pub const EXCLUDE_PATTERNS: [(&'static str, &'static str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
 
-pub const PATTERNS: [(&'static str, &'static str); 14] = [
+pub const PATTERNS: [(&'static str, &'static str); 15] = [
     ("markdown_url", r"\[[^]]*\]\(([^)]+)\)"),
     (
         "url",
         r"((https?://|git@|git://|ssh://|ftp://|file:///)[^ \(\)\[\]\{\}]+)",
     ),
+    ("email", r"\b[A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,}\b"),
     ("diff_a", r"--- a/([^ ]+)"),
     ("diff_b", r"\+\+\+ b/([^ ]+)"),
     ("docker", r"sha256:([0-9a-f]{64})"),
