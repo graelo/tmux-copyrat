@@ -4,14 +4,14 @@ pub const EXCLUDE_PATTERNS: [(&'static str, &'static str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
 
 pub const PATTERNS: [(&'static str, &'static str); 15] = [
-    ("markdown_url", r"\[[^]]*\]\(([^)]+)\)"),
+    ("markdown-url", r"\[[^]]*\]\(([^)]+)\)"),
     (
         "url",
         r"((https?://|git@|git://|ssh://|ftp://|file:///)[^ \(\)\[\]\{\}]+)",
     ),
     ("email", r"\b[A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,}\b"),
-    ("diff_a", r"--- a/([^ ]+)"),
-    ("diff_b", r"\+\+\+ b/([^ ]+)"),
+    ("diff-a", r"--- a/([^ ]+)"),
+    ("diff-b", r"\+\+\+ b/([^ ]+)"),
     ("docker", r"sha256:([0-9a-f]{64})"),
     ("path", r"(([.\w\-@~]+)?(/[.\w\-@]+)+)"),
     ("hexcolor", r"#[0-9a-fA-F]{6}"),
@@ -23,7 +23,7 @@ pub const PATTERNS: [(&'static str, &'static str); 15] = [
     ("sha", r"[0-9a-f]{7,40}"),
     ("ip", r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"),
     ("ipv6", r"[A-f0-9:]+:+[A-f0-9:]+[%\w\d]+"),
-    ("address", r"0x[0-9a-fA-F]+"),
+    ("mem-address", r"0x[0-9a-fA-F]+"),
     ("number", r"[0-9]{4,}"),
 ];
 
