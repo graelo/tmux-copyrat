@@ -68,20 +68,20 @@ pub struct CliOpt {
     /// # Examples
     ///
     /// "qwerty", "dvorak-homerow", "azerty-right-hand".
-    #[clap(short = "k", long, default_value = "dvorak",
+    #[clap(short = 'k', long, default_value = "dvorak",
                 parse(try_from_str = alphabets::parse_alphabet))]
     alphabet: alphabets::Alphabet,
 
     /// Use all available regex patterns.
-    #[clap(short = "A", long = "--all-patterns")]
+    #[clap(short = 'A', long = "--all-patterns")]
     use_all_patterns: bool,
 
     /// Pattern names to use ("email", ... see doc).
-    #[clap(short = "x", long = "--pattern-name", parse(try_from_str = regexes::parse_pattern_name))]
+    #[clap(short = 'x', long = "--pattern-name", parse(try_from_str = regexes::parse_pattern_name))]
     named_patterns: Vec<regexes::NamedPattern>,
 
     /// Additional regex patterns ("foo*bar", etc).
-    #[clap(short = "X", long = "--custom-pattern")]
+    #[clap(short = 'X', long = "--custom-pattern")]
     custom_patterns: Vec<String>,
 
     /// Assign hints starting from the bottom of the screen.
@@ -107,7 +107,7 @@ pub struct CliOpt {
     ///
     /// Underline or surround the hint for increased visibility.
     /// If not provided, only the hint colors will be used.
-    #[clap(short = "s", long, arg_enum)]
+    #[clap(short = 's', long, arg_enum)]
     hint_style: Option<HintStyleCli>,
 
     /// Chars surrounding each hint, used with `Surround` style.
@@ -116,7 +116,7 @@ pub struct CliOpt {
     hint_surroundings: (char, char),
 
     /// Optional target path where to store the selected matches.
-    #[clap(short = "o", long = "output", parse(from_os_str))]
+    #[clap(short = 'o', long = "output", parse(from_os_str))]
     pub target_path: Option<path::PathBuf>,
 
     /// Describes if the uppercased marker should be added to the output,
