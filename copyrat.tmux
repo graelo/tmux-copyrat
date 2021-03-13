@@ -14,15 +14,17 @@
 #   bind-key -T foobar h new-window -d -n "[copyrat]" '/path/to/tmux-copyrat --window-name "[copyrat]" --pattern-name urls'
 #                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# changing this will probably break integration     -
+# changing this script may break integration with `tmux-copyrat`.
 #
-# Just make sure you first open a named window in the background and provide that name to tmux-copyrat.
-#
-# Don't even try to run tmux-copyrat with run-shell, this cannot work because Tmux launches these processes
-# without attaching them to a pty.
 
-# You could also entirely ignore this file (not even source it) and define all options and bindings
-# in your `tmux.conf`.
+# Just make sure you first open a named window in the background and provide
+# that name to the binary `tmux-copyrat`.
+#
+# Don't even try to run tmux-copyrat with run-shell, this cannot work because
+# Tmux launches these processes without attaching them to a pty.
+
+# You can also entirely ignore this file (not even source it) and define all
+# options and bindings in your `tmux.conf`.
 
 CURRENT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 BINARY="${CURRENT_DIR}/tmux-copyrat"
@@ -36,7 +38,8 @@ setup_option() {
 }
 
 
-# Sets the window name when copyrat is run, providing a default if @copyrat-window-name was not defined.
+# Sets the window name when copyrat is run, providing a default in case
+# @copyrat-window-name was not defined.
 setup_option "window-name" "[copyrat]"
 
 # Sets the keytable for all bindings, providing a default if @copyrat-keytable was not defined.
