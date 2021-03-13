@@ -4,7 +4,7 @@ use crate::error::ParseError;
 
 /// Execute an arbitrary Unix command and return the stdout as a `String` if
 /// successful.
-pub fn execute(command: &str, args: &Vec<&str>) -> Result<String, ParseError> {
+pub fn execute(command: &str, args: &[&str]) -> Result<String, ParseError> {
     let output = Command::new(command).args(args).output()?;
 
     if !output.status.success() {

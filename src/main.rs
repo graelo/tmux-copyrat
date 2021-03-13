@@ -16,7 +16,7 @@ fn main() {
     handle.read_to_string(&mut buffer).unwrap();
 
     // Execute copyrat over the buffer (will take control over stdout).
-    // This returns the selected matches.
+    // This returns the selected matche.
     let selection: Option<(String, bool)> = run(buffer, &opt);
 
     // Early exit, signaling no selections were found.
@@ -37,7 +37,7 @@ fn main() {
                 .open(target)
                 .expect("Unable to open the target file");
 
-            file.write(text.as_bytes()).unwrap();
+            file.write_all(text.as_bytes()).unwrap();
         }
     }
 }

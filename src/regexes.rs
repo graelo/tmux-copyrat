@@ -1,13 +1,13 @@
 use crate::error;
 
-pub const EXCLUDE_PATTERNS: [(&'static str, &'static str); 1] =
+pub const EXCLUDE_PATTERNS: [(&str, &str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
 
 /// Holds all the regex patterns that are currently supported.
 ///
 /// The email address was obtained at https://www.regular-expressions.info/email.html.
 /// Others were obtained from Ferran Basora.
-pub const PATTERNS: [(&'static str, &'static str); 15] = [
+pub const PATTERNS: [(&str, &str); 15] = [
     ("markdown-url", r"\[[^]]*\]\(([^)]+)\)"),
     (
         "url",
