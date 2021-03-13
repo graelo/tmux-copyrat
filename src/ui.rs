@@ -82,10 +82,8 @@ impl<'a> Ui<'a> {
             } else {
                 self.focus_index -= 1;
             }
-        } else {
-            if self.focus_index > 0 {
-                self.focus_index -= 1;
-            }
+        } else if self.focus_index > 0 {
+            self.focus_index -= 1;
         }
         let new_index = self.focus_index;
         (old_index, new_index)
@@ -101,10 +99,8 @@ impl<'a> Ui<'a> {
             } else {
                 self.focus_index += 1;
             }
-        } else {
-            if self.focus_index < self.matches.len() - 1 {
-                self.focus_index += 1;
-            }
+        } else if self.focus_index < self.matches.len() - 1 {
+            self.focus_index += 1;
         }
         let new_index = self.focus_index;
         (old_index, new_index)
@@ -137,10 +133,10 @@ impl<'a> Ui<'a> {
     /// - This writes directly on the writer, avoiding extra allocation.
     fn render_base_text(
         stdout: &mut dyn io::Write,
-        lines: &Vec<&str>,
-        line_offsets: &Vec<usize>,
+        lines: &[&str],
+        line_offsets: &[usize],
         colors: &UiColors,
-    ) -> () {
+    ) {
         write!(
             stdout,
             "{bg_color}{fg_color}",
@@ -361,7 +357,7 @@ impl<'a> Ui<'a> {
     /// # Note
     /// Multibyte characters are taken into account, so that the Match's `text`
     /// and `hint` are rendered in their proper position.
-    fn full_render(&self, stdout: &mut dyn io::Write) -> () {
+    fn full_render(&self, stdout: &mut dyn io::Write) {
         // 1. Trim all lines and render non-empty ones.
         Ui::render_base_text(
             stdout,
@@ -557,7 +553,7 @@ impl<'a> Ui<'a> {
 
 /// Compute each line's actual y offset if displayed in a terminal of width
 /// `term_width`.
-fn get_line_offsets(lines: &Vec<&str>, term_width: u16) -> Vec<usize> {
+fn get_line_offsets(lines: &[&str], term_width: u16) -> Vec<usize> {
     lines
         .iter()
         .scan(0, |offset, &line| {

@@ -44,11 +44,8 @@ impl BridgeOpt {
         options: &HashMap<String, String>,
     ) -> Result<(), error::ParseError> {
         for (name, value) in options {
-            match name.as_ref() {
-                "@copyrat-capture" => {
-                    self.capture_region = tmux::CaptureRegion::from_str(&value)?;
-                }
-                _ => (),
+            if let "@copyrat-capture" = name.as_ref() {
+                self.capture_region = tmux::CaptureRegion::from_str(&value)?;
             }
         }
 
@@ -94,41 +91,17 @@ fn main() -> Result<(), error::ParseError> {
     // buffer if it was uppercased.
     // TODO: consider getting rid of multi-selection mode.
 
-    // Execute a command on each group of selections (normal and uppercased).
-    let (normal_selections, uppercased_selections): (Vec<(String, bool)>, Vec<(String, bool)>) =
-        selections
-            .into_iter()
-            .partition(|(_text, uppercased)| !*uppercased);
+    match selections {
+        None => return Ok(()),
+        Some((text, uppercased)) => {
+            let args = vec!["set-buffer", &text];
+            process::execute("tmux", &args)?;
 
-    let buffer_selections: String = normal_selections
-        .into_iter()
-        .map(|(text, _)| text)
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    if buffer_selections.len() > 0 {
-        let args = vec!["set-buffer", &buffer_selections];
-        // Simply execute the command as is, and let the program crash on
-        // potential errors because it is not our responsibility.
-        process::execute("tmux", &args).unwrap();
-    }
-
-    let buffer_selections: String = uppercased_selections
-        .into_iter()
-        .map(|(text, _)| text)
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    if buffer_selections.len() > 0 {
-        let args = vec!["set-buffer", &buffer_selections];
-        // Simply execute the command as is, and let the program crash on
-        // potential errors because it is not our responsibility.
-        process::execute("tmux", &args).unwrap();
-
-        let args = vec!["paste-buffer", "-t", active_pane.id.as_str()];
-        // Simply execute the command as is, and let the program crash on
-        // potential errors because it is not our responsibility.
-        process::execute("tmux", &args).unwrap();
+            if uppercased {
+                let args = vec!["paste-buffer", "-t", active_pane.id.as_str()];
+                process::execute("tmux", &args)?;
+            }
+        }
     }
 
     Ok(())

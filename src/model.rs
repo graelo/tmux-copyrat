@@ -12,8 +12,8 @@ pub struct Model<'a> {
     pub lines: Vec<&'a str>,
     alphabet: &'a Alphabet,
     use_all_patterns: bool,
-    named_patterns: &'a Vec<NamedPattern>,
-    custom_patterns: &'a Vec<String>,
+    named_patterns: &'a [NamedPattern],
+    custom_patterns: &'a [String],
     pub reverse: bool,
 }
 
@@ -22,8 +22,8 @@ impl<'a> Model<'a> {
         buffer: &'a str,
         alphabet: &'a Alphabet,
         use_all_patterns: bool,
-        named_patterns: &'a Vec<NamedPattern>,
-        custom_patterns: &'a Vec<String>,
+        named_patterns: &'a [NamedPattern],
+        custom_patterns: &'a [String],
         reverse: bool,
     ) -> Model<'a> {
         let lines = buffer.split('\n').collect();
@@ -112,7 +112,7 @@ impl<'a> Model<'a> {
             loop {
                 let chunk_matches = all_regexes
                     .iter()
-                    .filter_map(|(&ref name, regex)| match regex.find_iter(chunk).nth(0) {
+                    .filter_map(|(&ref name, regex)| match regex.find_iter(chunk).next() {
                         Some(m) => Some((name, regex, m)),
                         None => None,
                     })
@@ -164,7 +164,7 @@ impl<'a> Model<'a> {
     /// If `unique` is `true`, all duplicate matches will have the same hint.
     /// For copying matched text, this seems easier and more natural.
     /// If `unique` is `false`, duplicate matches will have their own hint.
-    fn associate_hints(&self, raw_matches: &Vec<RawMatch<'a>>, unique: bool) -> Vec<Match<'a>> {
+    fn associate_hints(&self, raw_matches: &[RawMatch<'a>], unique: bool) -> Vec<Match<'a>> {
         let hints = self.alphabet.make_hints(raw_matches.len());
         let mut hints_iter = hints.iter();
 
@@ -175,11 +175,11 @@ impl<'a> Model<'a> {
             let mut known: collections::HashMap<&str, &str> = collections::HashMap::new();
 
             for raw_mat in raw_matches {
-                let hint: &str = known.entry(raw_mat.text).or_insert(
+                let hint: &str = known.entry(raw_mat.text).or_insert_with(|| {
                     hints_iter
                         .next()
-                        .expect("We should have as many hints as necessary, even invisible ones."),
-                );
+                        .expect("We should have as many hints as necessary, even invisible ones.")
+                });
 
                 result.push(Match {
                     x: raw_mat.x,
@@ -211,7 +211,7 @@ impl<'a> Model<'a> {
     /// Builds a `SequenceTrie` that helps determine if a sequence of keys
     /// entered by the user corresponds to a match. This kind of lookup
     /// directly returns a reference to the corresponding `Match` if any.
-    pub fn build_lookup_trie(matches: &'a Vec<Match<'a>>) -> SequenceTrie<char, usize> {
+    pub fn build_lookup_trie(matches: &'a [Match<'a>]) -> SequenceTrie<char, usize> {
         let mut trie = SequenceTrie::new();
 
         for (index, mat) in matches.iter().enumerate() {
