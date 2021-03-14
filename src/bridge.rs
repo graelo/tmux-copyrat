@@ -89,7 +89,6 @@ fn main() -> Result<(), error::ParseError> {
 
     // Finally copy selection to a tmux buffer, and paste it to the active
     // buffer if it was uppercased.
-    // TODO: consider getting rid of multi-selection mode.
 
     match selections {
         None => return Ok(()),
