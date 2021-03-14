@@ -408,6 +408,7 @@ impl<'a> Ui<'a> {
             return Event::Exit;
         }
 
+        let mut uppercased = false;
         let mut typed_hint = String::new();
 
         self.full_render(writer);
@@ -468,7 +469,7 @@ impl<'a> Ui<'a> {
                 }
 
                 // Yank/copy
-                event::Key::Char(_ch @ 'y') => {
+                event::Key::Char(_ch @ 'y') | event::Key::Char(_ch @ '\n') => {
                     let text = self.matches.get(self.focus_index).unwrap().text;
                     return Event::Match((text.to_string(), false));
                 }
@@ -477,13 +478,17 @@ impl<'a> Ui<'a> {
                     return Event::Match((text.to_string(), true));
                 }
 
-                // TODO: use a Trie or another data structure to determine
+                // Use a Trie or another data structure to determine
                 // if the entered key belongs to a longer hint.
                 // Attempts at finding a match with a corresponding hint.
+                //
+                // If any of the typed character is caps, the typed hint is
+                // deemed as uppercased.
                 event::Key::Char(ch) => {
                     let key = ch.to_string();
                     let lower_key = key.to_lowercase();
 
+                    uppercased = uppercased || (key != lower_key);
                     typed_hint.push_str(&lower_key);
 
                     let node = self
@@ -503,7 +508,6 @@ impl<'a> Ui<'a> {
                         );
                         let mat = self.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
                         let text = mat.text.to_string();
-                        let uppercased = key != lower_key;
                         return Event::Match((text, uppercased));
                     } else {
                         // The prefix of a hint was entered, but we
