@@ -69,7 +69,7 @@ impl Alphabet {
     /// If more hints are needed, unfortunately, this will keep producing
     /// empty (`""`) hints.
     ///
-    /// ```
+    /// ```text
     /// // The algorithm works as follows:
     /// //                                  --- lead ----
     /// // initial state                 |  a   b   c   d
