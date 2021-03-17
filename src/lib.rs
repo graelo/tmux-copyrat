@@ -11,6 +11,7 @@ pub mod output_destination;
 pub mod process;
 pub mod regexes;
 pub mod selection;
+pub mod tmux;
 pub mod ui;
 
 /// Run copyrat on an input string `buffer`, configured by `Opt`.

@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
-use copyrat::error::ParseError;
-use copyrat::process;
+use crate::error::ParseError;
+use crate::process;
 
 #[derive(Debug, PartialEq)]
 pub struct Pane {
@@ -241,7 +241,7 @@ pub fn swap_pane_with(target_pane: &str) -> Result<(), ParseError> {
 mod tests {
     use super::Pane;
     use super::PaneId;
-    use copyrat::error;
+    use crate::error;
     use std::str::FromStr;
 
     #[test]
