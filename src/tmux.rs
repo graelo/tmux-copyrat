@@ -5,7 +5,6 @@ use std::fmt;
 use std::str::FromStr;
 
 use crate::error::ParseError;
-use crate::process;
 
 #[derive(Debug, PartialEq)]
 pub struct Pane {
@@ -145,7 +144,7 @@ pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
         "#{pane_id}:#{?pane_in_mode,true,false}:#{pane_height}:#{scroll_position}:#{?pane_active,true,false}",
         ];
 
-    let output = process::execute("tmux", &args)?;
+    let output = duct::cmd("tmux", &args).read()?;
 
     // Each call to `Pane::parse` returns a `Result<Pane, _>`. All results
     // are collected into a Result<Vec<Pane>, _>, thanks to `collect()`.
@@ -165,9 +164,7 @@ pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
 /// # Example
 /// ```get_options("@copyrat-")```
 pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> {
-    let args = vec!["show", "-g"];
-
-    let output = process::execute("tmux", &args)?;
+    let output = duct::cmd!("tmux", "show", "-g").read()?;
     let lines: Vec<&str> = output.split('\n').collect();
 
     let pattern = format!(r#"{prefix}([\w\-0-9]+) "?(\w+)"?"#, prefix = prefix);
@@ -223,16 +220,14 @@ pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, Parse
 
     let args: Vec<&str> = args.split(' ').collect();
 
-    let output = process::execute("tmux", &args)?;
+    let output = duct::cmd("tmux", &args).read()?;
     Ok(output)
 }
 
 /// Ask tmux to swap the current Pane with the target_pane (uses Tmux format).
 pub fn swap_pane_with(target_pane: &str) -> Result<(), ParseError> {
     // -Z: keep the window zoomed if it was zoomed.
-    let args = vec!["swap-pane", "-Z", "-s", target_pane];
-
-    process::execute("tmux", &args)?;
+    duct::cmd!("tmux", "swap-pane", "-Z", "-s", target_pane).run()?;
 
     Ok(())
 }

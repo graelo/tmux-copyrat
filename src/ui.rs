@@ -8,7 +8,7 @@ use sequence_trie::SequenceTrie;
 use termion::{self, color, cursor, event, style};
 
 use crate::error::ParseError;
-use crate::{colors, model, output_destination::OutputDestination, process, selection::Selection};
+use crate::{colors, model, output_destination::OutputDestination, selection::Selection};
 
 pub struct Ui<'a> {
     model: &'a mut model::Model<'a>,
@@ -493,8 +493,8 @@ impl<'a> Ui<'a> {
                 event::Key::Char(_ch @ ' ') => {
                     output_destination.toggle();
                     let message = format!("output destination: `{}`", output_destination);
-                    let args = vec!["display-message", &message];
-                    process::execute("tmux", &args)
+                    duct::cmd!("tmux", "display-message", &message)
+                        .run()
                         .expect("could not make tmux display the message.");
                     continue;
                 }
