@@ -33,8 +33,8 @@ struct BridgeOpt {
 
     /// Name of the copy-to-clipboard executable.
     ///
-    /// If the output destination is set to keyboard, copyrat will pipe the
-    /// selected text to this executable.
+    /// If during execution, the output destination is set to be clipboard,
+    /// then copyrat will pipe the selected text to this executable.
     #[clap(long, default_value = "pbcopy")]
     clipboard_exe: String,
 
@@ -94,8 +94,8 @@ fn main() -> Result<(), error::ParseError> {
 
     tmux::swap_pane_with(&temp_pane_spec)?;
 
-    // Finally copy selection to a tmux buffer, and paste it to the active
-    // buffer if it was uppercased.
+    // Finally copy selection to the output destination (tmux buffer or
+    // clipboard), and paste it to the active buffer if it was uppercased.
 
     match selection {
         None => return Ok(()),
@@ -105,25 +105,14 @@ fn main() -> Result<(), error::ParseError> {
             output_destination,
         }) => {
             if uppercased {
-                // let args = vec!["send-keys", "-t", active_pane.id.as_str(), &text];
-                // process::execute("tmux", &args)?;
                 duct::cmd!("tmux", "send-keys", "-t", active_pane.id.as_str(), &text).run()?;
             }
 
             match output_destination {
                 OutputDestination::Tmux => {
-                    // let args = vec!["set-buffer", &text];
-                    // process::execute("tmux", &args)?;
                     duct::cmd!("tmux", "set-buffer", &text).run()?;
-
-                    // if uppercased {
-                    //     let args = vec!["paste-buffer", "-t", active_pane.id.as_str()];
-                    //     process::execute("tmux", &args)?;
-                    // }
                 }
                 OutputDestination::Clipboard => {
-                    // let args = [("echo", vec![&text[..]]), ("pbcopy", vec![])];
-                    // process::execute_piped(&args[..])?;
                     duct::cmd!("echo", "-n", &text)
                         .pipe(duct::cmd!(opt.clipboard_exe))
                         .read()?;

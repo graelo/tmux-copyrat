@@ -91,6 +91,8 @@ setup_pattern_binding "D" "--pattern-name docker"
 setup_pattern_binding "c" "--pattern-name hexcolor"
 # prefix + t + U searches for UUIDs
 setup_pattern_binding "U" "--pattern-name uuid"
+# prefix + t + v searches for version numbers
+setup_pattern_binding "v" "--pattern-name version"
 # prefix + t + d searches for any string of 4+ digits
 setup_pattern_binding "d" "--pattern-name digits"
 # prefix + t + m searches for hex numbers: 0xbedead
