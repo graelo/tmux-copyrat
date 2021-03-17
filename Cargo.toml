@@ -17,8 +17,8 @@ duct = "0.13"
 
 [[bin]]
 name = "copyrat"
-path = "src/main.rs"
+path = "src/bin/copyrat.rs"
 
 [[bin]]
 name = "tmux-copyrat"
-path = "src/tmux_copyrat.rs"
+path = "src/bin/tmux_copyrat.rs"
