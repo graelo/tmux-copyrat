@@ -23,7 +23,7 @@ impl OutputDestination {
 impl fmt::Display for OutputDestination {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Tmux => write!(f, "tmux"),
+            Self::Tmux => write!(f, "tmux buffer"),
             Self::Clipboard => write!(f, "clipboard"),
         }
     }

@@ -7,7 +7,7 @@ pub const EXCLUDE_PATTERNS: [(&str, &str); 1] =
 ///
 /// The email address was obtained at https://www.regular-expressions.info/email.html.
 /// Others were obtained from Ferran Basora.
-pub const PATTERNS: [(&str, &str); 15] = [
+pub const PATTERNS: [(&str, &str); 16] = [
     ("markdown-url", r"\[[^]]*\]\(([^)]+)\)"),
     (
         "url",
@@ -22,6 +22,10 @@ pub const PATTERNS: [(&str, &str); 15] = [
     (
         "uuid",
         r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+    ),
+    (
+        "version",
+        r"(v?\d{1,4}\.\d{1,4}(\.\d{1,4})?(-(alpha|beta|rc)(\.\d)?)?)[^.0-9s]",
     ),
     ("ipfs", r"Qm[0-9a-zA-Z]{44}"),
     ("sha", r"[0-9a-f]{7,40}"),
