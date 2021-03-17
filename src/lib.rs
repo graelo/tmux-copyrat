@@ -7,8 +7,10 @@ pub mod alphabets;
 pub mod colors;
 pub mod error;
 pub mod model;
+pub mod output_destination;
 pub mod process;
 pub mod regexes;
+pub mod selection;
 pub mod ui;
 
 /// Run copyrat on an input string `buffer`, configured by `Opt`.
@@ -16,7 +18,7 @@ pub mod ui;
 /// # Note
 ///
 /// Maybe the decision to take ownership of the buffer is a bit bold.
-pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
+pub fn run(buffer: String, opt: &CliOpt) -> Option<selection::Selection> {
     let mut model = model::Model::new(
         &buffer,
         &opt.alphabet,
@@ -39,11 +41,14 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<(String, bool)> {
         },
     };
 
-    let selection: Option<(String, bool)> = {
+    let default_output_destination = output_destination::OutputDestination::Tmux;
+
+    let selection: Option<selection::Selection> = {
         let mut ui = ui::Ui::new(
             &mut model,
             opt.unique_hint,
             opt.focus_wrap_around,
+            default_output_destination,
             &opt.colors,
             &opt.hint_alignment,
             hint_style,

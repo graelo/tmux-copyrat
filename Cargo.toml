@@ -13,6 +13,7 @@ termion = "1.5"
 regex = "1.4"
 clap = { version = "3.0.0-beta.2", features = ["suggestions", "color", "wrap_help"]}
 sequence_trie = "0.3.6"
+duct = "0.13"
 
 [[bin]]
 name = "copyrat"
@@ -20,4 +21,4 @@ path = "src/main.rs"
 
 [[bin]]
 name = "tmux-copyrat"
-path = "src/bridge.rs"
+path = "src/tmux_copyrat.rs"
