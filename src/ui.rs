@@ -8,7 +8,7 @@ use sequence_trie::SequenceTrie;
 use termion::{self, color, cursor, event, style};
 
 use crate::error::ParseError;
-use crate::{colors, model};
+use crate::{colors, model, output_destination::OutputDestination, process, selection::Selection};
 
 pub struct Ui<'a> {
     model: &'a mut model::Model<'a>,
@@ -18,6 +18,7 @@ pub struct Ui<'a> {
     lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
     focus_wrap_around: bool,
+    default_output_destination: OutputDestination,
     rendering_colors: &'a UiColors,
     hint_alignment: &'a HintAlignment,
     hint_style: Option<HintStyle>,
@@ -28,6 +29,7 @@ impl<'a> Ui<'a> {
         model: &'a mut model::Model<'a>,
         unique_hint: bool,
         focus_wrap_around: bool,
+        default_output_destination: OutputDestination,
         rendering_colors: &'a UiColors,
         hint_alignment: &'a HintAlignment,
         hint_style: Option<HintStyle>,
@@ -47,6 +49,7 @@ impl<'a> Ui<'a> {
             lookup_trie,
             focus_index,
             focus_wrap_around,
+            default_output_destination,
             rendering_colors,
             hint_alignment,
             hint_style,
@@ -408,8 +411,9 @@ impl<'a> Ui<'a> {
             return Event::Exit;
         }
 
-        let mut uppercased = false;
         let mut typed_hint = String::new();
+        let mut uppercased = false;
+        let mut output_destination = self.default_output_destination.clone();
 
         self.full_render(writer);
 
@@ -471,11 +475,28 @@ impl<'a> Ui<'a> {
                 // Yank/copy
                 event::Key::Char(_ch @ 'y') | event::Key::Char(_ch @ '\n') => {
                     let text = self.matches.get(self.focus_index).unwrap().text;
-                    return Event::Match((text.to_string(), false));
+                    return Event::Match(Selection {
+                        text: text.to_string(),
+                        uppercased: false,
+                        output_destination,
+                    });
                 }
                 event::Key::Char(_ch @ 'Y') => {
                     let text = self.matches.get(self.focus_index).unwrap().text;
-                    return Event::Match((text.to_string(), true));
+                    return Event::Match(Selection {
+                        text: text.to_string(),
+                        uppercased: true,
+                        output_destination,
+                    });
+                }
+
+                event::Key::Char(_ch @ ' ') => {
+                    output_destination.toggle();
+                    let message = format!("output destination: `{}`", output_destination);
+                    let args = vec!["display-message", &message];
+                    process::execute("tmux", &args)
+                        .expect("could not make tmux display the message.");
+                    continue;
                 }
 
                 // Use a Trie or another data structure to determine
@@ -496,7 +517,7 @@ impl<'a> Ui<'a> {
                         .get_node(&typed_hint.chars().collect::<Vec<char>>());
 
                     if node.is_none() {
-                        // An unknown key was entered.
+                        // A key outside the alphabet was entered.
                         return Event::Exit;
                     }
 
@@ -508,7 +529,11 @@ impl<'a> Ui<'a> {
                         );
                         let mat = self.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
                         let text = mat.text.to_string();
-                        return Event::Match((text, uppercased));
+                        return Event::Match(Selection {
+                            text,
+                            uppercased,
+                            output_destination,
+                        });
                     } else {
                         // The prefix of a hint was entered, but we
                         // still need more keys.
@@ -530,7 +555,7 @@ impl<'a> Ui<'a> {
     ///
     /// - Setup steps: switch to alternate screen, switch to raw mode, hide the cursor.
     /// - Teardown steps: show cursor, back to main screen.
-    pub fn present(&mut self) -> Option<(String, bool)> {
+    pub fn present(&mut self) -> Option<Selection> {
         use std::io::Write;
         use termion::raw::IntoRawMode;
         use termion::screen::AlternateScreen;
@@ -546,7 +571,7 @@ impl<'a> Ui<'a> {
 
         let selection = match self.listen(&mut stdin, &mut stdout) {
             Event::Exit => None,
-            Event::Match((text, uppercased)) => Some((text, uppercased)),
+            Event::Match(selection) => Some(selection),
         };
 
         write!(stdout, "{}", cursor::Show).unwrap();
@@ -623,7 +648,7 @@ enum Event {
     /// Exit with no selected matches,
     Exit,
     /// A vector of matched text and whether it was selected with uppercase.
-    Match((String, bool)),
+    Match(Selection),
 }
 
 #[cfg(test)]
@@ -915,6 +940,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             lookup_trie: SequenceTrie::new(),
             focus_index: 0,
             focus_wrap_around: false,
+            default_output_destination: OutputDestination::Tmux,
             rendering_colors: &rendering_colors,
             hint_alignment: &hint_alignment,
             hint_style: None,
@@ -968,6 +994,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         );
         let unique_hint = false;
         let wrap_around = false;
+        let default_output_destination = OutputDestination::Tmux;
 
         let rendering_colors = UiColors {
             text_fg: Box::new(color::Black),
@@ -986,6 +1013,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             &mut model,
             unique_hint,
             wrap_around,
+            default_output_destination,
             &rendering_colors,
             &hint_alignment,
             hint_style,

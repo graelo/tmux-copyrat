@@ -3,7 +3,7 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::{self, Read};
 
-use copyrat::{run, CliOpt};
+use copyrat::{run, selection::Selection, CliOpt};
 
 fn main() {
     let opt = CliOpt::parse();
@@ -17,14 +17,14 @@ fn main() {
 
     // Execute copyrat over the buffer (will take control over stdout).
     // This returns the selected matche.
-    let selection: Option<(String, bool)> = run(buffer, &opt);
+    let selection: Option<Selection> = run(buffer, &opt);
 
     // Early exit, signaling no selections were found.
     if selection.is_none() {
         std::process::exit(1);
     }
 
-    let (text, _) = selection.unwrap();
+    let Selection { text, .. } = selection.unwrap();
 
     // Write output to a target_path if provided, else print to original stdout.
     match opt.target_path {

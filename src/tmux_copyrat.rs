@@ -2,7 +2,7 @@ use clap::Clap;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use copyrat::{error, process, CliOpt};
+use copyrat::{error, output_destination::OutputDestination, selection::Selection, CliOpt};
 
 mod tmux;
 
@@ -30,6 +30,13 @@ struct BridgeOpt {
     /// Capture visible area or entire pane history.
     #[clap(long, arg_enum, default_value = "visible-area")]
     capture_region: tmux::CaptureRegion,
+
+    /// Name of the copy-to-clipboard executable.
+    ///
+    /// If the output destination is set to keyboard, copyrat will pipe the
+    /// selected text to this executable.
+    #[clap(long, default_value = "pbcopy")]
+    clipboard_exe: String,
 
     // Include CLI Options
     #[clap(flatten)]
@@ -77,28 +84,50 @@ fn main() -> Result<(), error::ParseError> {
 
     let buffer = tmux::capture_pane(&active_pane, &opt.capture_region)?;
 
-    // We have to dance a little with Panes, because this process i/o streams
+    // We have to dance a little with Panes, because this process' i/o streams
     // are connected to the pane in the window newly created for us, instead
     // of the active current pane.
     let temp_pane_spec = format!("{}.0", opt.window_name);
     tmux::swap_pane_with(&temp_pane_spec)?;
 
-    let selections = copyrat::run(buffer, &opt.cli_options);
+    let selection = copyrat::run(buffer, &opt.cli_options);
 
     tmux::swap_pane_with(&temp_pane_spec)?;
 
     // Finally copy selection to a tmux buffer, and paste it to the active
     // buffer if it was uppercased.
 
-    match selections {
+    match selection {
         None => return Ok(()),
-        Some((text, uppercased)) => {
-            let args = vec!["set-buffer", &text];
-            process::execute("tmux", &args)?;
-
+        Some(Selection {
+            text,
+            uppercased,
+            output_destination,
+        }) => {
             if uppercased {
-                let args = vec!["paste-buffer", "-t", active_pane.id.as_str()];
-                process::execute("tmux", &args)?;
+                // let args = vec!["send-keys", "-t", active_pane.id.as_str(), &text];
+                // process::execute("tmux", &args)?;
+                duct::cmd!("tmux", "send-keys", "-t", active_pane.id.as_str(), &text).run()?;
+            }
+
+            match output_destination {
+                OutputDestination::Tmux => {
+                    // let args = vec!["set-buffer", &text];
+                    // process::execute("tmux", &args)?;
+                    duct::cmd!("tmux", "set-buffer", &text).run()?;
+
+                    // if uppercased {
+                    //     let args = vec!["paste-buffer", "-t", active_pane.id.as_str()];
+                    //     process::execute("tmux", &args)?;
+                    // }
+                }
+                OutputDestination::Clipboard => {
+                    // let args = [("echo", vec![&text[..]]), ("pbcopy", vec![])];
+                    // process::execute_piped(&args[..])?;
+                    duct::cmd!("echo", "-n", &text)
+                        .pipe(duct::cmd!(opt.clipboard_exe))
+                        .read()?;
+                }
             }
         }
     }
