@@ -8,7 +8,6 @@ pub mod colors;
 pub mod error;
 pub mod model;
 pub mod output_destination;
-pub mod process;
 pub mod regexes;
 pub mod selection;
 pub mod tmux;
