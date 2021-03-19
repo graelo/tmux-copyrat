@@ -98,7 +98,7 @@ pub struct CliOpt {
     unique_hint: bool,
 
     #[clap(flatten)]
-    colors: ui::UiColors,
+    colors: colors::UiColors,
 
     /// Align hint with its match.
     #[clap(long, arg_enum, default_value = "leading")]

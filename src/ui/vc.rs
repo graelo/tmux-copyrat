@@ -8,7 +8,7 @@ use sequence_trie::SequenceTrie;
 use termion::{self, color, cursor, event, style};
 
 use crate::error::ParseError;
-use crate::{colors, model, output_destination::OutputDestination, selection::Selection};
+use crate::{colors::UiColors, model, output_destination::OutputDestination, selection::Selection};
 
 pub struct ViewController<'a> {
     model: &'a mut model::Model<'a>,
@@ -1114,50 +1114,4 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         assert_eq!(writer, expected.as_bytes());
     }
-}
-
-// /// Holds color-related data, for clarity.
-// ///
-// /// - `focus_*` colors are used to render the currently focused matched text.
-// /// - `normal_*` colors are used to render other matched text.
-// /// - `hint_*` colors are used to render the hints.
-#[derive(Clap, Debug)]
-pub struct UiColors {
-    /// Foreground color for base text.
-    #[clap(long, default_value = "bright-cyan", parse(try_from_str = colors::parse_color))]
-    pub text_fg: Box<dyn color::Color>,
-
-    /// Background color for base text.
-    #[clap(long, default_value = "bright-white", parse(try_from_str = colors::parse_color))]
-    pub text_bg: Box<dyn color::Color>,
-
-    /// Foreground color for matches.
-    #[clap(long, default_value = "yellow",
-                parse(try_from_str = colors::parse_color))]
-    pub match_fg: Box<dyn color::Color>,
-
-    /// Background color for matches.
-    #[clap(long, default_value = "bright-white",
-                parse(try_from_str = colors::parse_color))]
-    pub match_bg: Box<dyn color::Color>,
-
-    /// Foreground color for the focused match.
-    #[clap(long, default_value = "magenta",
-                parse(try_from_str = colors::parse_color))]
-    pub focused_fg: Box<dyn color::Color>,
-
-    /// Background color for the focused match.
-    #[clap(long, default_value = "bright-white",
-                parse(try_from_str = colors::parse_color))]
-    pub focused_bg: Box<dyn color::Color>,
-
-    /// Foreground color for hints.
-    #[clap(long, default_value = "white",
-                parse(try_from_str = colors::parse_color))]
-    pub hint_fg: Box<dyn color::Color>,
-
-    /// Background color for hints.
-    #[clap(long, default_value = "magenta",
-                parse(try_from_str = colors::parse_color))]
-    pub hint_bg: Box<dyn color::Color>,
 }

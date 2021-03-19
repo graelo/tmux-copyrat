@@ -1,4 +1,5 @@
 use crate::error;
+use clap::Clap;
 use termion::color;
 
 pub fn parse_color(src: &str) -> Result<Box<dyn color::Color>, error::ParseError> {
@@ -44,4 +45,50 @@ mod tests {
     fn no_match_color() {
         assert!(parse_color("wat").is_err(), "this color should not exist");
     }
+}
+
+/// Holds color-related data, for clarity.
+///
+/// - `focus_*` colors are used to render the currently focused matched text.
+/// - `normal_*` colors are used to render other matched text.
+/// - `hint_*` colors are used to render the hints.
+#[derive(Clap, Debug)]
+pub struct UiColors {
+    /// Foreground color for base text.
+    #[clap(long, default_value = "bright-cyan", parse(try_from_str = parse_color))]
+    pub text_fg: Box<dyn color::Color>,
+
+    /// Background color for base text.
+    #[clap(long, default_value = "bright-white", parse(try_from_str = parse_color))]
+    pub text_bg: Box<dyn color::Color>,
+
+    /// Foreground color for matches.
+    #[clap(long, default_value = "yellow",
+                parse(try_from_str = parse_color))]
+    pub match_fg: Box<dyn color::Color>,
+
+    /// Background color for matches.
+    #[clap(long, default_value = "bright-white",
+                parse(try_from_str = parse_color))]
+    pub match_bg: Box<dyn color::Color>,
+
+    /// Foreground color for the focused match.
+    #[clap(long, default_value = "magenta",
+                parse(try_from_str = parse_color))]
+    pub focused_fg: Box<dyn color::Color>,
+
+    /// Background color for the focused match.
+    #[clap(long, default_value = "bright-white",
+                parse(try_from_str = parse_color))]
+    pub focused_bg: Box<dyn color::Color>,
+
+    /// Foreground color for hints.
+    #[clap(long, default_value = "white",
+                parse(try_from_str = parse_color))]
+    pub hint_fg: Box<dyn color::Color>,
+
+    /// Background color for hints.
+    #[clap(long, default_value = "magenta",
+                parse(try_from_str = parse_color))]
+    pub hint_bg: Box<dyn color::Color>,
 }
