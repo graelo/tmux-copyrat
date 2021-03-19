@@ -19,4 +19,4 @@
 
 mod vc;
 pub use vc::ViewController;
-pub use vc::{HintAlignment, HintStyle, UiColors};
+pub use vc::{HintAlignment, HintStyle};
