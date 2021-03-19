@@ -5,9 +5,9 @@ use std::str::FromStr;
 
 pub mod alphabets;
 pub mod error;
-pub mod model;
 pub mod output_destination;
 pub mod regexes;
+pub mod textbuf;
 pub mod tmux;
 pub mod ui;
 
@@ -17,7 +17,7 @@ pub mod ui;
 ///
 /// Maybe the decision to take ownership of the buffer is a bit bold.
 pub fn run(buffer: String, opt: &CliOpt) -> Option<ui::Selection> {
-    let mut model = model::Model::new(
+    let mut model = textbuf::Model::new(
         &buffer,
         &opt.alphabet,
         opt.use_all_patterns,
