@@ -8,7 +8,6 @@ pub mod error;
 pub mod model;
 pub mod output_destination;
 pub mod regexes;
-pub mod selection;
 pub mod tmux;
 pub mod ui;
 
@@ -17,7 +16,7 @@ pub mod ui;
 /// # Note
 ///
 /// Maybe the decision to take ownership of the buffer is a bit bold.
-pub fn run(buffer: String, opt: &CliOpt) -> Option<selection::Selection> {
+pub fn run(buffer: String, opt: &CliOpt) -> Option<ui::Selection> {
     let mut model = model::Model::new(
         &buffer,
         &opt.alphabet,
@@ -42,7 +41,7 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<selection::Selection> {
 
     let default_output_destination = output_destination::OutputDestination::Tmux;
 
-    let selection: Option<selection::Selection> = {
+    let selection: Option<ui::Selection> = {
         let mut ui = ui::ViewController::new(
             &mut model,
             opt.unique_hint,
