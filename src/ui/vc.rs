@@ -10,7 +10,7 @@ use termion::{self, color, cursor, event, style};
 use crate::error::ParseError;
 use crate::{colors, model, output_destination::OutputDestination, selection::Selection};
 
-pub struct Ui<'a> {
+pub struct ViewController<'a> {
     model: &'a mut model::Model<'a>,
     term_width: u16,
     line_offsets: Vec<usize>,
@@ -24,7 +24,7 @@ pub struct Ui<'a> {
     hint_style: Option<HintStyle>,
 }
 
-impl<'a> Ui<'a> {
+impl<'a> ViewController<'a> {
     pub fn new(
         model: &'a mut model::Model<'a>,
         unique_hint: bool,
@@ -33,7 +33,7 @@ impl<'a> Ui<'a> {
         rendering_colors: &'a UiColors,
         hint_alignment: &'a HintAlignment,
         hint_style: Option<HintStyle>,
-    ) -> Ui<'a> {
+    ) -> ViewController<'a> {
         let matches = model.matches(unique_hint);
         let lookup_trie = model::Model::build_lookup_trie(&matches);
         let focus_index = if model.reverse { matches.len() - 1 } else { 0 };
@@ -41,7 +41,7 @@ impl<'a> Ui<'a> {
         let (term_width, _) = termion::terminal_size().unwrap_or((80u16, 30u16)); // .expect("Cannot read the terminal size.");
         let line_offsets = get_line_offsets(&model.lines, term_width);
 
-        Ui {
+        ViewController {
             model,
             term_width,
             line_offsets,
@@ -319,7 +319,7 @@ impl<'a> Ui<'a> {
         let (offset_x, offset_y) = self.match_offsets(mat);
         let (offset_x, offset_y) = self.map_coords_to_wrapped_space(offset_x, offset_y);
 
-        Ui::render_matched_text(
+        ViewController::render_matched_text(
             stdout,
             text,
             focused,
@@ -336,7 +336,7 @@ impl<'a> Ui<'a> {
                 HintAlignment::Trailing => text.len() - mat.hint.len(),
             };
 
-            Ui::render_matched_hint(
+            ViewController::render_matched_hint(
                 stdout,
                 &mat.hint,
                 (offset_x + extra_offset, offset_y),
@@ -362,7 +362,7 @@ impl<'a> Ui<'a> {
     /// and `hint` are rendered in their proper position.
     fn full_render(&self, stdout: &mut dyn io::Write) {
         // 1. Trim all lines and render non-empty ones.
-        Ui::render_base_text(
+        ViewController::render_base_text(
             stdout,
             &self.model.lines,
             &self.line_offsets,
@@ -679,7 +679,7 @@ path: /usr/local/bin/cargo";
         };
 
         let mut writer = vec![];
-        Ui::render_base_text(&mut writer, &lines, &line_offsets, &colors);
+        ViewController::render_base_text(&mut writer, &lines, &line_offsets, &colors);
 
         let goto1 = cursor::Goto(1, 1);
         let goto2 = cursor::Goto(1, 2);
@@ -716,7 +716,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        Ui::render_matched_text(&mut writer, text, focused, offset, &colors);
+        ViewController::render_matched_text(&mut writer, text, focused, offset, &colors);
 
         assert_eq!(
             writer,
@@ -750,7 +750,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        Ui::render_matched_text(&mut writer, text, focused, offset, &colors);
+        ViewController::render_matched_text(&mut writer, text, focused, offset, &colors);
 
         assert_eq!(
             writer,
@@ -786,7 +786,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = None;
 
-        Ui::render_matched_hint(
+        ViewController::render_matched_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -828,7 +828,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = Some(HintStyle::Underline);
 
-        Ui::render_matched_hint(
+        ViewController::render_matched_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -872,7 +872,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = Some(HintStyle::Surround('{', '}'));
 
-        Ui::render_matched_hint(
+        ViewController::render_matched_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -932,7 +932,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let hint_alignment = HintAlignment::Leading;
 
         // create a Ui without any match
-        let ui = Ui {
+        let ui = ViewController {
             model: &mut model,
             term_width,
             line_offsets,
@@ -1009,7 +1009,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let hint_alignment = HintAlignment::Leading;
         let hint_style = None;
 
-        let ui = Ui::new(
+        let ui = ViewController::new(
             &mut model,
             unique_hint,
             wrap_around,
