@@ -7,8 +7,9 @@ use clap::Clap;
 use sequence_trie::SequenceTrie;
 use termion::{self, color, cursor, event, style};
 
+use super::colors::UiColors;
 use crate::error::ParseError;
-use crate::{colors::UiColors, model, output_destination::OutputDestination, selection::Selection};
+use crate::{model, output_destination::OutputDestination, selection::Selection};
 
 pub struct ViewController<'a> {
     model: &'a mut model::Model<'a>,

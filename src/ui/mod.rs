@@ -17,6 +17,8 @@
 //! - toggle the output destination (tmux buffer or clipboard)
 //!
 
+pub mod colors;
 mod vc;
+
 pub use vc::ViewController;
 pub use vc::{HintAlignment, HintStyle};

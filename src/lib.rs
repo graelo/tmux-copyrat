@@ -4,7 +4,6 @@ use std::path;
 use std::str::FromStr;
 
 pub mod alphabets;
-pub mod colors;
 pub mod error;
 pub mod model;
 pub mod output_destination;
@@ -98,7 +97,7 @@ pub struct CliOpt {
     unique_hint: bool,
 
     #[clap(flatten)]
-    colors: colors::UiColors,
+    colors: ui::colors::UiColors,
 
     /// Align hint with its match.
     #[clap(long, arg_enum, default_value = "leading")]
@@ -187,12 +186,12 @@ impl CliOpt {
                     self.unique_hint = value.parse::<bool>()?;
                 }
 
-                "@copyrat-match-fg" => self.colors.match_fg = colors::parse_color(value)?,
-                "@copyrat-match-bg" => self.colors.match_bg = colors::parse_color(value)?,
-                "@copyrat-focused-fg" => self.colors.focused_fg = colors::parse_color(value)?,
-                "@copyrat-focused-bg" => self.colors.focused_bg = colors::parse_color(value)?,
-                "@copyrat-hint-fg" => self.colors.hint_fg = colors::parse_color(value)?,
-                "@copyrat-hint-bg" => self.colors.hint_bg = colors::parse_color(value)?,
+                "@copyrat-match-fg" => self.colors.match_fg = ui::colors::parse_color(value)?,
+                "@copyrat-match-bg" => self.colors.match_bg = ui::colors::parse_color(value)?,
+                "@copyrat-focused-fg" => self.colors.focused_fg = ui::colors::parse_color(value)?,
+                "@copyrat-focused-bg" => self.colors.focused_bg = ui::colors::parse_color(value)?,
+                "@copyrat-hint-fg" => self.colors.hint_fg = ui::colors::parse_color(value)?,
+                "@copyrat-hint-bg" => self.colors.hint_bg = ui::colors::parse_color(value)?,
 
                 "@copyrat-hint-alignment" => {
                     self.hint_alignment = ui::HintAlignment::from_str(&value)?
