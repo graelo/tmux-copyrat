@@ -10,13 +10,13 @@ use termion::{self, color, cursor, event, style};
 use super::colors::UiColors;
 use super::Selection;
 use crate::error::ParseError;
-use crate::{model, output_destination::OutputDestination};
+use crate::{output_destination::OutputDestination, textbuf};
 
 pub struct ViewController<'a> {
-    model: &'a mut model::Model<'a>,
+    model: &'a mut textbuf::Model<'a>,
     term_width: u16,
     line_offsets: Vec<usize>,
-    matches: Vec<model::Match<'a>>,
+    matches: Vec<textbuf::Match<'a>>,
     lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
     focus_wrap_around: bool,
@@ -28,7 +28,7 @@ pub struct ViewController<'a> {
 
 impl<'a> ViewController<'a> {
     pub fn new(
-        model: &'a mut model::Model<'a>,
+        model: &'a mut textbuf::Model<'a>,
         unique_hint: bool,
         focus_wrap_around: bool,
         default_output_destination: OutputDestination,
@@ -37,7 +37,7 @@ impl<'a> ViewController<'a> {
         hint_style: Option<HintStyle>,
     ) -> ViewController<'a> {
         let matches = model.matches(unique_hint);
-        let lookup_trie = model::Model::build_lookup_trie(&matches);
+        let lookup_trie = textbuf::Model::build_lookup_trie(&matches);
         let focus_index = if model.reverse { matches.len() - 1 } else { 0 };
 
         let (term_width, _) = termion::terminal_size().unwrap_or((80u16, 30u16)); // .expect("Cannot read the terminal size.");
@@ -117,7 +117,7 @@ impl<'a> ViewController<'a> {
     /// their compouding takes less space on screen when printed: for
     /// instance ´ + e = é. Consequently the hint offset has to be adjusted
     /// to the left.
-    fn match_offsets(&self, mat: &model::Match<'a>) -> (usize, usize) {
+    fn match_offsets(&self, mat: &textbuf::Match<'a>) -> (usize, usize) {
         let offset_x = {
             let line = &self.model.lines[mat.y as usize];
             let prefix = &line[0..mat.x as usize];
@@ -315,7 +315,7 @@ impl<'a> ViewController<'a> {
 
     /// Convenience function that renders both the matched text and its hint,
     /// if focused.
-    fn render_match(&self, stdout: &mut dyn io::Write, mat: &model::Match<'a>, focused: bool) {
+    fn render_match(&self, stdout: &mut dyn io::Write, mat: &textbuf::Match<'a>, focused: bool) {
         let text = mat.text;
 
         let (offset_x, offset_y) = self.match_offsets(mat);
@@ -911,7 +911,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let custom_patterns = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let reverse = false;
-        let mut model = model::Model::new(
+        let mut model = textbuf::Model::new(
             content,
             &alphabet,
             use_all_patterns,
@@ -986,7 +986,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let custom_patterns = vec![];
         let alphabet = alphabets::Alphabet("abcd".to_string());
         let reverse = true;
-        let mut model = model::Model::new(
+        let mut model = textbuf::Model::new(
             content,
             &alphabet,
             use_all_patterns,
