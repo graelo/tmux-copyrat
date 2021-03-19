@@ -44,7 +44,7 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<selection::Selection> {
     let default_output_destination = output_destination::OutputDestination::Tmux;
 
     let selection: Option<selection::Selection> = {
-        let mut ui = ui::Ui::new(
+        let mut ui = ui::ViewController::new(
             &mut model,
             opt.unique_hint,
             opt.focus_wrap_around,
