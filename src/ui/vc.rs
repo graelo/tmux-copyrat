@@ -1,16 +1,13 @@
 use std::char;
 use std::cmp;
 use std::io;
-use std::str::FromStr;
 
-use clap::Clap;
 use sequence_trie::SequenceTrie;
 use termion::{self, color, cursor, event, style};
 
 use super::colors::UiColors;
-use super::HintStyle;
 use super::Selection;
-use crate::error::ParseError;
+use super::{HintAlignment, HintStyle};
 use crate::{output_destination::OutputDestination, textbuf};
 
 pub struct ViewController<'a> {
@@ -606,28 +603,6 @@ fn get_line_offsets(lines: &[&str], term_width: u16) -> Vec<usize> {
             Some(value)
         })
         .collect()
-}
-
-/// Describes if, during rendering, a hint should aligned to the leading edge of
-/// the matched text, or to its trailing edge.
-#[derive(Debug, Clap)]
-pub enum HintAlignment {
-    Leading,
-    Trailing,
-}
-
-impl FromStr for HintAlignment {
-    type Err = ParseError;
-
-    fn from_str(s: &str) -> Result<HintAlignment, ParseError> {
-        match s {
-            "leading" => Ok(HintAlignment::Leading),
-            "trailing" => Ok(HintAlignment::Trailing),
-            _ => Err(ParseError::ExpectedString(String::from(
-                "leading or trailing",
-            ))),
-        }
-    }
 }
 
 /// Returned value after the `Ui` has finished listening to events.
