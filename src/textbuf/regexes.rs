@@ -1,13 +1,13 @@
 use crate::error;
 
-pub const EXCLUDE_PATTERNS: [(&str, &str); 1] =
+pub(super) const EXCLUDE_PATTERNS: [(&str, &str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
 
 /// Holds all the regex patterns that are currently supported.
 ///
 /// The email address was obtained at https://www.regular-expressions.info/email.html.
 /// Others were obtained from Ferran Basora.
-pub const PATTERNS: [(&str, &str); 16] = [
+pub(super) const PATTERNS: [(&str, &str); 16] = [
     ("markdown-url", r"\[[^]]*\]\(([^)]+)\)"),
     (
         "url",
@@ -40,7 +40,7 @@ pub const PATTERNS: [(&str, &str); 16] = [
 pub struct NamedPattern(pub String, pub String);
 
 /// Parse a name string into `NamedPattern`, used during CLI parsing.
-pub fn parse_pattern_name(src: &str) -> Result<NamedPattern, error::ParseError> {
+pub(crate) fn parse_pattern_name(src: &str) -> Result<NamedPattern, error::ParseError> {
     match PATTERNS.iter().find(|&(name, _pattern)| name == &src) {
         Some((name, pattern)) => Ok(NamedPattern(name.to_string(), pattern.to_string())),
         None => Err(error::ParseError::UnknownPatternName),
