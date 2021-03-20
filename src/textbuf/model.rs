@@ -3,6 +3,7 @@ use std::collections;
 use regex::Regex;
 use sequence_trie::SequenceTrie;
 
+use super::matches::Match;
 use super::raw_match::RawMatch;
 use crate::alphabets::Alphabet;
 use crate::regexes::{NamedPattern, EXCLUDE_PATTERNS, PATTERNS};
@@ -226,17 +227,6 @@ impl<'a> Model<'a> {
 
         trie
     }
-}
-
-/// Represents matched text, its location on screen, the pattern that created
-/// it, and the associated hint.
-#[derive(Debug)]
-pub struct Match<'a> {
-    pub x: i32,
-    pub y: i32,
-    pub pattern: &'a str,
-    pub text: &'a str,
-    pub hint: String,
 }
 
 #[cfg(test)]
