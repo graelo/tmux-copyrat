@@ -6,7 +6,7 @@ use sequence_trie::SequenceTrie;
 use super::alphabet::Alphabet;
 use super::matches::Match;
 use super::raw_match::RawMatch;
-use crate::regexes::{NamedPattern, EXCLUDE_PATTERNS, PATTERNS};
+use super::regexes::{NamedPattern, EXCLUDE_PATTERNS, PATTERNS};
 
 /// Holds data for the `Ui`.
 pub struct Model<'a> {
@@ -757,7 +757,7 @@ mod tests {
         let buffer = "Lorem [link](http://foo.bar) ipsum CUSTOM-52463 lorem ISSUE-123 lorem\nLorem /var/fd70b569/9999.log 52463 lorem\n Lorem 973113 lorem 123e4567-e89b-12d3-a456-426655440000 lorem 8888 lorem\n  https://crates.io/23456/fd70b569 lorem";
 
         let use_all_patterns = false;
-        use crate::regexes::parse_pattern_name;
+        use crate::textbuf::regexes::parse_pattern_name;
         let named_pat = vec![parse_pattern_name("url").unwrap()];
 
         let custom = vec![];
