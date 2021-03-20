@@ -3,6 +3,7 @@ use std::collections;
 use regex::Regex;
 use sequence_trie::SequenceTrie;
 
+use super::raw_match::RawMatch;
 use crate::alphabets::Alphabet;
 use crate::regexes::{NamedPattern, EXCLUDE_PATTERNS, PATTERNS};
 
@@ -236,15 +237,6 @@ pub struct Match<'a> {
     pub pattern: &'a str,
     pub text: &'a str,
     pub hint: String,
-}
-
-/// Internal surrogate for `Match`, before a Hint has been associated.
-#[derive(Debug)]
-struct RawMatch<'a> {
-    pub x: i32,
-    pub y: i32,
-    pub pattern: &'a str,
-    pub text: &'a str,
 }
 
 #[cfg(test)]
