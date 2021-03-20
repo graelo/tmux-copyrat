@@ -1,7 +1,7 @@
+pub mod comm;
 pub mod error;
 pub mod output_destination;
 pub mod textbuf;
-pub mod tmux;
 pub mod ui;
 
 use clap::Clap;
