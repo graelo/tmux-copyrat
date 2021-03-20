@@ -18,9 +18,11 @@
 //!
 
 pub mod colors;
+pub mod hint_style;
 mod selection;
 mod vc;
 
+pub use hint_style::HintStyle;
 pub use selection::Selection;
+pub use vc::HintAlignment;
 pub use vc::ViewController;
-pub use vc::{HintAlignment, HintStyle};
