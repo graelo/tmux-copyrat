@@ -3,9 +3,9 @@ use std::collections;
 use regex::Regex;
 use sequence_trie::SequenceTrie;
 
+use super::alphabet::Alphabet;
 use super::matches::Match;
 use super::raw_match::RawMatch;
-use crate::alphabets::Alphabet;
 use crate::regexes::{NamedPattern, EXCLUDE_PATTERNS, PATTERNS};
 
 /// Holds data for the `Ui`.
@@ -232,7 +232,7 @@ impl<'a> Model<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alphabets::Alphabet;
+    use crate::textbuf::alphabet::Alphabet;
 
     #[test]
     fn match_reverse() {

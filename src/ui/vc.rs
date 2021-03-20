@@ -656,7 +656,7 @@ enum Event {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alphabets;
+    use crate::textbuf::alphabet;
 
     #[test]
     fn test_render_all_lines() {
@@ -909,7 +909,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let use_all_patterns = true;
         let named_pat = vec![];
         let custom_patterns = vec![];
-        let alphabet = alphabets::Alphabet("abcd".to_string());
+        let alphabet = alphabet::Alphabet("abcd".to_string());
         let reverse = false;
         let mut model = textbuf::Model::new(
             content,
@@ -984,7 +984,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let use_all_patterns = true;
         let named_pat = vec![];
         let custom_patterns = vec![];
-        let alphabet = alphabets::Alphabet("abcd".to_string());
+        let alphabet = alphabet::Alphabet("abcd".to_string());
         let reverse = true;
         let mut model = textbuf::Model::new(
             content,
