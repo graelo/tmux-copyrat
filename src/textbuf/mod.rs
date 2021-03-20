@@ -1,4 +1,6 @@
+mod matches;
 mod model;
 mod raw_match;
 
-pub use model::{Match, Model};
+pub use matches::Match;
+pub use model::Model;
