@@ -2,7 +2,12 @@ use clap::Clap;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use copyrat::{comm::tmux, error, output_destination::OutputDestination, ui::Selection, CliOpt};
+use copyrat::{
+    comm::{tmux, OutputDestination},
+    error,
+    ui::Selection,
+    CliOpt,
+};
 
 /// Main configuration, parsed from command line.
 #[derive(Clap, Debug)]

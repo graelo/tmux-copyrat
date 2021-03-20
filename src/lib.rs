@@ -1,6 +1,5 @@
 pub mod comm;
 pub mod error;
-pub mod output_destination;
 pub mod textbuf;
 pub mod ui;
 
@@ -40,7 +39,7 @@ pub fn run(buffer: String, opt: &CliOpt) -> Option<ui::Selection> {
         },
     };
 
-    let default_output_destination = output_destination::OutputDestination::Tmux;
+    let default_output_destination = comm::OutputDestination::Tmux;
 
     let selection: Option<ui::Selection> = {
         let mut ui = ui::ViewController::new(
