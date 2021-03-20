@@ -1,15 +1,16 @@
-use clap::Clap;
-use std::collections::HashMap;
-use std::path;
-use std::str::FromStr;
-
-pub mod alphabets;
 pub mod error;
 pub mod output_destination;
 pub mod regexes;
 pub mod textbuf;
 pub mod tmux;
 pub mod ui;
+
+use clap::Clap;
+use std::collections::HashMap;
+use std::path;
+use std::str::FromStr;
+
+use crate::textbuf::alphabet;
 
 /// Run copyrat on an input string `buffer`, configured by `Opt`.
 ///
@@ -72,8 +73,8 @@ pub struct CliOpt {
     ///
     /// "qwerty", "dvorak-homerow", "azerty-right-hand".
     #[clap(short = 'k', long, default_value = "dvorak",
-                parse(try_from_str = alphabets::parse_alphabet))]
-    alphabet: alphabets::Alphabet,
+                parse(try_from_str = alphabet::parse_alphabet))]
+    alphabet: alphabet::Alphabet,
 
     /// Use all available regex patterns.
     #[clap(short = 'A', long = "--all-patterns")]
@@ -172,7 +173,7 @@ impl CliOpt {
         for (name, value) in options {
             match name.as_ref() {
                 "@copyrat-alphabet" => {
-                    self.alphabet = alphabets::parse_alphabet(value)?;
+                    self.alphabet = alphabet::parse_alphabet(value)?;
                 }
                 "@copyrat-pattern-name" => {
                     self.named_patterns = vec![regexes::parse_pattern_name(value)?]
