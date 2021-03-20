@@ -70,8 +70,6 @@ impl<'a> Model<'a> {
     /// If no named patterns were specified, it will search for all available
     /// patterns from the `PATTERNS` catalog.
     fn raw_matches(&self) -> Vec<RawMatch<'a>> {
-        let mut matches = Vec::new();
-
         let exclude_regexes = EXCLUDE_PATTERNS
             .iter()
             .map(|&(name, pattern)| (name, Regex::new(pattern).unwrap()))
@@ -102,20 +100,25 @@ impl<'a> Model<'a> {
 
         let all_regexes = [exclude_regexes, custom_regexes, regexes].concat();
 
+        let mut raw_matches = Vec::new();
+
         for (index, line) in self.lines.iter().enumerate() {
-            // Remainder of the line to be searched for matches.
+            // Chunk is the remainder of the line to be searched for matches.
             // This advances iteratively, until no matches can be found.
             let mut chunk: &str = line;
             let mut offset: i32 = 0;
 
             // Use all avail regexes to match the chunk and select the match
             // occuring the earliest on the chunk. Save its matched text and
-            // position in a `Match` struct.
+            // position in a `RawMatch` struct.
             loop {
+                // For each avalable regex, use the `find_iter` iterator to
+                // get the first non-overlapping match in the chunk, returning
+                // the start and end byte indices with respect to the chunk.
                 let chunk_matches = all_regexes
                     .iter()
-                    .filter_map(|(&ref name, regex)| match regex.find_iter(chunk).next() {
-                        Some(m) => Some((name, regex, m)),
+                    .filter_map(|(&ref pat_name, reg)| match reg.find_iter(chunk).next() {
+                        Some(reg_match) => Some((pat_name, reg, reg_match)),
                         None => None,
                     })
                     .collect::<Vec<_>>();
@@ -125,40 +128,43 @@ impl<'a> Model<'a> {
                 }
 
                 // First match on the chunk.
-                let (name, pattern, matching) = chunk_matches
+                let (pat_name, reg, reg_match) = chunk_matches
                     .iter()
-                    .min_by(|x, y| x.2.start().cmp(&y.2.start()))
+                    .min_by_key(|element| element.2.start())
                     .unwrap();
 
-                let text = matching.as_str();
-
-                let captures = pattern
-                    .captures(text)
-                    .expect("At this stage the regex must have matched.");
-
-                // Handle both capturing and non-capturing patterns.
-                let (subtext, substart) = if let Some(capture) = captures.get(1) {
-                    (capture.as_str(), capture.start())
-                } else {
-                    (text, 0)
-                };
-
                 // Never hint or break ansi color sequences.
-                if *name != "ansi_colors" {
-                    matches.push(RawMatch {
-                        x: offset + matching.start() as i32 + substart as i32,
+                if *pat_name != "ansi_colors" {
+                    let text = reg_match.as_str();
+
+                    // In case the pattern has a capturing group, try obtaining
+                    // that text and start offset, else use the entire match.
+                    let (subtext, substart) = match reg
+                        .captures_iter(text)
+                        .next()
+                        .expect("This regex is guaranteed to match.")
+                        .get(1)
+                    {
+                        Some(capture) => (capture.as_str(), capture.start()),
+                        None => (text, 0),
+                    };
+
+                    raw_matches.push(RawMatch {
+                        x: offset + reg_match.start() as i32 + substart as i32,
                         y: index as i32,
-                        pattern: name,
+                        pattern: pat_name,
                         text: subtext,
                     });
                 }
 
-                chunk = chunk.get(matching.end()..).expect("Unknown chunk");
-                offset += matching.end() as i32;
+                chunk = chunk
+                    .get(reg_match.end()..)
+                    .expect("The chunk must be larger than the regex match.");
+                offset += reg_match.end() as i32;
             }
         }
 
-        matches
+        raw_matches
     }
 
     /// Associate a hint to each `RawMatch`, returning a vector of `Match`es.
