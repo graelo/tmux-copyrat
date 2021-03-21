@@ -12,7 +12,7 @@ use crate::{
 /// Main configuration, parsed from command line.
 #[derive(Clap, Debug)]
 #[clap(author, about, version)]
-pub struct CliOpt {
+pub struct Config {
     /// Alphabet to draw hints from.
     ///
     /// Possible values are "{A}", "{A}-homerow", "{A}-left-hand",
@@ -108,7 +108,7 @@ fn parse_chars(src: &str) -> Result<(char, char), error::ParseError> {
     Ok((chars[0], chars[1]))
 }
 
-impl CliOpt {
+impl Config {
     /// Try parsing provided options, and update self with the valid values.
     pub fn merge_map(
         &mut self,

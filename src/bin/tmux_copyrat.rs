@@ -3,20 +3,20 @@ use std::collections::HashMap;
 
 use copyrat::{
     comm::{tmux, OutputDestination},
-    config::BridgeOpt,
+    config::tmux_bridge::Config,
     error,
     ui::Selection,
 };
 
 ///
 fn main() -> Result<(), error::ParseError> {
-    let mut opt = BridgeOpt::parse();
+    let mut config = Config::parse();
 
-    if !opt.ignore_options_from_tmux {
+    if !config.ignore_options_from_tmux {
         let tmux_options: HashMap<String, String> = tmux::get_options("@copyrat-")?;
 
         // Override default values with those coming from tmux.
-        opt.merge_map(&tmux_options)?;
+        config.merge_map(&tmux_options)?;
     }
 
     // Identify active pane and capture its content.
@@ -27,15 +27,15 @@ fn main() -> Result<(), error::ParseError> {
         .find(|p| p.is_active)
         .expect("Exactly one tmux pane should be active in the current window.");
 
-    let buffer = tmux::capture_pane(&active_pane, &opt.capture_region)?;
+    let buffer = tmux::capture_pane(&active_pane, &config.capture_region)?;
 
     // We have to dance a little with Panes, because this process' i/o streams
     // are connected to the pane in the window newly created for us, instead
     // of the active current pane.
-    let temp_pane_spec = format!("{}.0", opt.window_name);
+    let temp_pane_spec = format!("{}.0", config.window_name);
     tmux::swap_pane_with(&temp_pane_spec)?;
 
-    let selection = copyrat::run(buffer, &opt.cli_options);
+    let selection = copyrat::run(buffer, &config.cli_options);
 
     tmux::swap_pane_with(&temp_pane_spec)?;
 
@@ -59,7 +59,7 @@ fn main() -> Result<(), error::ParseError> {
                 }
                 OutputDestination::Clipboard => {
                     duct::cmd!("echo", "-n", &text)
-                        .pipe(duct::cmd!(opt.clipboard_exe))
+                        .pipe(duct::cmd!(config.clipboard_exe))
                         .read()?;
                 }
             }

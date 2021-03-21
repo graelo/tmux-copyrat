@@ -1,5 +1,2 @@
-mod basic;
-mod bridge;
-
-pub use self::basic::{CliOpt, HintStyleArg};
-pub use self::bridge::BridgeOpt;
+pub mod basic;
+pub mod tmux_bridge;

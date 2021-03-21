@@ -3,10 +3,10 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::{self, Read};
 
-use copyrat::{config::CliOpt, run, ui::Selection};
+use copyrat::{config::basic, run, ui::Selection};
 
 fn main() {
-    let opt = CliOpt::parse();
+    let opt = basic::Config::parse();
 
     // Copy the pane contents (piped in via stdin) into a buffer, and split lines.
     let stdin = io::stdin();

@@ -2,14 +2,14 @@ use clap::Clap;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-use super::CliOpt;
+use super::basic;
 use crate::comm::tmux;
 use crate::error;
 
 /// Main configuration, parsed from command line.
 #[derive(Clap, Debug)]
 #[clap(author, about, version)]
-pub struct BridgeOpt {
+pub struct Config {
     /// Don't read options from Tmux.
     ///
     /// By default, options formatted like `copyrat-*` are read from tmux.
@@ -40,10 +40,10 @@ pub struct BridgeOpt {
 
     // Include CLI Options
     #[clap(flatten)]
-    pub cli_options: CliOpt,
+    pub cli_options: basic::Config,
 }
 
-impl BridgeOpt {
+impl Config {
     /// Try parsing provided options, and update self with the valid values.
     /// Unknown options are simply ignored.
     pub fn merge_map(
