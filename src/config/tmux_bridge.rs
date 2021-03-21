@@ -3,8 +3,12 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 use super::basic;
-use crate::comm::tmux;
-use crate::error;
+use crate::{
+    comm::tmux,
+    error,
+    textbuf::{alphabet, regexes},
+    ui,
+};
 
 /// Main configuration, parsed from command line.
 #[derive(Clap, Debug)]
@@ -16,15 +20,15 @@ pub struct Config {
     /// However, you should consider reading them from the config file (the
     /// default option) as this saves both a command call (about 10ms) and a
     /// Regex compilation.
-    #[clap(long)]
-    pub ignore_options_from_tmux: bool,
+    #[clap(short = 'n', long)]
+    pub ignore_tmux_options: bool,
 
-    /// Name of the copyrat temporary window.
+    /// Name of the copyrat temporary Tmux window.
     ///
     /// Copyrat is launched in a temporary window of that name. The only pane
     /// in this temp window gets swapped with the current active one for
     /// in-place searching, then swapped back and killed after we exit.
-    #[clap(long, default_value = "[copyrat]")]
+    #[clap(short = 'W', long, default_value = "[copyrat]")]
     pub window_name: String,
 
     /// Capture visible area or entire pane history.
@@ -47,31 +51,60 @@ impl Config {
     pub fn initialize() -> Result<Config, error::ParseError> {
         let mut config = Config::parse();
 
-        if !config.ignore_options_from_tmux {
+        if !config.ignore_tmux_options {
             let tmux_options: HashMap<String, String> = tmux::get_options("@copyrat-")?;
 
             // Override default values with those coming from tmux.
-            config.merge_map(&tmux_options)?;
-        }
+            let wrapped = &mut config.basic_config;
 
-        Ok(config)
-    }
-    /// Try parsing provided options, and update self with the valid values.
-    /// Unknown options are simply ignored.
-    pub fn merge_map(
-        &mut self,
-        options: &HashMap<String, String>,
-    ) -> Result<(), error::ParseError> {
-        for (name, value) in options {
-            if let "@copyrat-capture" = name.as_ref() {
-                self.capture_region = CaptureRegion::from_str(&value)?;
+            for (name, value) in &tmux_options {
+                match name.as_ref() {
+                    "@copyrat-capture" => config.capture_region = CaptureRegion::from_str(&value)?,
+                    "@copyrat-alphabet" => {
+                        wrapped.alphabet = alphabet::parse_alphabet(value)?;
+                    }
+                    "@copyrat-pattern-name" => {
+                        wrapped.named_patterns = vec![regexes::parse_pattern_name(value)?]
+                    }
+                    "@copyrat-custom-pattern" => {
+                        wrapped.custom_patterns = vec![String::from(value)]
+                    }
+                    "@copyrat-reverse" => {
+                        wrapped.reverse = value.parse::<bool>()?;
+                    }
+                    "@copyrat-unique-hint" => {
+                        wrapped.unique_hint = value.parse::<bool>()?;
+                    }
+
+                    "@copyrat-match-fg" => {
+                        wrapped.colors.match_fg = ui::colors::parse_color(value)?
+                    }
+                    "@copyrat-match-bg" => {
+                        wrapped.colors.match_bg = ui::colors::parse_color(value)?
+                    }
+                    "@copyrat-focused-fg" => {
+                        wrapped.colors.focused_fg = ui::colors::parse_color(value)?
+                    }
+                    "@copyrat-focused-bg" => {
+                        wrapped.colors.focused_bg = ui::colors::parse_color(value)?
+                    }
+                    "@copyrat-hint-fg" => wrapped.colors.hint_fg = ui::colors::parse_color(value)?,
+                    "@copyrat-hint-bg" => wrapped.colors.hint_bg = ui::colors::parse_color(value)?,
+
+                    "@copyrat-hint-alignment" => {
+                        wrapped.hint_alignment = ui::HintAlignment::from_str(&value)?
+                    }
+                    "@copyrat-hint-style" => {
+                        wrapped.hint_style = Some(basic::HintStyleArg::from_str(&value)?)
+                    }
+
+                    // Ignore unknown options.
+                    _ => (),
+                }
             }
         }
 
-        // Pass the call to cli_options.
-        self.basic_config.merge_map(options)?;
-
-        Ok(())
+        Ok(config)
     }
 }
 

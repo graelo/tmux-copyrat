@@ -47,12 +47,13 @@ mod tests {
     }
 }
 
-/// Holds color-related data, for clarity.
+/// Holds color-related data.
 ///
 /// - `focus_*` colors are used to render the currently focused matched text.
 /// - `normal_*` colors are used to render other matched text.
 /// - `hint_*` colors are used to render the hints.
 #[derive(Clap, Debug)]
+#[clap(about)] // Needed to avoid this doc comment to be used as overall `about`.
 pub struct UiColors {
     /// Foreground color for base text.
     #[clap(long, default_value = "bright-cyan", parse(try_from_str = parse_color))]

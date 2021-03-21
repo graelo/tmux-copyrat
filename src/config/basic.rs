@@ -1,6 +1,4 @@
 use clap::Clap;
-use std::collections::HashMap;
-use std::path;
 use std::str::FromStr;
 
 use crate::{
@@ -46,16 +44,16 @@ pub struct Config {
     #[clap(short, long)]
     pub unique_hint: bool,
 
+    /// Move focus back to first/last match.
+    #[clap(short = 'w', long)]
+    pub focus_wrap_around: bool,
+
     #[clap(flatten)]
     pub colors: ui::colors::UiColors,
 
     /// Align hint with its match.
     #[clap(long, arg_enum, default_value = "leading")]
     pub hint_alignment: ui::HintAlignment,
-
-    /// Move focus back to first/last match.
-    #[clap(long)]
-    pub focus_wrap_around: bool,
 
     /// Optional hint styling.
     ///
@@ -68,10 +66,6 @@ pub struct Config {
     #[clap(long, default_value = "{}",
                 parse(try_from_str = parse_chars))]
     pub hint_surroundings: (char, char),
-
-    /// Optional target path where to store the selected matches.
-    #[clap(short = 'o', long = "output", parse(from_os_str))]
-    pub target_path: Option<path::PathBuf>,
 }
 
 /// Type introduced due to parsing limitation,
@@ -100,53 +94,10 @@ impl FromStr for HintStyleArg {
 
 /// Try to parse a `&str` into a tuple of `char`s.
 fn parse_chars(src: &str) -> Result<(char, char), error::ParseError> {
-    if src.len() != 2 {
+    if src.chars().count() != 2 {
         return Err(error::ParseError::ExpectedSurroundingPair);
     }
 
     let chars: Vec<char> = src.chars().collect();
     Ok((chars[0], chars[1]))
-}
-
-impl Config {
-    /// Try parsing provided options, and update self with the valid values.
-    pub fn merge_map(
-        &mut self,
-        options: &HashMap<String, String>,
-    ) -> Result<(), error::ParseError> {
-        for (name, value) in options {
-            match name.as_ref() {
-                "@copyrat-alphabet" => {
-                    self.alphabet = alphabet::parse_alphabet(value)?;
-                }
-                "@copyrat-pattern-name" => {
-                    self.named_patterns = vec![regexes::parse_pattern_name(value)?]
-                }
-                "@copyrat-custom-pattern" => self.custom_patterns = vec![String::from(value)],
-                "@copyrat-reverse" => {
-                    self.reverse = value.parse::<bool>()?;
-                }
-                "@copyrat-unique-hint" => {
-                    self.unique_hint = value.parse::<bool>()?;
-                }
-
-                "@copyrat-match-fg" => self.colors.match_fg = ui::colors::parse_color(value)?,
-                "@copyrat-match-bg" => self.colors.match_bg = ui::colors::parse_color(value)?,
-                "@copyrat-focused-fg" => self.colors.focused_fg = ui::colors::parse_color(value)?,
-                "@copyrat-focused-bg" => self.colors.focused_bg = ui::colors::parse_color(value)?,
-                "@copyrat-hint-fg" => self.colors.hint_fg = ui::colors::parse_color(value)?,
-                "@copyrat-hint-bg" => self.colors.hint_bg = ui::colors::parse_color(value)?,
-
-                "@copyrat-hint-alignment" => {
-                    self.hint_alignment = ui::HintAlignment::from_str(&value)?
-                }
-                "@copyrat-hint-style" => self.hint_style = Some(HintStyleArg::from_str(&value)?),
-
-                // Ignore unknown options.
-                _ => (),
-            }
-        }
-
-        Ok(())
-    }
 }

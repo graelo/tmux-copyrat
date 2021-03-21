@@ -1,6 +1,4 @@
 use clap::Clap;
-use std::fs::OpenOptions;
-use std::io::prelude::*;
 use std::io::{self, Read};
 
 use copyrat::{config::basic, run, ui::Selection};
@@ -25,19 +23,5 @@ fn main() {
     }
 
     let Selection { text, .. } = selection.unwrap();
-
-    // Write output to a target_path if provided, else print to original stdout.
-    match opt.target_path {
-        None => println!("{}", text),
-        Some(target) => {
-            let mut file = OpenOptions::new()
-                .create(true)
-                .truncate(true)
-                .write(true)
-                .open(target)
-                .expect("Unable to open the target file");
-
-            file.write_all(text.as_bytes()).unwrap();
-        }
-    }
+    println!("{}", text);
 }
