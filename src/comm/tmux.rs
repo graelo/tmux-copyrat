@@ -1,9 +1,9 @@
-use clap::Clap;
 use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
+use crate::config::tmux_bridge::CaptureRegion;
 use crate::error::ParseError;
 
 #[derive(Debug, PartialEq)]
@@ -108,34 +108,6 @@ impl fmt::Display for PaneId {
     }
 }
 
-#[derive(Clap, Debug)]
-pub enum CaptureRegion {
-    /// The entire history.
-    ///
-    /// This will end up sending `-S - -E -` to `tmux capture-pane`.
-    EntireHistory,
-    /// The visible area.
-    VisibleArea,
-    ///// Region from start line to end line
-    /////
-    ///// This works as defined in tmux's docs (order does not matter).
-    //Region(i32, i32),
-}
-
-impl FromStr for CaptureRegion {
-    type Err = ParseError;
-
-    fn from_str(s: &str) -> Result<Self, ParseError> {
-        match s {
-            "leading" => Ok(CaptureRegion::EntireHistory),
-            "trailing" => Ok(CaptureRegion::VisibleArea),
-            _ => Err(ParseError::ExpectedString(String::from(
-                "entire-history or visible-area",
-            ))),
-        }
-    }
-}
-
 /// Returns a list of `Pane` from the current tmux session.
 pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
     let args = vec![
@@ -187,8 +159,8 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> 
 
 /// Returns the entire Pane content as a `String`.
 ///
-/// `CaptureRegion` specifies if the visible area is captured, or the entire
-/// history.
+/// The provided `region` specifies if the visible area is captured, or the
+/// entire history.
 ///
 /// # TODO
 ///

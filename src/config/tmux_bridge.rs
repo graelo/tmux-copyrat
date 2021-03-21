@@ -29,7 +29,7 @@ pub struct Config {
 
     /// Capture visible area or entire pane history.
     #[clap(long, arg_enum, default_value = "visible-area")]
-    pub capture_region: tmux::CaptureRegion,
+    pub capture_region: CaptureRegion,
 
     /// Name of the copy-to-clipboard executable.
     ///
@@ -64,7 +64,7 @@ impl Config {
     ) -> Result<(), error::ParseError> {
         for (name, value) in options {
             if let "@copyrat-capture" = name.as_ref() {
-                self.capture_region = tmux::CaptureRegion::from_str(&value)?;
+                self.capture_region = CaptureRegion::from_str(&value)?;
             }
         }
 
@@ -72,5 +72,33 @@ impl Config {
         self.basic_config.merge_map(options)?;
 
         Ok(())
+    }
+}
+
+#[derive(Clap, Debug)]
+pub enum CaptureRegion {
+    /// The entire history.
+    ///
+    /// This will end up sending `-S - -E -` to `tmux capture-pane`.
+    EntireHistory,
+    /// The visible area.
+    VisibleArea,
+    ///// Region from start line to end line
+    /////
+    ///// This works as defined in tmux's docs (order does not matter).
+    //Region(i32, i32),
+}
+
+impl FromStr for CaptureRegion {
+    type Err = error::ParseError;
+
+    fn from_str(s: &str) -> Result<Self, error::ParseError> {
+        match s {
+            "leading" => Ok(CaptureRegion::EntireHistory),
+            "trailing" => Ok(CaptureRegion::VisibleArea),
+            _ => Err(error::ParseError::ExpectedString(String::from(
+                "entire-history or visible-area",
+            ))),
+        }
     }
 }
