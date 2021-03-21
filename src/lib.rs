@@ -9,7 +9,7 @@ pub mod ui;
 /// # Note
 ///
 /// Maybe the decision to take ownership of the buffer is a bit bold.
-pub fn run(buffer: String, opt: &config::CliOpt) -> Option<ui::Selection> {
+pub fn run(buffer: String, opt: &config::basic::Config) -> Option<ui::Selection> {
     let mut model = textbuf::Model::new(
         &buffer,
         &opt.alphabet,
@@ -22,10 +22,10 @@ pub fn run(buffer: String, opt: &config::CliOpt) -> Option<ui::Selection> {
     let hint_style = match &opt.hint_style {
         None => None,
         Some(style) => match style {
-            config::HintStyleArg::Bold => Some(ui::HintStyle::Bold),
-            config::HintStyleArg::Italic => Some(ui::HintStyle::Italic),
-            config::HintStyleArg::Underline => Some(ui::HintStyle::Underline),
-            config::HintStyleArg::Surround => {
+            config::basic::HintStyleArg::Bold => Some(ui::HintStyle::Bold),
+            config::basic::HintStyleArg::Italic => Some(ui::HintStyle::Italic),
+            config::basic::HintStyleArg::Underline => Some(ui::HintStyle::Underline),
+            config::basic::HintStyleArg::Surround => {
                 let (open, close) = opt.hint_surroundings;
                 Some(ui::HintStyle::Surround(open, close))
             }
