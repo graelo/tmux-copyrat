@@ -62,7 +62,7 @@ pub struct CliOpt {
     /// Underline or surround the hint for increased visibility.
     /// If not provided, only the hint colors will be used.
     #[clap(short = 's', long, arg_enum)]
-    pub hint_style: Option<HintStyleCli>,
+    pub hint_style: Option<HintStyleArg>,
 
     /// Chars surrounding each hint, used with `Surround` style.
     #[clap(long, default_value = "{}",
@@ -77,20 +77,20 @@ pub struct CliOpt {
 /// Type introduced due to parsing limitation,
 /// as we cannot directly parse into ui::HintStyle.
 #[derive(Debug, Clap)]
-pub enum HintStyleCli {
+pub enum HintStyleArg {
     Bold,
     Italic,
     Underline,
     Surround,
 }
 
-impl FromStr for HintStyleCli {
+impl FromStr for HintStyleArg {
     type Err = error::ParseError;
 
     fn from_str(s: &str) -> Result<Self, error::ParseError> {
         match s {
-            "leading" => Ok(HintStyleCli::Underline),
-            "trailing" => Ok(HintStyleCli::Surround),
+            "leading" => Ok(HintStyleArg::Underline),
+            "trailing" => Ok(HintStyleArg::Surround),
             _ => Err(error::ParseError::ExpectedString(String::from(
                 "underline or surround",
             ))),
@@ -140,7 +140,7 @@ impl CliOpt {
                 "@copyrat-hint-alignment" => {
                     self.hint_alignment = ui::HintAlignment::from_str(&value)?
                 }
-                "@copyrat-hint-style" => self.hint_style = Some(HintStyleCli::from_str(&value)?),
+                "@copyrat-hint-style" => self.hint_style = Some(HintStyleArg::from_str(&value)?),
 
                 // Ignore unknown options.
                 _ => (),

@@ -22,10 +22,10 @@ pub fn run(buffer: String, opt: &config::CliOpt) -> Option<ui::Selection> {
     let hint_style = match &opt.hint_style {
         None => None,
         Some(style) => match style {
-            config::HintStyleCli::Bold => Some(ui::HintStyle::Bold),
-            config::HintStyleCli::Italic => Some(ui::HintStyle::Italic),
-            config::HintStyleCli::Underline => Some(ui::HintStyle::Underline),
-            config::HintStyleCli::Surround => {
+            config::HintStyleArg::Bold => Some(ui::HintStyle::Bold),
+            config::HintStyleArg::Italic => Some(ui::HintStyle::Italic),
+            config::HintStyleArg::Underline => Some(ui::HintStyle::Underline),
+            config::HintStyleArg::Surround => {
                 let (open, close) = opt.hint_surroundings;
                 Some(ui::HintStyle::Surround(open, close))
             }
