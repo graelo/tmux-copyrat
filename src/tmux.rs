@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::str::FromStr;
 
-use crate::config::tmux_bridge::CaptureRegion;
+use crate::config::extended::CaptureRegion;
 use crate::error::ParseError;
 
 #[derive(Debug, PartialEq)]

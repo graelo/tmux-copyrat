@@ -10,10 +10,12 @@ use crate::{
     tmux, ui,
 };
 
-/// Main configuration, parsed from command line.
+/// Extended configuration for handling Tmux-specific configuration (options
+/// and outputs). This is only used by `tmux-copyrat` and parsed from command
+/// line..
 #[derive(Clap, Debug)]
 #[clap(author, about, version)]
-pub struct Config {
+pub struct ConfigExt {
     /// Don't read options from Tmux.
     ///
     /// By default, options formatted like `copyrat-*` are read from tmux.
@@ -47,19 +49,21 @@ pub struct Config {
     pub basic_config: basic::Config,
 }
 
-impl Config {
-    pub fn initialize() -> Result<Config, error::ParseError> {
-        let mut config = Config::parse();
+impl ConfigExt {
+    pub fn initialize() -> Result<ConfigExt, error::ParseError> {
+        let mut config_ext = ConfigExt::parse();
 
-        if !config.ignore_tmux_options {
+        if !config_ext.ignore_tmux_options {
             let tmux_options: HashMap<String, String> = tmux::get_options("@copyrat-")?;
 
             // Override default values with those coming from tmux.
-            let wrapped = &mut config.basic_config;
+            let wrapped = &mut config_ext.basic_config;
 
             for (name, value) in &tmux_options {
                 match name.as_ref() {
-                    "@copyrat-capture" => config.capture_region = CaptureRegion::from_str(&value)?,
+                    "@copyrat-capture" => {
+                        config_ext.capture_region = CaptureRegion::from_str(&value)?
+                    }
                     "@copyrat-alphabet" => {
                         wrapped.alphabet = alphabet::parse_alphabet(value)?;
                     }
@@ -104,7 +108,7 @@ impl Config {
             }
         }
 
-        Ok(config)
+        Ok(config_ext)
     }
 }
 

@@ -32,7 +32,7 @@ pub fn run(buffer: String, opt: &config::basic::Config) -> Option<ui::Selection>
         },
     };
 
-    let default_output_destination = config::tmux_bridge::OutputDestination::Tmux;
+    let default_output_destination = config::extended::OutputDestination::Tmux;
 
     let selection: Option<ui::Selection> = {
         let mut ui = ui::ViewController::new(
