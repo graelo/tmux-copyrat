@@ -1,7 +1,7 @@
-pub mod comm;
 pub mod config;
 pub mod error;
 pub mod textbuf;
+pub mod tmux;
 pub mod ui;
 
 /// Run copyrat on an input string `buffer`, configured by `Opt`.
@@ -32,7 +32,7 @@ pub fn run(buffer: String, opt: &config::basic::Config) -> Option<ui::Selection>
         },
     };
 
-    let default_output_destination = comm::OutputDestination::Tmux;
+    let default_output_destination = config::tmux_bridge::OutputDestination::Tmux;
 
     let selection: Option<ui::Selection> = {
         let mut ui = ui::ViewController::new(
