@@ -1,5 +1,5 @@
+mod basic;
 mod bridge;
-mod core;
 
+pub use self::basic::{CliOpt, HintStyleArg};
 pub use self::bridge::BridgeOpt;
-pub use self::core::{CliOpt, HintStyleArg};
