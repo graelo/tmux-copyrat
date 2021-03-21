@@ -3,7 +3,7 @@ use std::fs::OpenOptions;
 use std::io::prelude::*;
 use std::io::{self, Read};
 
-use copyrat::{run, ui::Selection, CliOpt};
+use copyrat::{config::CliOpt, run, ui::Selection};
 
 fn main() {
     let opt = CliOpt::parse();

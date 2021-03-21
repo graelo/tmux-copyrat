@@ -4,9 +4,9 @@ use std::str::FromStr;
 
 use copyrat::{
     comm::{tmux, OutputDestination},
+    config::CliOpt,
     error,
     ui::Selection,
-    CliOpt,
 };
 
 /// Main configuration, parsed from command line.
