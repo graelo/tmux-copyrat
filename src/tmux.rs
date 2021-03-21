@@ -1,3 +1,8 @@
+//! This module provides types and functions to use Tmux.
+//!
+//! The main use cases are running Tmux commands & parsing Tmux panes
+//! information.
+
 use regex::Regex;
 use std::collections::HashMap;
 use std::fmt;

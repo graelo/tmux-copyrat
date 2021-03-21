@@ -1,7 +1,6 @@
 use copyrat::{
-    comm::{tmux, OutputDestination},
-    config::tmux_bridge::Config,
-    error,
+    config::tmux_bridge::{Config, OutputDestination},
+    error, tmux,
     ui::Selection,
 };
 

@@ -8,7 +8,7 @@ use termion::{self, color, cursor, event, style};
 use super::colors::UiColors;
 use super::Selection;
 use super::{HintAlignment, HintStyle};
-use crate::{comm::OutputDestination, textbuf};
+use crate::{config::tmux_bridge::OutputDestination, textbuf};
 
 pub struct ViewController<'a> {
     model: &'a mut textbuf::Model<'a>,
