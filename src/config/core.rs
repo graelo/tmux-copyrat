@@ -72,12 +72,6 @@ pub struct CliOpt {
     /// Optional target path where to store the selected matches.
     #[clap(short = 'o', long = "output", parse(from_os_str))]
     pub target_path: Option<path::PathBuf>,
-
-    /// Describes if the uppercased marker should be added to the output,
-    /// indicating if hint key was uppercased. This is only used by
-    /// tmux-copyrat, so it is hidden (skipped) from the CLI.
-    #[clap(skip)]
-    pub uppercased_marker: bool,
 }
 
 /// Type introduced due to parsing limitation,
