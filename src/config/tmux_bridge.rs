@@ -38,12 +38,24 @@ pub struct Config {
     #[clap(long, default_value = "pbcopy")]
     pub clipboard_exe: String,
 
-    // Include CLI Options
+    // Include fields from the basic config
     #[clap(flatten)]
-    pub cli_options: basic::Config,
+    pub basic_config: basic::Config,
 }
 
 impl Config {
+    pub fn initialize() -> Result<Config, error::ParseError> {
+        let mut config = Config::parse();
+
+        if !config.ignore_options_from_tmux {
+            let tmux_options: HashMap<String, String> = tmux::get_options("@copyrat-")?;
+
+            // Override default values with those coming from tmux.
+            config.merge_map(&tmux_options)?;
+        }
+
+        Ok(config)
+    }
     /// Try parsing provided options, and update self with the valid values.
     /// Unknown options are simply ignored.
     pub fn merge_map(
@@ -57,7 +69,7 @@ impl Config {
         }
 
         // Pass the call to cli_options.
-        self.cli_options.merge_map(options)?;
+        self.basic_config.merge_map(options)?;
 
         Ok(())
     }
