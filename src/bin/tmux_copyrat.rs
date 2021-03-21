@@ -1,6 +1,3 @@
-use clap::Clap;
-use std::collections::HashMap;
-
 use copyrat::{
     comm::{tmux, OutputDestination},
     config::tmux_bridge::Config,
@@ -10,14 +7,7 @@ use copyrat::{
 
 ///
 fn main() -> Result<(), error::ParseError> {
-    let mut config = Config::parse();
-
-    if !config.ignore_options_from_tmux {
-        let tmux_options: HashMap<String, String> = tmux::get_options("@copyrat-")?;
-
-        // Override default values with those coming from tmux.
-        config.merge_map(&tmux_options)?;
-    }
+    let config = Config::initialize()?;
 
     // Identify active pane and capture its content.
     let panes: Vec<tmux::Pane> = tmux::list_panes()?;
@@ -35,7 +25,7 @@ fn main() -> Result<(), error::ParseError> {
     let temp_pane_spec = format!("{}.0", config.window_name);
     tmux::swap_pane_with(&temp_pane_spec)?;
 
-    let selection = copyrat::run(buffer, &config.cli_options);
+    let selection = copyrat::run(buffer, &config.basic_config);
 
     tmux::swap_pane_with(&temp_pane_spec)?;
 
