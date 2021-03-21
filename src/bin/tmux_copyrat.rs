@@ -1,12 +1,12 @@
 use copyrat::{
-    config::tmux_bridge::{Config, OutputDestination},
+    config::extended::{ConfigExt, OutputDestination},
     error, tmux,
     ui::Selection,
 };
 
 ///
 fn main() -> Result<(), error::ParseError> {
-    let config = Config::initialize()?;
+    let config = ConfigExt::initialize()?;
 
     // Identify active pane and capture its content.
     let panes: Vec<tmux::Pane> = tmux::list_panes()?;
