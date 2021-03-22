@@ -10,8 +10,10 @@ pub mod ui;
 ///
 /// Maybe the decision to take ownership of the buffer is a bit bold.
 pub fn run(buffer: String, opt: &config::basic::Config) -> Option<ui::Selection> {
-    let mut model = textbuf::Model::new(
-        &buffer,
+    let lines = buffer.split('\n').collect::<Vec<_>>();
+
+    let model = textbuf::Model::new(
+        &lines,
         &opt.alphabet,
         opt.use_all_patterns,
         &opt.named_patterns,
@@ -19,6 +21,10 @@ pub fn run(buffer: String, opt: &config::basic::Config) -> Option<ui::Selection>
         opt.reverse,
         opt.unique_hint,
     );
+
+    if model.matches.is_empty() {
+        return None;
+    }
 
     let hint_style = match &opt.hint_style {
         None => None,
@@ -37,7 +43,7 @@ pub fn run(buffer: String, opt: &config::basic::Config) -> Option<ui::Selection>
 
     let selection: Option<ui::Selection> = {
         let mut ui = ui::ViewController::new(
-            &mut model,
+            &model,
             opt.focus_wrap_around,
             default_output_destination,
             &opt.colors,
