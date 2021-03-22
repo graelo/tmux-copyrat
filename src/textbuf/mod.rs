@@ -20,6 +20,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -27,8 +28,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.first().unwrap().hint, "a");
@@ -43,6 +45,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = true;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -50,8 +53,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(true);
+        .matches();
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.first().unwrap().hint, "a");
@@ -66,6 +70,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -73,8 +78,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 1);
         assert_eq!(
@@ -92,6 +98,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = true;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -99,8 +106,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text, "/var/log/nginx.log");
@@ -117,6 +125,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -124,8 +133,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().text, "/tmp/foo/bar_lol");
@@ -141,6 +151,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -148,8 +159,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.get(0).unwrap().text, "~/.gnu/.config.txt");
@@ -163,6 +175,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -170,8 +183,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 1);
     }
@@ -184,6 +198,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -191,8 +206,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 4);
         assert_eq!(results.get(0).unwrap().text, "fd70b5695");
@@ -212,6 +228,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -219,8 +236,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().pattern, "ipv4");
@@ -239,6 +257,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -246,8 +265,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 4);
         assert_eq!(results.get(0).unwrap().text, "fe80::2:202:fe4");
@@ -268,6 +288,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -275,8 +296,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 2);
         assert_eq!(results.get(0).unwrap().pattern, "markdown-url");
@@ -293,6 +315,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -300,8 +323,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 4);
         assert_eq!(
@@ -326,6 +350,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -333,8 +358,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 2);
         assert_eq!(results.get(0).unwrap().pattern, "email");
@@ -357,6 +383,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -364,8 +391,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 3);
         assert_eq!(results.get(0).unwrap().pattern, "mem-address");
@@ -384,6 +412,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -391,8 +420,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 4);
         assert_eq!(results.get(0).unwrap().text, "#fd7b56");
@@ -409,6 +439,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -416,8 +447,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 1);
         assert_eq!(
@@ -434,6 +466,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -441,8 +474,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 8);
     }
@@ -455,6 +489,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -462,8 +497,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.get(0).unwrap().pattern, "diff-a");
@@ -478,6 +514,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -485,8 +522,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 1);
         assert_eq!(results.get(0).unwrap().pattern, "diff-b");
@@ -504,6 +542,7 @@ mod tests {
             .collect();
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -511,8 +550,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 9);
         assert_eq!(results.get(0).unwrap().text, "http://foo.bar");
@@ -543,6 +583,7 @@ mod tests {
         let custom = vec![];
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let results = Model::new(
             buffer,
             &alphabet,
@@ -550,8 +591,9 @@ mod tests {
             &named_pat,
             &custom,
             reverse,
+            unique_hint,
         )
-        .matches(false);
+        .matches();
 
         assert_eq!(results.len(), 2);
         assert_eq!(results.get(0).unwrap().text, "http://foo.bar");

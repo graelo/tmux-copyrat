@@ -17,6 +17,7 @@ pub fn run(buffer: String, opt: &config::basic::Config) -> Option<ui::Selection>
         &opt.named_patterns,
         &opt.custom_patterns,
         opt.reverse,
+        opt.unique_hint,
     );
 
     let hint_style = match &opt.hint_style {
@@ -37,7 +38,6 @@ pub fn run(buffer: String, opt: &config::basic::Config) -> Option<ui::Selection>
     let selection: Option<ui::Selection> = {
         let mut ui = ui::ViewController::new(
             &mut model,
-            opt.unique_hint,
             opt.focus_wrap_around,
             default_output_destination,
             &opt.colors,
