@@ -9,9 +9,7 @@ pub mod ui;
 /// # Note
 ///
 /// Maybe the decision to take ownership of the buffer is a bit bold.
-pub fn run(buffer: String, opt: &config::basic::Config) -> Option<ui::Selection> {
-    let lines = buffer.split('\n').collect::<Vec<_>>();
-
+pub fn run(lines: &[&str], opt: &config::basic::Config) -> Option<ui::Selection> {
     let model = textbuf::Model::new(
         &lines,
         &opt.alphabet,
