@@ -25,6 +25,8 @@ pub struct ViewController<'a> {
 }
 
 impl<'a> ViewController<'a> {
+    // Initialize {{{1
+
     pub fn new(
         model: &'a mut textbuf::Model<'a>,
         unique_hint: bool,
@@ -56,6 +58,9 @@ impl<'a> ViewController<'a> {
         }
     }
 
+    // }}}
+    // Coordinates {{{1
+
     /// Convert the `Match` text into the coordinates of the wrapped lines.
     ///
     /// Compute the new x offset of the text as the remainder of the line width
@@ -65,7 +70,7 @@ impl<'a> ViewController<'a> {
     /// Compute the new y offset of the text as the initial y offset plus any
     /// additional offset due to previous split lines. This is obtained thanks to
     /// the `offset_per_line` member.
-    pub fn map_coords_to_wrapped_space(&self, offset_x: usize, offset_y: usize) -> (usize, usize) {
+    fn map_coords_to_wrapped_space(&self, offset_x: usize, offset_y: usize) -> (usize, usize) {
         let line_width = self.term_width as usize;
 
         let new_offset_x = offset_x % line_width;
@@ -74,6 +79,27 @@ impl<'a> ViewController<'a> {
 
         (new_offset_x, new_offset_y)
     }
+
+    /// Returns screen offset of a given `Match`.
+    ///
+    /// If multibyte characters occur before the hint (in the "prefix"), then
+    /// their compouding takes less space on screen when printed: for
+    /// instance ´ + e = é. Consequently the hint offset has to be adjusted
+    /// to the left.
+    fn match_offsets(&self, mat: &textbuf::Match<'a>) -> (usize, usize) {
+        let offset_x = {
+            let line = &self.model.lines[mat.y as usize];
+            let prefix = &line[0..mat.x as usize];
+            let adjust = prefix.len() - prefix.chars().count();
+            (mat.x as usize) - (adjust)
+        };
+        let offset_y = mat.y as usize;
+
+        (offset_x, offset_y)
+    }
+
+    // }}}
+    // Focus management {{{1
 
     /// Move focus onto the previous hint, returning both the index of the
     /// previously focused match, and the index of the newly focused one.
@@ -109,23 +135,8 @@ impl<'a> ViewController<'a> {
         (old_index, new_index)
     }
 
-    /// Returns screen offset of a given `Match`.
-    ///
-    /// If multibyte characters occur before the hint (in the "prefix"), then
-    /// their compouding takes less space on screen when printed: for
-    /// instance ´ + e = é. Consequently the hint offset has to be adjusted
-    /// to the left.
-    fn match_offsets(&self, mat: &textbuf::Match<'a>) -> (usize, usize) {
-        let offset_x = {
-            let line = &self.model.lines[mat.y as usize];
-            let prefix = &line[0..mat.x as usize];
-            let adjust = prefix.len() - prefix.chars().count();
-            (mat.x as usize) - (adjust)
-        };
-        let offset_y = mat.y as usize;
-
-        (offset_x, offset_y)
-    }
+    // }}}
+    // Rendering {{{1
 
     /// Render entire model lines on provided writer.
     ///
@@ -398,6 +409,9 @@ impl<'a> ViewController<'a> {
         stdout.flush().unwrap();
     }
 
+    // }}}
+    // Listening {{{1
+
     /// Listen to keys entered on stdin, moving focus accordingly, or
     /// selecting one match.
     ///
@@ -551,6 +565,9 @@ impl<'a> ViewController<'a> {
         Event::Exit
     }
 
+    // }}}
+    // Presenting {{{1
+
     /// Configure the terminal and display the `Ui`.
     ///
     /// - Setup steps: switch to alternate screen, switch to raw mode, hide the cursor.
@@ -578,6 +595,8 @@ impl<'a> ViewController<'a> {
 
         selection
     }
+
+    // }}}
 }
 
 /// Compute each line's actual y offset if displayed in a terminal of width
