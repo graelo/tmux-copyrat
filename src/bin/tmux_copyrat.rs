@@ -17,6 +17,7 @@ fn main() -> Result<(), error::ParseError> {
         .expect("Exactly one tmux pane should be active in the current window.");
 
     let buffer = tmux::capture_pane(&active_pane, &config.capture_region)?;
+    let lines = buffer.split('\n').collect::<Vec<_>>();
 
     // We have to dance a little with Panes, because this process' i/o streams
     // are connected to the pane in the window newly created for us, instead
@@ -24,7 +25,7 @@ fn main() -> Result<(), error::ParseError> {
     let temp_pane_spec = format!("{}.0", config.window_name);
     tmux::swap_pane_with(&temp_pane_spec)?;
 
-    let selection = copyrat::run(buffer, &config.basic_config);
+    let selection = copyrat::run(&lines, &config.basic_config);
 
     tmux::swap_pane_with(&temp_pane_spec)?;
 

@@ -12,10 +12,11 @@ fn main() {
 
     let mut buffer = String::new();
     handle.read_to_string(&mut buffer).unwrap();
+    let lines = buffer.split('\n').collect::<Vec<_>>();
 
     // Execute copyrat over the buffer (will take control over stdout).
     // This returns the selected matche.
-    let selection: Option<Selection> = run(buffer, &opt);
+    let selection: Option<Selection> = run(&lines, &opt);
 
     // Early exit, signaling no selections were found.
     if selection.is_none() {
