@@ -20,7 +20,7 @@ pub fn run(lines: &[&str], opt: &config::basic::Config) -> Option<ui::Selection>
         opt.unique_hint,
     );
 
-    if model.matches.is_empty() {
+    if model.spans.is_empty() {
         return None;
     }
 

@@ -40,18 +40,18 @@ pub struct Config {
     #[clap(short, long)]
     pub reverse: bool,
 
-    /// Keep the same hint for identical matches.
+    /// Keep the same hint for identical spans.
     #[clap(short, long)]
     pub unique_hint: bool,
 
-    /// Move focus back to first/last match.
+    /// Move focus back to first/last span.
     #[clap(short = 'w', long)]
     pub focus_wrap_around: bool,
 
     #[clap(flatten)]
     pub colors: ui::colors::UiColors,
 
-    /// Align hint with its match.
+    /// Align hint with its span.
     #[clap(long, arg_enum, default_value = "leading")]
     pub hint_alignment: ui::HintAlignment,
 

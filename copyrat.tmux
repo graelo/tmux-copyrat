@@ -7,7 +7,7 @@
 #
 #   set -g @copyrat-keytable "foobar"
 #   set -g @copyrat-keyswitch "z"
-#   set -g @copyrat-match-bg "magenta"
+#   set -g @copyrat-span-bg "magenta"
 #
 # and bindings like
 #

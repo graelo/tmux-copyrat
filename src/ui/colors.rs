@@ -30,7 +30,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn match_color() {
+    fn span_color() {
         let text1 = format!(
             "{}{}",
             color::Fg(parse_color("green").unwrap().as_ref()),
@@ -42,15 +42,15 @@ mod tests {
     }
 
     #[test]
-    fn no_match_color() {
+    fn no_span_color() {
         assert!(parse_color("wat").is_err(), "this color should not exist");
     }
 }
 
 /// Holds color-related data.
 ///
-/// - `focus_*` colors are used to render the currently focused matched text.
-/// - `normal_*` colors are used to render other matched text.
+/// - `focus_*` colors are used to render the currently focused text span.
+/// - `normal_*` colors are used to render other text spans.
 /// - `hint_*` colors are used to render the hints.
 #[derive(Clap, Debug)]
 #[clap(about)] // Needed to avoid this doc comment to be used as overall `about`.
@@ -63,22 +63,22 @@ pub struct UiColors {
     #[clap(long, default_value = "bright-white", parse(try_from_str = parse_color))]
     pub text_bg: Box<dyn color::Color>,
 
-    /// Foreground color for matches.
+    /// Foreground color for spans.
     #[clap(long, default_value = "yellow",
                 parse(try_from_str = parse_color))]
-    pub match_fg: Box<dyn color::Color>,
+    pub span_fg: Box<dyn color::Color>,
 
-    /// Background color for matches.
+    /// Background color for spans.
     #[clap(long, default_value = "bright-white",
                 parse(try_from_str = parse_color))]
-    pub match_bg: Box<dyn color::Color>,
+    pub span_bg: Box<dyn color::Color>,
 
-    /// Foreground color for the focused match.
+    /// Foreground color for the focused span.
     #[clap(long, default_value = "magenta",
                 parse(try_from_str = parse_color))]
     pub focused_fg: Box<dyn color::Color>,
 
-    /// Background color for the focused match.
+    /// Background color for the focused span.
     #[clap(long, default_value = "bright-white",
                 parse(try_from_str = parse_color))]
     pub focused_bg: Box<dyn color::Color>,

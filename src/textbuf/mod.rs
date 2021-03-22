@@ -1,11 +1,11 @@
 pub(crate) mod alphabet;
-mod matches;
 mod model;
-mod raw_match;
+mod raw_span;
 pub(crate) mod regexes;
+mod span;
 
-pub use matches::Match;
 pub use model::Model;
+pub use span::Span;
 
 #[cfg(test)]
 mod tests {
@@ -22,7 +22,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -31,11 +31,11 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 3);
-        assert_eq!(results.first().unwrap().hint, "a");
-        assert_eq!(results.last().unwrap().hint, "c");
+        assert_eq!(spans.len(), 3);
+        assert_eq!(spans.first().unwrap().hint, "a");
+        assert_eq!(spans.last().unwrap().hint, "c");
     }
 
     #[test]
@@ -48,7 +48,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = true;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -57,11 +57,11 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 3);
-        assert_eq!(results.first().unwrap().hint, "a");
-        assert_eq!(results.last().unwrap().hint, "a");
+        assert_eq!(spans.len(), 3);
+        assert_eq!(spans.first().unwrap().hint, "a");
+        assert_eq!(spans.last().unwrap().hint, "a");
     }
 
     #[test]
@@ -74,7 +74,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -83,11 +83,11 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 1);
+        assert_eq!(spans.len(), 1);
         assert_eq!(
-            results.get(0).unwrap().text,
+            spans.get(0).unwrap().text,
             "30557a29d5abc51e5f1d5b472e79b7e296f595abcf19fe6b9199dbbc809c6ff4"
         );
     }
@@ -103,7 +103,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = true;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -112,12 +112,12 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 3);
-        assert_eq!(results.get(0).unwrap().text, "/var/log/nginx.log");
-        assert_eq!(results.get(1).unwrap().text, "test/log/nginx-2.log");
-        assert_eq!(results.get(2).unwrap().text, "folder/.nginx@4df2.log");
+        assert_eq!(spans.len(), 3);
+        assert_eq!(spans.get(0).unwrap().text, "/var/log/nginx.log");
+        assert_eq!(spans.get(1).unwrap().text, "test/log/nginx-2.log");
+        assert_eq!(spans.get(2).unwrap().text, "folder/.nginx@4df2.log");
     }
 
     #[test]
@@ -131,7 +131,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -140,12 +140,12 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 3);
-        assert_eq!(results.get(0).unwrap().text, "/tmp/foo/bar_lol");
-        assert_eq!(results.get(1).unwrap().text, "/var/log/boot-strap.log");
-        assert_eq!(results.get(2).unwrap().text, "../log/kern.log");
+        assert_eq!(spans.len(), 3);
+        assert_eq!(spans.get(0).unwrap().text, "/tmp/foo/bar_lol");
+        assert_eq!(spans.get(1).unwrap().text, "/var/log/boot-strap.log");
+        assert_eq!(spans.get(2).unwrap().text, "../log/kern.log");
     }
 
     #[test]
@@ -158,7 +158,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -167,10 +167,10 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 1);
-        assert_eq!(results.get(0).unwrap().text, "~/.gnu/.config.txt");
+        assert_eq!(spans.len(), 1);
+        assert_eq!(spans.get(0).unwrap().text, "~/.gnu/.config.txt");
     }
 
     #[test]
@@ -183,7 +183,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -192,9 +192,9 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 1);
+        assert_eq!(spans.len(), 1);
     }
 
     #[test]
@@ -207,7 +207,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -216,14 +216,14 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 4);
-        assert_eq!(results.get(0).unwrap().text, "fd70b5695");
-        assert_eq!(results.get(1).unwrap().text, "5246ddf");
-        assert_eq!(results.get(2).unwrap().text, "f924213");
+        assert_eq!(spans.len(), 4);
+        assert_eq!(spans.get(0).unwrap().text, "fd70b5695");
+        assert_eq!(spans.get(1).unwrap().text, "5246ddf");
+        assert_eq!(spans.get(2).unwrap().text, "f924213");
         assert_eq!(
-            results.get(3).unwrap().text,
+            spans.get(3).unwrap().text,
             "973113963b491874ab2e372ee60d4b4cb75f717c"
         );
     }
@@ -238,7 +238,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -247,15 +247,15 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 3);
-        assert_eq!(results.get(0).unwrap().pattern, "ipv4");
-        assert_eq!(results.get(0).unwrap().text, "127.0.0.1");
-        assert_eq!(results.get(1).unwrap().pattern, "ipv4");
-        assert_eq!(results.get(1).unwrap().text, "255.255.10.255");
-        assert_eq!(results.get(2).unwrap().pattern, "ipv4");
-        assert_eq!(results.get(2).unwrap().text, "127.0.0.1");
+        assert_eq!(spans.len(), 3);
+        assert_eq!(spans.get(0).unwrap().pattern, "ipv4");
+        assert_eq!(spans.get(0).unwrap().text, "127.0.0.1");
+        assert_eq!(spans.get(1).unwrap().pattern, "ipv4");
+        assert_eq!(spans.get(1).unwrap().text, "255.255.10.255");
+        assert_eq!(spans.get(2).unwrap().pattern, "ipv4");
+        assert_eq!(spans.get(2).unwrap().text, "127.0.0.1");
     }
 
     #[test]
@@ -268,7 +268,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -277,16 +277,16 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 4);
-        assert_eq!(results.get(0).unwrap().text, "fe80::2:202:fe4");
+        assert_eq!(spans.len(), 4);
+        assert_eq!(spans.get(0).unwrap().text, "fe80::2:202:fe4");
         assert_eq!(
-            results.get(1).unwrap().text,
+            spans.get(1).unwrap().text,
             "2001:67c:670:202:7ba8:5e41:1591:d723"
         );
-        assert_eq!(results.get(2).unwrap().text, "fe80::2:1");
-        assert_eq!(results.get(3).unwrap().text, "fe80:22:312:fe::1%eth0");
+        assert_eq!(spans.get(2).unwrap().text, "fe80::2:1");
+        assert_eq!(spans.get(3).unwrap().text, "fe80:22:312:fe::1%eth0");
     }
 
     #[test]
@@ -300,7 +300,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -309,13 +309,13 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 2);
-        assert_eq!(results.get(0).unwrap().pattern, "markdown-url");
-        assert_eq!(results.get(0).unwrap().text, "https://github.io?foo=bar");
-        assert_eq!(results.get(1).unwrap().pattern, "markdown-url");
-        assert_eq!(results.get(1).unwrap().text, "http://cdn.com/img.jpg");
+        assert_eq!(spans.len(), 2);
+        assert_eq!(spans.get(0).unwrap().pattern, "markdown-url");
+        assert_eq!(spans.get(0).unwrap().text, "https://github.io?foo=bar");
+        assert_eq!(spans.get(1).unwrap().pattern, "markdown-url");
+        assert_eq!(spans.get(1).unwrap().text, "http://cdn.com/img.jpg");
     }
 
     #[test]
@@ -328,7 +328,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -337,20 +337,20 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 4);
+        assert_eq!(spans.len(), 4);
         assert_eq!(
-            results.get(0).unwrap().text,
+            spans.get(0).unwrap().text,
             "https://www.rust-lang.org/tools"
         );
-        assert_eq!(results.get(0).unwrap().pattern, "url");
-        assert_eq!(results.get(1).unwrap().text, "https://crates.io");
-        assert_eq!(results.get(1).unwrap().pattern, "url");
-        assert_eq!(results.get(2).unwrap().text, "https://github.io?foo=bar");
-        assert_eq!(results.get(2).unwrap().pattern, "url");
-        assert_eq!(results.get(3).unwrap().text, "ssh://github.io");
-        assert_eq!(results.get(3).unwrap().pattern, "url");
+        assert_eq!(spans.get(0).unwrap().pattern, "url");
+        assert_eq!(spans.get(1).unwrap().text, "https://crates.io");
+        assert_eq!(spans.get(1).unwrap().pattern, "url");
+        assert_eq!(spans.get(2).unwrap().text, "https://github.io?foo=bar");
+        assert_eq!(spans.get(2).unwrap().pattern, "url");
+        assert_eq!(spans.get(3).unwrap().text, "ssh://github.io");
+        assert_eq!(spans.get(3).unwrap().pattern, "url");
     }
 
     #[test]
@@ -364,7 +364,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -373,17 +373,14 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 2);
-        assert_eq!(results.get(0).unwrap().pattern, "email");
+        assert_eq!(spans.len(), 2);
+        assert_eq!(spans.get(0).unwrap().pattern, "email");
+        assert_eq!(spans.get(0).unwrap().text, "first.last+social@example.com");
+        assert_eq!(spans.get(1).unwrap().pattern, "email");
         assert_eq!(
-            results.get(0).unwrap().text,
-            "first.last+social@example.com"
-        );
-        assert_eq!(results.get(1).unwrap().pattern, "email");
-        assert_eq!(
-            results.get(1).unwrap().text,
+            spans.get(1).unwrap().text,
             "john@server.department.company.com"
         );
     }
@@ -398,7 +395,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -407,15 +404,15 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 3);
-        assert_eq!(results.get(0).unwrap().pattern, "mem-address");
-        assert_eq!(results.get(0).unwrap().text, "0xfd70b5695");
-        assert_eq!(results.get(1).unwrap().pattern, "mem-address");
-        assert_eq!(results.get(1).unwrap().text, "0x5246ddf");
-        assert_eq!(results.get(2).unwrap().pattern, "mem-address");
-        assert_eq!(results.get(2).unwrap().text, "0x973113");
+        assert_eq!(spans.len(), 3);
+        assert_eq!(spans.get(0).unwrap().pattern, "mem-address");
+        assert_eq!(spans.get(0).unwrap().text, "0xfd70b5695");
+        assert_eq!(spans.get(1).unwrap().pattern, "mem-address");
+        assert_eq!(spans.get(1).unwrap().text, "0x5246ddf");
+        assert_eq!(spans.get(2).unwrap().pattern, "mem-address");
+        assert_eq!(spans.get(2).unwrap().text, "0x973113");
     }
 
     #[test]
@@ -428,7 +425,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -437,13 +434,13 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 4);
-        assert_eq!(results.get(0).unwrap().text, "#fd7b56");
-        assert_eq!(results.get(1).unwrap().text, "#FF00FF");
-        assert_eq!(results.get(2).unwrap().text, "#00fF05");
-        assert_eq!(results.get(3).unwrap().text, "#abcd00");
+        assert_eq!(spans.len(), 4);
+        assert_eq!(spans.get(0).unwrap().text, "#fd7b56");
+        assert_eq!(spans.get(1).unwrap().text, "#FF00FF");
+        assert_eq!(spans.get(2).unwrap().text, "#00fF05");
+        assert_eq!(spans.get(3).unwrap().text, "#abcd00");
     }
 
     #[test]
@@ -456,7 +453,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -465,11 +462,11 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 1);
+        assert_eq!(spans.len(), 1);
         assert_eq!(
-            results.get(0).unwrap().text,
+            spans.get(0).unwrap().text,
             "QmRdbNSxDJBXmssAc9fvTtux4duptMvfSGiGuq6yHAQVKQ"
         );
     }
@@ -484,7 +481,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -493,9 +490,9 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 8);
+        assert_eq!(spans.len(), 8);
     }
 
     #[test]
@@ -508,7 +505,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -517,11 +514,11 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 1);
-        assert_eq!(results.get(0).unwrap().pattern, "diff-a");
-        assert_eq!(results.get(0).unwrap().text, "src/main.rs");
+        assert_eq!(spans.len(), 1);
+        assert_eq!(spans.get(0).unwrap().pattern, "diff-a");
+        assert_eq!(spans.get(0).unwrap().text, "src/main.rs");
     }
 
     #[test]
@@ -534,7 +531,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -543,11 +540,11 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 1);
-        assert_eq!(results.get(0).unwrap().pattern, "diff-b");
-        assert_eq!(results.get(0).unwrap().text, "src/main.rs");
+        assert_eq!(spans.len(), 1);
+        assert_eq!(spans.get(0).unwrap().pattern, "diff-b");
+        assert_eq!(spans.get(0).unwrap().text, "src/main.rs");
     }
 
     #[test]
@@ -563,7 +560,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -572,22 +569,22 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 9);
-        assert_eq!(results.get(0).unwrap().text, "http://foo.bar");
-        assert_eq!(results.get(1).unwrap().text, "CUSTOM-52463");
-        assert_eq!(results.get(2).unwrap().text, "ISSUE-123");
-        assert_eq!(results.get(3).unwrap().text, "/var/fd70b569/9999.log");
-        assert_eq!(results.get(4).unwrap().text, "52463");
-        assert_eq!(results.get(5).unwrap().text, "973113");
+        assert_eq!(spans.len(), 9);
+        assert_eq!(spans.get(0).unwrap().text, "http://foo.bar");
+        assert_eq!(spans.get(1).unwrap().text, "CUSTOM-52463");
+        assert_eq!(spans.get(2).unwrap().text, "ISSUE-123");
+        assert_eq!(spans.get(3).unwrap().text, "/var/fd70b569/9999.log");
+        assert_eq!(spans.get(4).unwrap().text, "52463");
+        assert_eq!(spans.get(5).unwrap().text, "973113");
         assert_eq!(
-            results.get(6).unwrap().text,
+            spans.get(6).unwrap().text,
             "123e4567-e89b-12d3-a456-426655440000"
         );
-        assert_eq!(results.get(7).unwrap().text, "8888");
+        assert_eq!(spans.get(7).unwrap().text, "8888");
         assert_eq!(
-            results.get(8).unwrap().text,
+            spans.get(8).unwrap().text,
             "https://crates.io/23456/fd70b569"
         );
     }
@@ -605,7 +602,7 @@ mod tests {
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
-        let results = Model::new(
+        let spans = Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -614,12 +611,12 @@ mod tests {
             reverse,
             unique_hint,
         )
-        .matches;
+        .spans;
 
-        assert_eq!(results.len(), 2);
-        assert_eq!(results.get(0).unwrap().text, "http://foo.bar");
+        assert_eq!(spans.len(), 2);
+        assert_eq!(spans.get(0).unwrap().text, "http://foo.bar");
         assert_eq!(
-            results.get(1).unwrap().text,
+            spans.get(1).unwrap().text,
             "https://crates.io/23456/fd70b569"
         );
     }
