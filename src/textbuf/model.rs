@@ -4,22 +4,20 @@ use regex::Regex;
 use sequence_trie::SequenceTrie;
 
 use super::alphabet::Alphabet;
-use super::matches::Match;
-use super::raw_match::RawMatch;
+use super::raw_span::RawSpan;
 use super::regexes::{NamedPattern, EXCLUDE_PATTERNS, PATTERNS};
+use super::span::Span;
 
 /// Holds data for the `Ui`.
 pub struct Model<'a> {
-    // buffer: &'a str,
     pub lines: &'a [&'a str],
     pub reverse: bool,
-    pub matches: Vec<Match<'a>>,
+    pub spans: Vec<Span<'a>>,
     pub lookup_trie: SequenceTrie<char, usize>,
 }
 
 impl<'a> Model<'a> {
     pub fn new(
-        // buffer: &'a str,
         lines: &'a [&'a str],
         alphabet: &'a Alphabet,
         use_all_patterns: bool,
@@ -28,36 +26,34 @@ impl<'a> Model<'a> {
         reverse: bool,
         unique_hint: bool,
     ) -> Model<'a> {
-        // let lines = buffer.split('\n').collect::<Vec<_>>();
-
-        let mut raw_matches =
-            raw_matches(&lines, named_patterns, custom_patterns, use_all_patterns);
+        let mut raw_spans =
+            find_raw_spans(&lines, named_patterns, custom_patterns, use_all_patterns);
 
         if reverse {
-            raw_matches.reverse();
+            raw_spans.reverse();
         }
 
-        let mut matches = associate_hints(&raw_matches, alphabet, unique_hint);
+        let mut spans = associate_hints(&raw_spans, alphabet, unique_hint);
 
         if reverse {
-            matches.reverse();
+            spans.reverse();
         }
 
-        let lookup_trie = build_lookup_trie(&matches);
+        let lookup_trie = build_lookup_trie(&spans);
 
         Model {
             // buffer,
             lines,
             reverse,
-            matches,
+            spans,
             lookup_trie,
         }
     }
 }
 
 /// Internal function that searches the model's lines for pattern matches.
-/// Returns a vector of `RawMatch`es (text, location, pattern id) without
-/// an associated hint. The hint is attached to `Match`, not to `RawMatch`.
+/// Returns a vector of `RawSpan` (text, location, pattern id) without
+/// an associated hint. The hint is attached to `Span`, not to `RawSpan`.
 ///
 /// # Notes
 ///
@@ -65,12 +61,12 @@ impl<'a> Model<'a> {
 ///
 /// If no named patterns were specified, it will search for all available
 /// patterns from the `PATTERNS` catalog.
-fn raw_matches<'a>(
+fn find_raw_spans<'a>(
     lines: &'a [&'a str],
     named_patterns: &'a [NamedPattern],
     custom_patterns: &'a [String],
     use_all_patterns: bool,
-) -> Vec<RawMatch<'a>> {
+) -> Vec<RawSpan<'a>> {
     let exclude_regexes = EXCLUDE_PATTERNS
         .iter()
         .map(|&(name, pattern)| (name, Regex::new(pattern).unwrap()))
@@ -100,7 +96,7 @@ fn raw_matches<'a>(
 
     let all_regexes = [exclude_regexes, custom_regexes, regexes].concat();
 
-    let mut raw_matches = Vec::new();
+    let mut raw_spans = Vec::new();
 
     for (index, line) in lines.iter().enumerate() {
         // Chunk is the remainder of the line to be searched for matches.
@@ -110,7 +106,7 @@ fn raw_matches<'a>(
 
         // Use all avail regexes to match the chunk and select the match
         // occuring the earliest on the chunk. Save its matched text and
-        // position in a `RawMatch` struct.
+        // position in a `RawSpan` struct.
         loop {
             // For each avalable regex, use the `find_iter` iterator to
             // get the first non-overlapping match in the chunk, returning
@@ -149,7 +145,7 @@ fn raw_matches<'a>(
                     None => (text, 0),
                 };
 
-                raw_matches.push(RawMatch {
+                raw_spans.push(RawSpan {
                     x: offset + reg_match.start() as i32 + substart as i32,
                     y: index as i32,
                     pattern: pat_name,
@@ -164,54 +160,54 @@ fn raw_matches<'a>(
         }
     }
 
-    raw_matches
+    raw_spans
 }
 
-/// Associate a hint to each `RawMatch`, returning a vector of `Match`es.
+/// Associate a hint to each `RawSpan`, returning a vector of `Span`.
 ///
-/// If `unique` is `true`, all duplicate matches will have the same hint.
-/// For copying matched text, this seems easier and more natural.
-/// If `unique` is `false`, duplicate matches will have their own hint.
+/// If `unique` is `true`, all duplicate spans will have the same hint.
+/// For copying text spans, this seems easier and more natural.
+/// If `unique` is `false`, duplicate spans will have their own hint.
 fn associate_hints<'a>(
-    raw_matches: &[RawMatch<'a>],
+    raw_spans: &[RawSpan<'a>],
     alphabet: &'a Alphabet,
     unique: bool,
-) -> Vec<Match<'a>> {
-    let hints = alphabet.make_hints(raw_matches.len());
+) -> Vec<Span<'a>> {
+    let hints = alphabet.make_hints(raw_spans.len());
     let mut hints_iter = hints.iter();
 
-    let mut result: Vec<Match<'a>> = vec![];
+    let mut result: Vec<Span<'a>> = vec![];
 
     if unique {
         // Map (text, hint)
         let mut known: collections::HashMap<&str, &str> = collections::HashMap::new();
 
-        for raw_mat in raw_matches {
-            let hint: &str = known.entry(raw_mat.text).or_insert_with(|| {
+        for raw_span in raw_spans {
+            let hint: &str = known.entry(raw_span.text).or_insert_with(|| {
                 hints_iter
                     .next()
                     .expect("We should have as many hints as necessary, even invisible ones.")
             });
 
-            result.push(Match {
-                x: raw_mat.x,
-                y: raw_mat.y,
-                pattern: raw_mat.pattern,
-                text: raw_mat.text,
+            result.push(Span {
+                x: raw_span.x,
+                y: raw_span.y,
+                pattern: raw_span.pattern,
+                text: raw_span.text,
                 hint: hint.to_string(),
             });
         }
     } else {
-        for raw_mat in raw_matches {
+        for raw_span in raw_spans {
             let hint = hints_iter
                 .next()
                 .expect("We should have as many hints as necessary, even invisible ones.");
 
-            result.push(Match {
-                x: raw_mat.x,
-                y: raw_mat.y,
-                pattern: raw_mat.pattern,
-                text: raw_mat.text,
+            result.push(Span {
+                x: raw_span.x,
+                y: raw_span.y,
+                pattern: raw_span.pattern,
+                text: raw_span.text,
                 hint: hint.to_string(),
             });
         }
@@ -222,12 +218,12 @@ fn associate_hints<'a>(
 
 /// Builds a `SequenceTrie` that helps determine if a sequence of keys
 /// entered by the user corresponds to a match. This kind of lookup
-/// directly returns a reference to the corresponding `Match` if any.
-fn build_lookup_trie<'a>(matches: &'a [Match<'a>]) -> SequenceTrie<char, usize> {
+/// directly returns a reference to the corresponding `Span` if any.
+fn build_lookup_trie<'a>(spans: &'a [Span<'a>]) -> SequenceTrie<char, usize> {
     let mut trie = SequenceTrie::new();
 
-    for (index, mat) in matches.iter().enumerate() {
-        let hint_chars = mat.hint.chars().collect::<Vec<char>>();
+    for (index, span) in spans.iter().enumerate() {
+        let hint_chars = span.hint.chars().collect::<Vec<char>>();
 
         // no need to insert twice the same hint
         if trie.get(&hint_chars).is_none() {

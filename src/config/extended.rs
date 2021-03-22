@@ -80,12 +80,8 @@ impl ConfigExt {
                         wrapped.unique_hint = value.parse::<bool>()?;
                     }
 
-                    "@copyrat-match-fg" => {
-                        wrapped.colors.match_fg = ui::colors::parse_color(value)?
-                    }
-                    "@copyrat-match-bg" => {
-                        wrapped.colors.match_bg = ui::colors::parse_color(value)?
-                    }
+                    "@copyrat-span-fg" => wrapped.colors.span_fg = ui::colors::parse_color(value)?,
+                    "@copyrat-span-bg" => wrapped.colors.span_bg = ui::colors::parse_color(value)?,
                     "@copyrat-focused-fg" => {
                         wrapped.colors.focused_fg = ui::colors::parse_color(value)?
                     }

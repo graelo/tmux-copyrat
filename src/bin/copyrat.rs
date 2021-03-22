@@ -15,7 +15,7 @@ fn main() {
     let lines = buffer.split('\n').collect::<Vec<_>>();
 
     // Execute copyrat over the buffer (will take control over stdout).
-    // This returns the selected matche.
+    // This returns the selected span of text.
     let selection: Option<Selection> = run(&lines, &opt);
 
     // Early exit, signaling no selections were found.

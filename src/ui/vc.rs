@@ -33,7 +33,7 @@ impl<'a> ViewController<'a> {
         hint_style: Option<HintStyle>,
     ) -> ViewController<'a> {
         let focus_index = if model.reverse {
-            model.matches.len() - 1
+            model.spans.len() - 1
         } else {
             0
         };
@@ -57,10 +57,10 @@ impl<'a> ViewController<'a> {
     // }}}
     // Coordinates {{{1
 
-    /// Convert the `Match` text into the coordinates of the wrapped lines.
+    /// Convert the `Span` text into the coordinates of the wrapped lines.
     ///
     /// Compute the new x offset of the text as the remainder of the line width
-    /// (e.g. the match could start at offset 120 in a 80-width terminal, the new
+    /// (e.g. the Span could start at offset 120 in a 80-width terminal, the new
     /// offset being 40).
     ///
     /// Compute the new y offset of the text as the initial y offset plus any
@@ -76,20 +76,20 @@ impl<'a> ViewController<'a> {
         (new_offset_x, new_offset_y)
     }
 
-    /// Returns screen offset of a given `Match`.
+    /// Returns screen offset of a given `Span`.
     ///
     /// If multibyte characters occur before the hint (in the "prefix"), then
     /// their compouding takes less space on screen when printed: for
     /// instance ´ + e = é. Consequently the hint offset has to be adjusted
     /// to the left.
-    fn match_offsets(&self, mat: &textbuf::Match<'a>) -> (usize, usize) {
+    fn span_offsets(&self, span: &textbuf::Span<'a>) -> (usize, usize) {
         let offset_x = {
-            let line = &self.model.lines[mat.y as usize];
-            let prefix = &line[0..mat.x as usize];
+            let line = &self.model.lines[span.y as usize];
+            let prefix = &line[0..span.x as usize];
             let adjust = prefix.len() - prefix.chars().count();
-            (mat.x as usize) - (adjust)
+            (span.x as usize) - (adjust)
         };
-        let offset_y = mat.y as usize;
+        let offset_y = span.y as usize;
 
         (offset_x, offset_y)
     }
@@ -98,12 +98,12 @@ impl<'a> ViewController<'a> {
     // Focus management {{{1
 
     /// Move focus onto the previous hint, returning both the index of the
-    /// previously focused match, and the index of the newly focused one.
+    /// previously focused Span, and the index of the newly focused one.
     fn prev_focus_index(&mut self) -> (usize, usize) {
         let old_index = self.focus_index;
         if self.focus_wrap_around {
             if self.focus_index == 0 {
-                self.focus_index = self.model.matches.len() - 1;
+                self.focus_index = self.model.spans.len() - 1;
             } else {
                 self.focus_index -= 1;
             }
@@ -115,16 +115,16 @@ impl<'a> ViewController<'a> {
     }
 
     /// Move focus onto the next hint, returning both the index of the
-    /// previously focused match, and the index of the newly focused one.
+    /// previously focused Span, and the index of the newly focused one.
     fn next_focus_index(&mut self) -> (usize, usize) {
         let old_index = self.focus_index;
         if self.focus_wrap_around {
-            if self.focus_index == self.model.matches.len() - 1 {
+            if self.focus_index == self.model.spans.len() - 1 {
                 self.focus_index = 0;
             } else {
                 self.focus_index += 1;
             }
-        } else if self.focus_index < self.model.matches.len() - 1 {
+        } else if self.focus_index < self.model.spans.len() - 1 {
             self.focus_index += 1;
         }
         let new_index = self.focus_index;
@@ -136,7 +136,7 @@ impl<'a> ViewController<'a> {
 
     /// Render entire model lines on provided writer.
     ///
-    /// This renders the basic content on which matches and hints can be rendered.
+    /// This renders the basic content on which spans and hints can be rendered.
     ///
     /// # Notes
     /// - All trailing whitespaces are trimmed, empty lines are skipped.
@@ -181,7 +181,7 @@ impl<'a> ViewController<'a> {
         .unwrap();
     }
 
-    /// Render the Match's `text` field on provided writer using the `match_*g` color.
+    /// Render the Span's `text` field on provided writer using the `span_*g` color.
     ///
     /// If a Mach is "focused", it is then rendered with the `focused_*g` colors.
     ///
@@ -195,14 +195,14 @@ impl<'a> ViewController<'a> {
         offset: (usize, usize),
         colors: &UiColors,
     ) {
-        // To help identify it, the match thas has focus is rendered with a dedicated color.
+        // To help identify it, the span thas has focus is rendered with a dedicated color.
         let (fg_color, bg_color) = if focused {
             (&colors.focused_fg, &colors.focused_bg)
         } else {
-            (&colors.match_fg, &colors.match_bg)
+            (&colors.span_fg, &colors.span_bg)
         };
 
-        // Render just the Match's text on top of existing content.
+        // Render just the Span's text on top of existing content.
         write!(
             stdout,
             "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
@@ -216,7 +216,7 @@ impl<'a> ViewController<'a> {
         .unwrap();
     }
 
-    /// Render a Match's `hint` field on the provided writer.
+    /// Render a Span's `hint` field on the provided writer.
     ///
     /// This renders the hint according to some provided style:
     /// - just colors
@@ -318,12 +318,12 @@ impl<'a> ViewController<'a> {
         }
     }
 
-    /// Convenience function that renders both the matched text and its hint,
+    /// Convenience function that renders both the text span and its hint,
     /// if focused.
-    fn render_match(&self, stdout: &mut dyn io::Write, mat: &textbuf::Match<'a>, focused: bool) {
-        let text = mat.text;
+    fn render_span(&self, stdout: &mut dyn io::Write, span: &textbuf::Span<'a>, focused: bool) {
+        let text = span.text;
 
-        let (offset_x, offset_y) = self.match_offsets(mat);
+        let (offset_x, offset_y) = self.span_offsets(span);
         let (offset_x, offset_y) = self.map_coords_to_wrapped_space(offset_x, offset_y);
 
         ViewController::render_matched_text(
@@ -336,16 +336,16 @@ impl<'a> ViewController<'a> {
 
         if !focused {
             // If not focused, render the hint (e.g. "eo") as an overlay on
-            // top of the rendered matched text, aligned at its leading or the
+            // top of the rendered text span, aligned at its leading or the
             // trailing edge.
             let extra_offset = match self.hint_alignment {
                 HintAlignment::Leading => 0,
-                HintAlignment::Trailing => text.len() - mat.hint.len(),
+                HintAlignment::Trailing => text.len() - span.hint.len(),
             };
 
             ViewController::render_matched_hint(
                 stdout,
-                &mat.hint,
+                &span.hint,
                 (offset_x + extra_offset, offset_y),
                 &self.rendering_colors,
                 &self.hint_style,
@@ -357,15 +357,15 @@ impl<'a> ViewController<'a> {
     ///
     /// This renders in 3 phases:
     /// - all lines are rendered verbatim
-    /// - each Match's `text` is rendered as an overlay on top of it
-    /// - each Match's `hint` text is rendered as a final overlay
+    /// - each Span's `text` is rendered as an overlay on top of it
+    /// - each Span's `hint` text is rendered as a final overlay
     ///
     /// Depending on the value of `self.hint_alignment`, the hint can be rendered
-    /// on the leading edge of the underlying Match's `text`,
+    /// on the leading edge of the underlying Span's `text`,
     /// or on the trailing edge.
     ///
     /// # Note
-    /// Multibyte characters are taken into account, so that the Match's `text`
+    /// Multibyte characters are taken into account, so that the Span's `text`
     /// and `hint` are rendered in their proper position.
     fn full_render(&self, stdout: &mut dyn io::Write) {
         // 1. Trim all lines and render non-empty ones.
@@ -376,31 +376,31 @@ impl<'a> ViewController<'a> {
             &self.rendering_colors,
         );
 
-        for (index, mat) in self.model.matches.iter().enumerate() {
+        for (index, span) in self.model.spans.iter().enumerate() {
             let focused = index == self.focus_index;
-            self.render_match(stdout, mat, focused);
+            self.render_span(stdout, span, focused);
         }
 
         stdout.flush().unwrap();
     }
 
-    /// Render the previous match with its hint, and render the newly focused
-    /// match without its hint. This is more efficient than a full render.
+    /// Render the previous span with its hint, and render the newly focused
+    /// span without its hint. This is more efficient than a full render.
     fn diff_render(
         &self,
         stdout: &mut dyn io::Write,
         old_focus_index: usize,
         new_focus_index: usize,
     ) {
-        // Render the previously focused match as non-focused
-        let mat = self.model.matches.get(old_focus_index).unwrap();
+        // Render the previously focused span as non-focused
+        let span = self.model.spans.get(old_focus_index).unwrap();
         let focused = false;
-        self.render_match(stdout, mat, focused);
+        self.render_span(stdout, span, focused);
 
-        // Render the previously focused match as non-focused
-        let mat = self.model.matches.get(new_focus_index).unwrap();
+        // Render the previously focused span as non-focused
+        let span = self.model.spans.get(new_focus_index).unwrap();
         let focused = true;
-        self.render_match(stdout, mat, focused);
+        self.render_span(stdout, span, focused);
 
         stdout.flush().unwrap();
     }
@@ -409,7 +409,7 @@ impl<'a> ViewController<'a> {
     // Listening {{{1
 
     /// Listen to keys entered on stdin, moving focus accordingly, or
-    /// selecting one match.
+    /// selecting one span.
     ///
     /// # Panics
     ///
@@ -417,7 +417,7 @@ impl<'a> ViewController<'a> {
     fn listen(&mut self, reader: &mut dyn io::Read, writer: &mut dyn io::Write) -> Event {
         use termion::input::TermRead; // Trait for `reader.keys().next()`.
 
-        if self.model.matches.is_empty() {
+        if self.model.spans.is_empty() {
             return Event::Exit;
         }
 
@@ -448,7 +448,7 @@ impl<'a> ViewController<'a> {
                     break;
                 }
 
-                // Move focus to next/prev match.
+                // Move focus to next/prev span.
                 event::Key::Up => {
                     let (old_index, focused_index) = self.prev_focus_index();
                     self.diff_render(writer, old_index, focused_index);
@@ -484,16 +484,16 @@ impl<'a> ViewController<'a> {
 
                 // Yank/copy
                 event::Key::Char(_ch @ 'y') | event::Key::Char(_ch @ '\n') => {
-                    let text = self.model.matches.get(self.focus_index).unwrap().text;
-                    return Event::Match(Selection {
+                    let text = self.model.spans.get(self.focus_index).unwrap().text;
+                    return Event::Select(Selection {
                         text: text.to_string(),
                         uppercased: false,
                         output_destination,
                     });
                 }
                 event::Key::Char(_ch @ 'Y') => {
-                    let text = self.model.matches.get(self.focus_index).unwrap().text;
-                    return Event::Match(Selection {
+                    let text = self.model.spans.get(self.focus_index).unwrap().text;
+                    return Event::Select(Selection {
                         text: text.to_string(),
                         uppercased: true,
                         output_destination,
@@ -511,7 +511,7 @@ impl<'a> ViewController<'a> {
 
                 // Use a Trie or another data structure to determine
                 // if the entered key belongs to a longer hint.
-                // Attempts at finding a match with a corresponding hint.
+                // Attempts at finding a span with a corresponding hint.
                 //
                 // If any of the typed character is caps, the typed hint is
                 // deemed as uppercased.
@@ -535,12 +535,12 @@ impl<'a> ViewController<'a> {
                     let node = node.unwrap();
                     if node.is_leaf() {
                         // The last key of a hint was entered.
-                        let match_index = node.value().expect(
+                        let span_index = node.value().expect(
                             "By construction, the Lookup Trie should have a value for each leaf.",
                         );
-                        let mat = self.model.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
-                        let text = mat.text.to_string();
-                        return Event::Match(Selection {
+                        let span = self.model.spans.get(*span_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
+                        let text = span.text.to_string();
+                        return Event::Select(Selection {
                             text,
                             uppercased,
                             output_destination,
@@ -585,7 +585,7 @@ impl<'a> ViewController<'a> {
 
         let selection = match self.listen(&mut stdin, &mut stdout) {
             Event::Exit => None,
-            Event::Match(selection) => Some(selection),
+            Event::Select(selection) => Some(selection),
         };
 
         write!(stdout, "{}", cursor::Show).unwrap();
@@ -623,10 +623,10 @@ fn get_line_offsets(lines: &[&str], term_width: u16) -> Vec<usize> {
 
 /// Returned value after the `Ui` has finished listening to events.
 enum Event {
-    /// Exit with no selected matches,
+    /// Exit with no selected spans,
     Exit,
-    /// A vector of matched text and whether it was selected with uppercase.
-    Match(Selection),
+    /// The selected span of text and whether it was selected with uppercase.
+    Select(Selection),
 }
 
 #[cfg(test)]
@@ -650,8 +650,8 @@ path: /usr/local/bin/cargo";
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
-            match_fg: Box::new(color::Green),
-            match_bg: Box::new(color::Magenta),
+            span_fg: Box::new(color::Green),
+            span_bg: Box::new(color::Magenta),
             hint_fg: Box::new(color::Yellow),
             hint_bg: Box::new(color::Cyan),
         };
@@ -688,8 +688,8 @@ path: /usr/local/bin/cargo";
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
-            match_fg: Box::new(color::Green),
-            match_bg: Box::new(color::Magenta),
+            span_fg: Box::new(color::Green),
+            span_bg: Box::new(color::Magenta),
             hint_fg: Box::new(color::Yellow),
             hint_bg: Box::new(color::Cyan),
         };
@@ -722,8 +722,8 @@ path: /usr/local/bin/cargo";
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
-            match_fg: Box::new(color::Green),
-            match_bg: Box::new(color::Magenta),
+            span_fg: Box::new(color::Green),
+            span_bg: Box::new(color::Magenta),
             hint_fg: Box::new(color::Yellow),
             hint_bg: Box::new(color::Cyan),
         };
@@ -735,8 +735,8 @@ path: /usr/local/bin/cargo";
             format!(
                 "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
                 goto = cursor::Goto(4, 2),
-                fg = color::Fg(colors.match_fg.as_ref()),
-                bg = color::Bg(colors.match_bg.as_ref()),
+                fg = color::Fg(colors.span_fg.as_ref()),
+                bg = color::Bg(colors.span_bg.as_ref()),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
                 text = &text,
@@ -755,8 +755,8 @@ path: /usr/local/bin/cargo";
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
-            match_fg: Box::new(color::Green),
-            match_bg: Box::new(color::Magenta),
+            span_fg: Box::new(color::Green),
+            span_bg: Box::new(color::Magenta),
             hint_fg: Box::new(color::Yellow),
             hint_bg: Box::new(color::Cyan),
         };
@@ -797,8 +797,8 @@ path: /usr/local/bin/cargo";
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
-            match_fg: Box::new(color::Green),
-            match_bg: Box::new(color::Magenta),
+            span_fg: Box::new(color::Green),
+            span_bg: Box::new(color::Magenta),
             hint_fg: Box::new(color::Yellow),
             hint_bg: Box::new(color::Cyan),
         };
@@ -841,8 +841,8 @@ path: /usr/local/bin/cargo";
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
-            match_fg: Box::new(color::Green),
-            match_bg: Box::new(color::Magenta),
+            span_fg: Box::new(color::Green),
+            span_bg: Box::new(color::Magenta),
             hint_fg: Box::new(color::Yellow),
             hint_bg: Box::new(color::Cyan),
         };
@@ -876,8 +876,8 @@ path: /usr/local/bin/cargo";
     }
 
     #[test]
-    /// Simulates rendering without any match.
-    fn test_render_full_without_matches() {
+    /// Simulates rendering without any span.
+    fn test_render_full_without_available_spans() {
         let buffer = "lorem 127.0.0.1 lorem
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
@@ -905,14 +905,14 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
-            match_fg: Box::new(color::Green),
-            match_bg: Box::new(color::Magenta),
+            span_fg: Box::new(color::Green),
+            span_bg: Box::new(color::Magenta),
             hint_fg: Box::new(color::Yellow),
             hint_bg: Box::new(color::Cyan),
         };
         let hint_alignment = HintAlignment::Leading;
 
-        // create a Ui without any match
+        // create a Ui without any span
         let ui = ViewController {
             model: &mut model,
             term_width,
@@ -945,15 +945,12 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         // println!("{:?}", writer);
         // println!("{:?}", expected.as_bytes());
 
-        // println!("matches: {}", ui.matches.len());
-        // println!("lines: {}", lines.len());
-
         assert_eq!(writer, expected.as_bytes());
     }
 
     #[test]
-    /// Simulates rendering with matches.
-    fn test_render_full_with_matches() {
+    /// Simulates rendering with available spans.
+    fn test_render_full_with_spans() {
         let buffer = "lorem 127.0.0.1 lorem
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
@@ -982,8 +979,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             text_bg: Box::new(color::White),
             focused_fg: Box::new(color::Red),
             focused_bg: Box::new(color::Blue),
-            match_fg: Box::new(color::Green),
-            match_bg: Box::new(color::Magenta),
+            span_fg: Box::new(color::Green),
+            span_bg: Box::new(color::Magenta),
             hint_fg: Box::new(color::Yellow),
             hint_bg: Box::new(color::Cyan),
         };
@@ -1021,10 +1018,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let expected_match1_text = {
             let goto7_1 = cursor::Goto(7, 1);
             format!(
-                "{goto7_1}{match_bg}{match_fg}127.0.0.1{fg_reset}{bg_reset}",
+                "{goto7_1}{span_bg}{span_fg}127.0.0.1{fg_reset}{bg_reset}",
                 goto7_1 = goto7_1,
-                match_fg = color::Fg(rendering_colors.match_fg.as_ref()),
-                match_bg = color::Bg(rendering_colors.match_bg.as_ref()),
+                span_fg = color::Fg(rendering_colors.span_fg.as_ref()),
+                span_bg = color::Bg(rendering_colors.span_bg.as_ref()),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset)
             )
@@ -1055,7 +1052,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
       )
         };
 
-        // Because reverse is true, this second match is focused,
+        // Because reverse is true, this second span is focused,
         // then the hint should not be rendered.
 
         // let expected_match2_hint = {
@@ -1090,7 +1087,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         //   .find(|(_idx, (&l, &r))| l != r);
         // println!("{:?}", diff_point);
 
-        assert_eq!(2, ui.model.matches.len());
+        assert_eq!(2, ui.model.spans.len());
 
         assert_eq!(writer, expected.as_bytes());
     }
