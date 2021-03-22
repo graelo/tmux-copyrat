@@ -188,7 +188,7 @@ impl<'a> ViewController<'a> {
     /// # Note
     ///
     /// This writes directly on the writer, avoiding extra allocation.
-    fn render_matched_text(
+    fn render_span_text(
         stdout: &mut dyn io::Write,
         text: &str,
         focused: bool,
@@ -220,13 +220,14 @@ impl<'a> ViewController<'a> {
     ///
     /// This renders the hint according to some provided style:
     /// - just colors
-    /// - underlined with colors
+    /// - styled (bold, italic, underlined) with colors
     /// - surrounding the hint's text with some delimiters, see
     ///   `HintStyle::Delimited`.
     ///
     /// # Note
+    ///
     /// This writes directly on the writer, avoiding extra allocation.
-    fn render_matched_hint(
+    fn render_span_hint(
         stdout: &mut dyn io::Write,
         hint_text: &str,
         offset: (usize, usize),
@@ -326,7 +327,7 @@ impl<'a> ViewController<'a> {
         let (offset_x, offset_y) = self.span_offsets(span);
         let (offset_x, offset_y) = self.map_coords_to_wrapped_space(offset_x, offset_y);
 
-        ViewController::render_matched_text(
+        ViewController::render_span_text(
             stdout,
             text,
             focused,
@@ -343,7 +344,7 @@ impl<'a> ViewController<'a> {
                 HintAlignment::Trailing => text.len() - span.hint.len(),
             };
 
-            ViewController::render_matched_hint(
+            ViewController::render_span_hint(
                 stdout,
                 &span.hint,
                 (offset_x + extra_offset, offset_y),
@@ -678,7 +679,7 @@ path: /usr/local/bin/cargo";
     }
 
     #[test]
-    fn test_render_focused_matched_text() {
+    fn test_render_focused_span_text() {
         let mut writer = vec![];
         let text = "https://en.wikipedia.org/wiki/Barcelona";
         let focused = true;
@@ -694,7 +695,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        ViewController::render_matched_text(&mut writer, text, focused, offset, &colors);
+        ViewController::render_span_text(&mut writer, text, focused, offset, &colors);
 
         assert_eq!(
             writer,
@@ -712,7 +713,7 @@ path: /usr/local/bin/cargo";
     }
 
     #[test]
-    fn test_render_matched_text() {
+    fn test_render_span_text() {
         let mut writer = vec![];
         let text = "https://en.wikipedia.org/wiki/Barcelona";
         let focused = false;
@@ -728,7 +729,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        ViewController::render_matched_text(&mut writer, text, focused, offset, &colors);
+        ViewController::render_span_text(&mut writer, text, focused, offset, &colors);
 
         assert_eq!(
             writer,
@@ -746,7 +747,7 @@ path: /usr/local/bin/cargo";
     }
 
     #[test]
-    fn test_render_unstyled_matched_hint() {
+    fn test_render_unstyled_span_hint() {
         let mut writer = vec![];
         let hint_text = "eo";
         let offset: (usize, usize) = (3, 1);
@@ -764,7 +765,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = None;
 
-        ViewController::render_matched_hint(
+        ViewController::render_span_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -788,7 +789,7 @@ path: /usr/local/bin/cargo";
     }
 
     #[test]
-    fn test_render_underlined_matched_hint() {
+    fn test_render_underlined_span_hint() {
         let mut writer = vec![];
         let hint_text = "eo";
         let offset: (usize, usize) = (3, 1);
@@ -806,7 +807,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = Some(HintStyle::Underline);
 
-        ViewController::render_matched_hint(
+        ViewController::render_span_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -832,7 +833,7 @@ path: /usr/local/bin/cargo";
     }
 
     #[test]
-    fn test_render_bracketed_matched_hint() {
+    fn test_render_bracketed_span_hint() {
         let mut writer = vec![];
         let hint_text = "eo";
         let offset: (usize, usize) = (3, 1);
@@ -850,7 +851,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = Some(HintStyle::Surround('{', '}'));
 
-        ViewController::render_matched_hint(
+        ViewController::render_span_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -1015,7 +1016,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             )
         };
 
-        let expected_match1_text = {
+        let expected_span1_text = {
             let goto7_1 = cursor::Goto(7, 1);
             format!(
                 "{goto7_1}{span_bg}{span_fg}127.0.0.1{fg_reset}{bg_reset}",
@@ -1027,7 +1028,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             )
         };
 
-        let expected_match1_hint = {
+        let expected_span1_hint = {
             let goto7_1 = cursor::Goto(7, 1);
 
             format!(
@@ -1040,7 +1041,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             )
         };
 
-        let expected_match2_text = {
+        let expected_span2_text = {
             let goto11_3 = cursor::Goto(11, 3);
             format!(
         "{goto11_3}{focus_bg}{focus_fg}https://en.wikipedia.org/wiki/Barcelona{fg_reset}{bg_reset}",
@@ -1055,7 +1056,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         // Because reverse is true, this second span is focused,
         // then the hint should not be rendered.
 
-        // let expected_match2_hint = {
+        // let expected_span2_hint = {
         //     let goto11_3 = cursor::Goto(11, 3);
 
         //     format!(
@@ -1070,10 +1071,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         let expected = [
             expected_content,
-            expected_match1_text,
-            expected_match1_hint,
-            expected_match2_text,
-            // expected_match2_hint,
+            expected_span1_text,
+            expected_span1_hint,
+            expected_span2_text,
+            // expected_span2_hint,
         ]
         .concat();
 
