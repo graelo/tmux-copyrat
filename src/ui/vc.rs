@@ -2,7 +2,6 @@ use std::char;
 use std::cmp;
 use std::io;
 
-use sequence_trie::SequenceTrie;
 use termion::{self, color, cursor, event, style};
 
 use super::colors::UiColors;
@@ -11,11 +10,9 @@ use super::{HintAlignment, HintStyle};
 use crate::{config::extended::OutputDestination, textbuf};
 
 pub struct ViewController<'a> {
-    model: &'a mut textbuf::Model<'a>,
+    model: &'a textbuf::Model<'a>,
     term_width: u16,
     line_offsets: Vec<usize>,
-    matches: Vec<textbuf::Match<'a>>,
-    lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
     focus_wrap_around: bool,
     default_output_destination: OutputDestination,
@@ -28,16 +25,18 @@ impl<'a> ViewController<'a> {
     // Initialize {{{1
 
     pub fn new(
-        model: &'a mut textbuf::Model<'a>,
+        model: &'a textbuf::Model<'a>,
         focus_wrap_around: bool,
         default_output_destination: OutputDestination,
         rendering_colors: &'a UiColors,
         hint_alignment: &'a HintAlignment,
         hint_style: Option<HintStyle>,
     ) -> ViewController<'a> {
-        let matches = model.matches();
-        let lookup_trie = textbuf::Model::build_lookup_trie(&matches);
-        let focus_index = if model.reverse { matches.len() - 1 } else { 0 };
+        let focus_index = if model.reverse {
+            model.matches.len() - 1
+        } else {
+            0
+        };
 
         let (term_width, _) = termion::terminal_size().unwrap_or((80u16, 30u16)); // .expect("Cannot read the terminal size.");
         let line_offsets = get_line_offsets(&model.lines, term_width);
@@ -46,8 +45,6 @@ impl<'a> ViewController<'a> {
             model,
             term_width,
             line_offsets,
-            matches,
-            lookup_trie,
             focus_index,
             focus_wrap_around,
             default_output_destination,
@@ -106,7 +103,7 @@ impl<'a> ViewController<'a> {
         let old_index = self.focus_index;
         if self.focus_wrap_around {
             if self.focus_index == 0 {
-                self.focus_index = self.matches.len() - 1;
+                self.focus_index = self.model.matches.len() - 1;
             } else {
                 self.focus_index -= 1;
             }
@@ -122,12 +119,12 @@ impl<'a> ViewController<'a> {
     fn next_focus_index(&mut self) -> (usize, usize) {
         let old_index = self.focus_index;
         if self.focus_wrap_around {
-            if self.focus_index == self.matches.len() - 1 {
+            if self.focus_index == self.model.matches.len() - 1 {
                 self.focus_index = 0;
             } else {
                 self.focus_index += 1;
             }
-        } else if self.focus_index < self.matches.len() - 1 {
+        } else if self.focus_index < self.model.matches.len() - 1 {
             self.focus_index += 1;
         }
         let new_index = self.focus_index;
@@ -379,7 +376,7 @@ impl<'a> ViewController<'a> {
             &self.rendering_colors,
         );
 
-        for (index, mat) in self.matches.iter().enumerate() {
+        for (index, mat) in self.model.matches.iter().enumerate() {
             let focused = index == self.focus_index;
             self.render_match(stdout, mat, focused);
         }
@@ -396,12 +393,12 @@ impl<'a> ViewController<'a> {
         new_focus_index: usize,
     ) {
         // Render the previously focused match as non-focused
-        let mat = self.matches.get(old_focus_index).unwrap();
+        let mat = self.model.matches.get(old_focus_index).unwrap();
         let focused = false;
         self.render_match(stdout, mat, focused);
 
         // Render the previously focused match as non-focused
-        let mat = self.matches.get(new_focus_index).unwrap();
+        let mat = self.model.matches.get(new_focus_index).unwrap();
         let focused = true;
         self.render_match(stdout, mat, focused);
 
@@ -420,7 +417,7 @@ impl<'a> ViewController<'a> {
     fn listen(&mut self, reader: &mut dyn io::Read, writer: &mut dyn io::Write) -> Event {
         use termion::input::TermRead; // Trait for `reader.keys().next()`.
 
-        if self.matches.is_empty() {
+        if self.model.matches.is_empty() {
             return Event::Exit;
         }
 
@@ -487,7 +484,7 @@ impl<'a> ViewController<'a> {
 
                 // Yank/copy
                 event::Key::Char(_ch @ 'y') | event::Key::Char(_ch @ '\n') => {
-                    let text = self.matches.get(self.focus_index).unwrap().text;
+                    let text = self.model.matches.get(self.focus_index).unwrap().text;
                     return Event::Match(Selection {
                         text: text.to_string(),
                         uppercased: false,
@@ -495,7 +492,7 @@ impl<'a> ViewController<'a> {
                     });
                 }
                 event::Key::Char(_ch @ 'Y') => {
-                    let text = self.matches.get(self.focus_index).unwrap().text;
+                    let text = self.model.matches.get(self.focus_index).unwrap().text;
                     return Event::Match(Selection {
                         text: text.to_string(),
                         uppercased: true,
@@ -526,6 +523,7 @@ impl<'a> ViewController<'a> {
                     typed_hint.push_str(&lower_key);
 
                     let node = self
+                        .model
                         .lookup_trie
                         .get_node(&typed_hint.chars().collect::<Vec<char>>());
 
@@ -540,7 +538,7 @@ impl<'a> ViewController<'a> {
                         let match_index = node.value().expect(
                             "By construction, the Lookup Trie should have a value for each leaf.",
                         );
-                        let mat = self.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
+                        let mat = self.model.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
                         let text = mat.text.to_string();
                         return Event::Match(Selection {
                             text,
@@ -880,18 +878,19 @@ path: /usr/local/bin/cargo";
     #[test]
     /// Simulates rendering without any match.
     fn test_render_full_without_matches() {
-        let content = "lorem 127.0.0.1 lorem
+        let buffer = "lorem 127.0.0.1 lorem
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
+        let lines = buffer.split('\n').collect::<Vec<_>>();
 
-        let use_all_patterns = true;
+        let use_all_patterns = false;
         let named_pat = vec![];
         let custom_patterns = vec![];
         let alphabet = alphabet::Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;
         let mut model = textbuf::Model::new(
-            content,
+            &lines,
             &alphabet,
             use_all_patterns,
             &named_pat,
@@ -918,8 +917,6 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             model: &mut model,
             term_width,
             line_offsets,
-            matches: vec![], // no matches
-            lookup_trie: SequenceTrie::new(),
             focus_index: 0,
             focus_wrap_around: false,
             default_output_destination: OutputDestination::Tmux,
@@ -957,9 +954,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
     #[test]
     /// Simulates rendering with matches.
     fn test_render_full_with_matches() {
-        let content = "lorem 127.0.0.1 lorem
+        let buffer = "lorem 127.0.0.1 lorem
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
+        let lines = buffer.split('\n').collect::<Vec<_>>();
 
         let use_all_patterns = true;
         let named_pat = vec![];
@@ -968,7 +966,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let reverse = true;
         let unique_hint = false;
         let mut model = textbuf::Model::new(
-            content,
+            &lines,
             &alphabet,
             use_all_patterns,
             &named_pat,
@@ -1092,7 +1090,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         //   .find(|(_idx, (&l, &r))| l != r);
         // println!("{:?}", diff_point);
 
-        assert_eq!(2, ui.matches.len());
+        assert_eq!(2, ui.model.matches.len());
 
         assert_eq!(writer, expected.as_bytes());
     }
