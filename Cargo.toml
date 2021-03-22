@@ -1,23 +1,24 @@
 [package]
 name = "copyrat"
 version = "0.1.0"
-authors = ["Ferran Basora <fcsonline@gmail.com>", "u0xy <u0xy@u0xy.cc>"]
+authors = ["u0xy <u0xy@u0xy.cc>"]
 edition = "2018"
 description = "This is tmux-copycat on Rust steroids."
-repository = "https://github.com/fcsonline/tmux-thumbs"
+repository = "https://github.com/graelo/tmux-copyrat"
 keywords = ["rust", "tmux", "tmux-plugin", "tmux-copycat"]
 license = "MIT"
 
 [dependencies]
 termion = "1.5"
-regex = "1.3.1"
-clap = { version = "3.0.0-beta.1", features = ["suggestions", "color", "wrap_help", "term_size"]}
+regex = "1.4"
+clap = { version = "3.0.0-beta.2", features = ["suggestions", "color", "wrap_help"]}
 sequence_trie = "0.3.6"
+duct = "0.13"
 
 [[bin]]
 name = "copyrat"
-path = "src/main.rs"
+path = "src/bin/copyrat.rs"
 
 [[bin]]
 name = "tmux-copyrat"
-path = "src/bridge.rs"
+path = "src/bin/tmux_copyrat.rs"

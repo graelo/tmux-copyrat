@@ -1,56 +1,61 @@
 use std::char;
+use std::cmp;
 use std::io;
-use std::str::FromStr;
 
-use clap::Clap;
-use sequence_trie::SequenceTrie;
 use termion::{self, color, cursor, event, style};
 
-use crate::error::ParseError;
-use crate::{colors, model};
+use super::colors::UiColors;
+use super::Selection;
+use super::{HintAlignment, HintStyle};
+use crate::{config::extended::OutputDestination, textbuf};
 
-pub struct Ui<'a> {
-    model: &'a mut model::Model<'a>,
+pub struct ViewController<'a> {
+    model: &'a textbuf::Model<'a>,
     term_width: u16,
     line_offsets: Vec<usize>,
-    matches: Vec<model::Match<'a>>,
-    lookup_trie: SequenceTrie<char, usize>,
     focus_index: usize,
     focus_wrap_around: bool,
+    default_output_destination: OutputDestination,
     rendering_colors: &'a UiColors,
     hint_alignment: &'a HintAlignment,
     hint_style: Option<HintStyle>,
 }
 
-impl<'a> Ui<'a> {
+impl<'a> ViewController<'a> {
+    // Initialize {{{1
+
     pub fn new(
-        model: &'a mut model::Model<'a>,
-        unique_hint: bool,
+        model: &'a textbuf::Model<'a>,
         focus_wrap_around: bool,
+        default_output_destination: OutputDestination,
         rendering_colors: &'a UiColors,
         hint_alignment: &'a HintAlignment,
         hint_style: Option<HintStyle>,
-    ) -> Ui<'a> {
-        let matches = model.matches(unique_hint);
-        let lookup_trie = model::Model::build_lookup_trie(&matches);
-        let focus_index = if model.reverse { matches.len() - 1 } else { 0 };
+    ) -> ViewController<'a> {
+        let focus_index = if model.reverse {
+            model.matches.len() - 1
+        } else {
+            0
+        };
 
         let (term_width, _) = termion::terminal_size().unwrap_or((80u16, 30u16)); // .expect("Cannot read the terminal size.");
         let line_offsets = get_line_offsets(&model.lines, term_width);
 
-        Ui {
+        ViewController {
             model,
             term_width,
             line_offsets,
-            matches,
-            lookup_trie,
             focus_index,
             focus_wrap_around,
+            default_output_destination,
             rendering_colors,
             hint_alignment,
             hint_style,
         }
     }
+
+    // }}}
+    // Coordinates {{{1
 
     /// Convert the `Match` text into the coordinates of the wrapped lines.
     ///
@@ -61,7 +66,7 @@ impl<'a> Ui<'a> {
     /// Compute the new y offset of the text as the initial y offset plus any
     /// additional offset due to previous split lines. This is obtained thanks to
     /// the `offset_per_line` member.
-    pub fn map_coords_to_wrapped_space(&self, offset_x: usize, offset_y: usize) -> (usize, usize) {
+    fn map_coords_to_wrapped_space(&self, offset_x: usize, offset_y: usize) -> (usize, usize) {
         let line_width = self.term_width as usize;
 
         let new_offset_x = offset_x % line_width;
@@ -71,51 +76,13 @@ impl<'a> Ui<'a> {
         (new_offset_x, new_offset_y)
     }
 
-    /// Move focus onto the previous hint, returning both the index of the
-    /// previously focused match, and the index of the newly focused one.
-    fn prev_focus_index(&mut self) -> (usize, usize) {
-        let old_index = self.focus_index;
-        if self.focus_wrap_around {
-            if self.focus_index == 0 {
-                self.focus_index = self.matches.len() - 1;
-            } else {
-                self.focus_index -= 1;
-            }
-        } else {
-            if self.focus_index > 0 {
-                self.focus_index -= 1;
-            }
-        }
-        let new_index = self.focus_index;
-        (old_index, new_index)
-    }
-
-    /// Move focus onto the next hint, returning both the index of the
-    /// previously focused match, and the index of the newly focused one.
-    fn next_focus_index(&mut self) -> (usize, usize) {
-        let old_index = self.focus_index;
-        if self.focus_wrap_around {
-            if self.focus_index == self.matches.len() - 1 {
-                self.focus_index = 0;
-            } else {
-                self.focus_index += 1;
-            }
-        } else {
-            if self.focus_index < self.matches.len() - 1 {
-                self.focus_index += 1;
-            }
-        }
-        let new_index = self.focus_index;
-        (old_index, new_index)
-    }
-
     /// Returns screen offset of a given `Match`.
     ///
     /// If multibyte characters occur before the hint (in the "prefix"), then
     /// their compouding takes less space on screen when printed: for
     /// instance ´ + e = é. Consequently the hint offset has to be adjusted
     /// to the left.
-    fn match_offsets(&self, mat: &model::Match<'a>) -> (usize, usize) {
+    fn match_offsets(&self, mat: &textbuf::Match<'a>) -> (usize, usize) {
         let offset_x = {
             let line = &self.model.lines[mat.y as usize];
             let prefix = &line[0..mat.x as usize];
@@ -127,6 +94,46 @@ impl<'a> Ui<'a> {
         (offset_x, offset_y)
     }
 
+    // }}}
+    // Focus management {{{1
+
+    /// Move focus onto the previous hint, returning both the index of the
+    /// previously focused match, and the index of the newly focused one.
+    fn prev_focus_index(&mut self) -> (usize, usize) {
+        let old_index = self.focus_index;
+        if self.focus_wrap_around {
+            if self.focus_index == 0 {
+                self.focus_index = self.model.matches.len() - 1;
+            } else {
+                self.focus_index -= 1;
+            }
+        } else if self.focus_index > 0 {
+            self.focus_index -= 1;
+        }
+        let new_index = self.focus_index;
+        (old_index, new_index)
+    }
+
+    /// Move focus onto the next hint, returning both the index of the
+    /// previously focused match, and the index of the newly focused one.
+    fn next_focus_index(&mut self) -> (usize, usize) {
+        let old_index = self.focus_index;
+        if self.focus_wrap_around {
+            if self.focus_index == self.model.matches.len() - 1 {
+                self.focus_index = 0;
+            } else {
+                self.focus_index += 1;
+            }
+        } else if self.focus_index < self.model.matches.len() - 1 {
+            self.focus_index += 1;
+        }
+        let new_index = self.focus_index;
+        (old_index, new_index)
+    }
+
+    // }}}
+    // Rendering {{{1
+
     /// Render entire model lines on provided writer.
     ///
     /// This renders the basic content on which matches and hints can be rendered.
@@ -136,10 +143,10 @@ impl<'a> Ui<'a> {
     /// - This writes directly on the writer, avoiding extra allocation.
     fn render_base_text(
         stdout: &mut dyn io::Write,
-        lines: &Vec<&str>,
-        line_offsets: &Vec<usize>,
+        lines: &[&str],
+        line_offsets: &[usize],
         colors: &UiColors,
-    ) -> () {
+    ) {
         write!(
             stdout,
             "{bg_color}{fg_color}",
@@ -313,13 +320,13 @@ impl<'a> Ui<'a> {
 
     /// Convenience function that renders both the matched text and its hint,
     /// if focused.
-    fn render_match(&self, stdout: &mut dyn io::Write, mat: &model::Match<'a>, focused: bool) {
+    fn render_match(&self, stdout: &mut dyn io::Write, mat: &textbuf::Match<'a>, focused: bool) {
         let text = mat.text;
 
         let (offset_x, offset_y) = self.match_offsets(mat);
         let (offset_x, offset_y) = self.map_coords_to_wrapped_space(offset_x, offset_y);
 
-        Ui::render_matched_text(
+        ViewController::render_matched_text(
             stdout,
             text,
             focused,
@@ -336,7 +343,7 @@ impl<'a> Ui<'a> {
                 HintAlignment::Trailing => text.len() - mat.hint.len(),
             };
 
-            Ui::render_matched_hint(
+            ViewController::render_matched_hint(
                 stdout,
                 &mat.hint,
                 (offset_x + extra_offset, offset_y),
@@ -360,16 +367,16 @@ impl<'a> Ui<'a> {
     /// # Note
     /// Multibyte characters are taken into account, so that the Match's `text`
     /// and `hint` are rendered in their proper position.
-    fn full_render(&self, stdout: &mut dyn io::Write) -> () {
+    fn full_render(&self, stdout: &mut dyn io::Write) {
         // 1. Trim all lines and render non-empty ones.
-        Ui::render_base_text(
+        ViewController::render_base_text(
             stdout,
             &self.model.lines,
             &self.line_offsets,
             &self.rendering_colors,
         );
 
-        for (index, mat) in self.matches.iter().enumerate() {
+        for (index, mat) in self.model.matches.iter().enumerate() {
             let focused = index == self.focus_index;
             self.render_match(stdout, mat, focused);
         }
@@ -386,17 +393,20 @@ impl<'a> Ui<'a> {
         new_focus_index: usize,
     ) {
         // Render the previously focused match as non-focused
-        let mat = self.matches.get(old_focus_index).unwrap();
+        let mat = self.model.matches.get(old_focus_index).unwrap();
         let focused = false;
         self.render_match(stdout, mat, focused);
 
         // Render the previously focused match as non-focused
-        let mat = self.matches.get(new_focus_index).unwrap();
+        let mat = self.model.matches.get(new_focus_index).unwrap();
         let focused = true;
         self.render_match(stdout, mat, focused);
 
         stdout.flush().unwrap();
     }
+
+    // }}}
+    // Listening {{{1
 
     /// Listen to keys entered on stdin, moving focus accordingly, or
     /// selecting one match.
@@ -407,11 +417,13 @@ impl<'a> Ui<'a> {
     fn listen(&mut self, reader: &mut dyn io::Read, writer: &mut dyn io::Write) -> Event {
         use termion::input::TermRead; // Trait for `reader.keys().next()`.
 
-        if self.matches.is_empty() {
+        if self.model.matches.is_empty() {
             return Event::Exit;
         }
 
         let mut typed_hint = String::new();
+        let mut uppercased = false;
+        let mut output_destination = self.default_output_destination.clone();
 
         self.full_render(writer);
 
@@ -471,30 +483,52 @@ impl<'a> Ui<'a> {
                 }
 
                 // Yank/copy
-                event::Key::Char(_ch @ 'y') => {
-                    let text = self.matches.get(self.focus_index).unwrap().text;
-                    return Event::Match((text.to_string(), false));
+                event::Key::Char(_ch @ 'y') | event::Key::Char(_ch @ '\n') => {
+                    let text = self.model.matches.get(self.focus_index).unwrap().text;
+                    return Event::Match(Selection {
+                        text: text.to_string(),
+                        uppercased: false,
+                        output_destination,
+                    });
                 }
                 event::Key::Char(_ch @ 'Y') => {
-                    let text = self.matches.get(self.focus_index).unwrap().text;
-                    return Event::Match((text.to_string(), true));
+                    let text = self.model.matches.get(self.focus_index).unwrap().text;
+                    return Event::Match(Selection {
+                        text: text.to_string(),
+                        uppercased: true,
+                        output_destination,
+                    });
                 }
 
-                // TODO: use a Trie or another data structure to determine
+                event::Key::Char(_ch @ ' ') => {
+                    output_destination.toggle();
+                    let message = format!("output destination: `{}`", output_destination);
+                    duct::cmd!("tmux", "display-message", &message)
+                        .run()
+                        .expect("could not make tmux display the message.");
+                    continue;
+                }
+
+                // Use a Trie or another data structure to determine
                 // if the entered key belongs to a longer hint.
                 // Attempts at finding a match with a corresponding hint.
+                //
+                // If any of the typed character is caps, the typed hint is
+                // deemed as uppercased.
                 event::Key::Char(ch) => {
                     let key = ch.to_string();
                     let lower_key = key.to_lowercase();
 
+                    uppercased = uppercased || (key != lower_key);
                     typed_hint.push_str(&lower_key);
 
                     let node = self
+                        .model
                         .lookup_trie
                         .get_node(&typed_hint.chars().collect::<Vec<char>>());
 
                     if node.is_none() {
-                        // An unknown key was entered.
+                        // A key outside the alphabet was entered.
                         return Event::Exit;
                     }
 
@@ -504,10 +538,13 @@ impl<'a> Ui<'a> {
                         let match_index = node.value().expect(
                             "By construction, the Lookup Trie should have a value for each leaf.",
                         );
-                        let mat = self.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
+                        let mat = self.model.matches.get(*match_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
                         let text = mat.text.to_string();
-                        let uppercased = key != lower_key;
-                        return Event::Match((text, uppercased));
+                        return Event::Match(Selection {
+                            text,
+                            uppercased,
+                            output_destination,
+                        });
                     } else {
                         // The prefix of a hint was entered, but we
                         // still need more keys.
@@ -525,11 +562,14 @@ impl<'a> Ui<'a> {
         Event::Exit
     }
 
+    // }}}
+    // Presenting {{{1
+
     /// Configure the terminal and display the `Ui`.
     ///
     /// - Setup steps: switch to alternate screen, switch to raw mode, hide the cursor.
     /// - Teardown steps: show cursor, back to main screen.
-    pub fn present(&mut self) -> Option<(String, bool)> {
+    pub fn present(&mut self) -> Option<Selection> {
         use std::io::Write;
         use termion::raw::IntoRawMode;
         use termion::screen::AlternateScreen;
@@ -545,25 +585,35 @@ impl<'a> Ui<'a> {
 
         let selection = match self.listen(&mut stdin, &mut stdout) {
             Event::Exit => None,
-            Event::Match((text, uppercased)) => Some((text, uppercased)),
+            Event::Match(selection) => Some(selection),
         };
 
         write!(stdout, "{}", cursor::Show).unwrap();
 
         selection
     }
+
+    // }}}
 }
 
 /// Compute each line's actual y offset if displayed in a terminal of width
 /// `term_width`.
-fn get_line_offsets(lines: &Vec<&str>, term_width: u16) -> Vec<usize> {
+fn get_line_offsets(lines: &[&str], term_width: u16) -> Vec<usize> {
     lines
         .iter()
         .scan(0, |offset, &line| {
+            // Save the value to return (yield is in unstable).
             let value = *offset;
-            // amount of extra y space taken by this line
-            let extra = line.trim_end().len() / term_width as usize;
 
+            let line_width = line.trim_end().chars().count() as isize;
+
+            // Amount of extra y space taken by this line.
+            // If the line has n chars, on a term of width n, this does not
+            // produce an extra line; it needs to exceed the width by 1 char.
+            // In case the width is 0, we need to clamp line_width - 1 first.
+            let extra = cmp::max(0, line_width - 1) as usize / term_width as usize;
+
+            // Update the offset of the next line.
             *offset = *offset + 1 + extra;
 
             Some(value)
@@ -571,56 +621,18 @@ fn get_line_offsets(lines: &Vec<&str>, term_width: u16) -> Vec<usize> {
         .collect()
 }
 
-/// Describes if, during rendering, a hint should aligned to the leading edge of
-/// the matched text, or to its trailing edge.
-#[derive(Debug, Clap)]
-pub enum HintAlignment {
-    Leading,
-    Trailing,
-}
-
-impl FromStr for HintAlignment {
-    type Err = ParseError;
-
-    fn from_str(s: &str) -> Result<HintAlignment, ParseError> {
-        match s {
-            "leading" => Ok(HintAlignment::Leading),
-            "trailing" => Ok(HintAlignment::Trailing),
-            _ => Err(ParseError::ExpectedString(String::from(
-                "leading or trailing",
-            ))),
-        }
-    }
-}
-
-/// Describes the style of contrast to be used during rendering of the hint's
-/// text.
-///
-/// # Note
-/// In practice, this is wrapped in an `Option`, so that the hint's text can be rendered with no style.
-pub enum HintStyle {
-    /// The hint's text will be bold (leveraging `termion::style::Bold`).
-    Bold,
-    /// The hint's text will be italicized (leveraging `termion::style::Italic`).
-    Italic,
-    /// The hint's text will be underlined (leveraging `termion::style::Underline`).
-    Underline,
-    /// The hint's text will be surrounded by these chars.
-    Surround(char, char),
-}
-
 /// Returned value after the `Ui` has finished listening to events.
 enum Event {
     /// Exit with no selected matches,
     Exit,
     /// A vector of matched text and whether it was selected with uppercase.
-    Match((String, bool)),
+    Match(Selection),
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::alphabets;
+    use crate::textbuf::alphabet;
 
     #[test]
     fn test_render_all_lines() {
@@ -645,7 +657,7 @@ path: /usr/local/bin/cargo";
         };
 
         let mut writer = vec![];
-        Ui::render_base_text(&mut writer, &lines, &line_offsets, &colors);
+        ViewController::render_base_text(&mut writer, &lines, &line_offsets, &colors);
 
         let goto1 = cursor::Goto(1, 1);
         let goto2 = cursor::Goto(1, 2);
@@ -682,7 +694,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        Ui::render_matched_text(&mut writer, text, focused, offset, &colors);
+        ViewController::render_matched_text(&mut writer, text, focused, offset, &colors);
 
         assert_eq!(
             writer,
@@ -716,7 +728,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        Ui::render_matched_text(&mut writer, text, focused, offset, &colors);
+        ViewController::render_matched_text(&mut writer, text, focused, offset, &colors);
 
         assert_eq!(
             writer,
@@ -752,7 +764,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = None;
 
-        Ui::render_matched_hint(
+        ViewController::render_matched_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -794,7 +806,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = Some(HintStyle::Underline);
 
-        Ui::render_matched_hint(
+        ViewController::render_matched_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -838,7 +850,7 @@ path: /usr/local/bin/cargo";
         let extra_offset = 0;
         let hint_style = Some(HintStyle::Surround('{', '}'));
 
-        Ui::render_matched_hint(
+        ViewController::render_matched_hint(
             &mut writer,
             hint_text,
             (offset.0 + extra_offset, offset.1),
@@ -866,14 +878,26 @@ path: /usr/local/bin/cargo";
     #[test]
     /// Simulates rendering without any match.
     fn test_render_full_without_matches() {
-        let content = "lorem 127.0.0.1 lorem
+        let buffer = "lorem 127.0.0.1 lorem
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
+        let lines = buffer.split('\n').collect::<Vec<_>>();
 
+        let use_all_patterns = false;
         let named_pat = vec![];
-        let custom_regexes = vec![];
-        let alphabet = alphabets::Alphabet("abcd".to_string());
-        let mut model = model::Model::new(content, &alphabet, &named_pat, &custom_regexes, false);
+        let custom_patterns = vec![];
+        let alphabet = alphabet::Alphabet("abcd".to_string());
+        let reverse = false;
+        let unique_hint = false;
+        let mut model = textbuf::Model::new(
+            &lines,
+            &alphabet,
+            use_all_patterns,
+            &named_pat,
+            &custom_patterns,
+            reverse,
+            unique_hint,
+        );
         let term_width: u16 = 80;
         let line_offsets = get_line_offsets(&model.lines, term_width);
         let rendering_colors = UiColors {
@@ -889,14 +913,13 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let hint_alignment = HintAlignment::Leading;
 
         // create a Ui without any match
-        let ui = Ui {
+        let ui = ViewController {
             model: &mut model,
             term_width,
             line_offsets,
-            matches: vec![], // no matches
-            lookup_trie: SequenceTrie::new(),
             focus_index: 0,
             focus_wrap_around: false,
+            default_output_destination: OutputDestination::Tmux,
             rendering_colors: &rendering_colors,
             hint_alignment: &hint_alignment,
             hint_style: None,
@@ -931,17 +954,28 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
     #[test]
     /// Simulates rendering with matches.
     fn test_render_full_with_matches() {
-        let content = "lorem 127.0.0.1 lorem
+        let buffer = "lorem 127.0.0.1 lorem
 
 Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
+        let lines = buffer.split('\n').collect::<Vec<_>>();
 
+        let use_all_patterns = true;
         let named_pat = vec![];
-        let custom_regexes = vec![];
-        let alphabet = alphabets::Alphabet("abcd".to_string());
+        let custom_patterns = vec![];
+        let alphabet = alphabet::Alphabet("abcd".to_string());
         let reverse = true;
-        let mut model = model::Model::new(content, &alphabet, &named_pat, &custom_regexes, reverse);
         let unique_hint = false;
+        let mut model = textbuf::Model::new(
+            &lines,
+            &alphabet,
+            use_all_patterns,
+            &named_pat,
+            &custom_patterns,
+            reverse,
+            unique_hint,
+        );
         let wrap_around = false;
+        let default_output_destination = OutputDestination::Tmux;
 
         let rendering_colors = UiColors {
             text_fg: Box::new(color::Black),
@@ -956,10 +990,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let hint_alignment = HintAlignment::Leading;
         let hint_style = None;
 
-        let ui = Ui::new(
+        let ui = ViewController::new(
             &mut model,
-            unique_hint,
             wrap_around,
+            default_output_destination,
             &rendering_colors,
             &hint_alignment,
             hint_style,
@@ -1056,54 +1090,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         //   .find(|(_idx, (&l, &r))| l != r);
         // println!("{:?}", diff_point);
 
-        assert_eq!(2, ui.matches.len());
+        assert_eq!(2, ui.model.matches.len());
 
         assert_eq!(writer, expected.as_bytes());
     }
-}
-
-/// Holds color-related data, for clarity.
-///
-/// - `focus_*` colors are used to render the currently focused matched text.
-/// - `normal_*` colors are used to render other matched text.
-/// - `hint_*` colors are used to render the hints.
-#[derive(Clap, Debug)]
-pub struct UiColors {
-    /// Foreground color for base text.
-    #[clap(long, default_value = "bright-cyan", parse(try_from_str = colors::parse_color))]
-    pub text_fg: Box<dyn color::Color>,
-
-    /// Background color for base text.
-    #[clap(long, default_value = "bright-white", parse(try_from_str = colors::parse_color))]
-    pub text_bg: Box<dyn color::Color>,
-
-    /// Foreground color for matches.
-    #[clap(long, default_value = "yellow",
-                parse(try_from_str = colors::parse_color))]
-    pub match_fg: Box<dyn color::Color>,
-
-    /// Background color for matches.
-    #[clap(long, default_value = "bright-white",
-                parse(try_from_str = colors::parse_color))]
-    pub match_bg: Box<dyn color::Color>,
-
-    /// Foreground color for the focused match.
-    #[clap(long, default_value = "magenta",
-                parse(try_from_str = colors::parse_color))]
-    pub focused_fg: Box<dyn color::Color>,
-
-    /// Background color for the focused match.
-    #[clap(long, default_value = "bright-white",
-                parse(try_from_str = colors::parse_color))]
-    pub focused_bg: Box<dyn color::Color>,
-
-    /// Foreground color for hints.
-    #[clap(long, default_value = "white",
-                parse(try_from_str = colors::parse_color))]
-    pub hint_fg: Box<dyn color::Color>,
-
-    /// Background color for hints.
-    #[clap(long, default_value = "magenta",
-                parse(try_from_str = colors::parse_color))]
-    pub hint_bg: Box<dyn color::Color>,
 }

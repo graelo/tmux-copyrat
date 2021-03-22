@@ -6,7 +6,7 @@ use crate::error;
 ///
 /// Keep in mind letters 'n' and 'y' are systematically removed at runtime to
 /// prevent conflict with navigation and yank/copy keys.
-const ALPHABETS: [(&'static str, &'static str); 21] = [
+const ALPHABETS: [(&str, &str); 21] = [
     // ("abcd", "abcd"),
     ("qwerty", "asdfqwerzxcvjklmiuopghtybn"),
     ("qwerty-homerow", "asdfjklgh"),
@@ -47,7 +47,7 @@ pub fn parse_alphabet(src: &str) -> Result<Alphabet, error::ParseError> {
     match alphabet_pair {
         Some((_name, letters)) => {
             let letters = letters.replace(&['n', 'N', 'y', 'Y'][..], "");
-            Ok(Alphabet(letters.to_string()))
+            Ok(Alphabet(letters))
         }
         None => Err(error::ParseError::UnknownAlphabet),
     }
@@ -69,7 +69,7 @@ impl Alphabet {
     /// If more hints are needed, unfortunately, this will keep producing
     /// empty (`""`) hints.
     ///
-    /// ```
+    /// ```text
     /// // The algorithm works as follows:
     /// //                                  --- lead ----
     /// // initial state                 |  a   b   c   d

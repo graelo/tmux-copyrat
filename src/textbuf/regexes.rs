@@ -1,16 +1,21 @@
 use crate::error;
 
-pub const EXCLUDE_PATTERNS: [(&'static str, &'static str); 1] =
+pub(super) const EXCLUDE_PATTERNS: [(&str, &str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
 
-pub const PATTERNS: [(&'static str, &'static str); 14] = [
-    ("markdown_url", r"\[[^]]*\]\(([^)]+)\)"),
+/// Holds all the regex patterns that are currently supported.
+///
+/// The email address was obtained at https://www.regular-expressions.info/email.html.
+/// Others were obtained from Ferran Basora.
+pub(super) const PATTERNS: [(&str, &str); 16] = [
+    ("markdown-url", r"\[[^]]*\]\(([^)]+)\)"),
     (
         "url",
         r"((https?://|git@|git://|ssh://|ftp://|file:///)[^ \(\)\[\]\{\}]+)",
     ),
-    ("diff_a", r"--- a/([^ ]+)"),
-    ("diff_b", r"\+\+\+ b/([^ ]+)"),
+    ("email", r"\b[A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,}\b"),
+    ("diff-a", r"--- a/([^ ]+)"),
+    ("diff-b", r"\+\+\+ b/([^ ]+)"),
     ("docker", r"sha256:([0-9a-f]{64})"),
     ("path", r"(([.\w\-@~]+)?(/[.\w\-@]+)+)"),
     ("hexcolor", r"#[0-9a-fA-F]{6}"),
@@ -18,12 +23,16 @@ pub const PATTERNS: [(&'static str, &'static str); 14] = [
         "uuid",
         r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
     ),
+    (
+        "version",
+        r"(v?\d{1,4}\.\d{1,4}(\.\d{1,4})?(-(alpha|beta|rc)(\.\d)?)?)[^.0-9s]",
+    ),
     ("ipfs", r"Qm[0-9a-zA-Z]{44}"),
     ("sha", r"[0-9a-f]{7,40}"),
-    ("ip", r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"),
+    ("ipv4", r"\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}"),
     ("ipv6", r"[A-f0-9:]+:+[A-f0-9:]+[%\w\d]+"),
-    ("address", r"0x[0-9a-fA-F]+"),
-    ("number", r"[0-9]{4,}"),
+    ("mem-address", r"0x[0-9a-fA-F]+"),
+    ("digits", r"[0-9]{4,}"),
 ];
 
 /// Type-safe string Pattern Name (newtype).
@@ -31,7 +40,7 @@ pub const PATTERNS: [(&'static str, &'static str); 14] = [
 pub struct NamedPattern(pub String, pub String);
 
 /// Parse a name string into `NamedPattern`, used during CLI parsing.
-pub fn parse_pattern_name(src: &str) -> Result<NamedPattern, error::ParseError> {
+pub(crate) fn parse_pattern_name(src: &str) -> Result<NamedPattern, error::ParseError> {
     match PATTERNS.iter().find(|&(name, _pattern)| name == &src) {
         Some((name, pattern)) => Ok(NamedPattern(name.to_string(), pattern.to_string())),
         None => Err(error::ParseError::UnknownPatternName),

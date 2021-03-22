@@ -51,7 +51,7 @@ cargo build --release
 Source it in your `.tmux.conf`:
 
 ```
-run-shell ~/.tmux/plugins/tmux-copyrat/tmux-copyrat.tmux
+run-shell ~/.tmux/plugins/tmux-copyrat/copyrat.tmux
 ```
 
 Reload TMUX conf by running:
