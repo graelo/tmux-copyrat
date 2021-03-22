@@ -56,11 +56,11 @@ mod tests {
 #[clap(about)] // Needed to avoid this doc comment to be used as overall `about`.
 pub struct UiColors {
     /// Foreground color for base text.
-    #[clap(long, default_value = "bright-cyan", parse(try_from_str = parse_color))]
+    #[clap(long, default_value = "bright-blue", parse(try_from_str = parse_color))]
     pub text_fg: Box<dyn color::Color>,
 
     /// Background color for base text.
-    #[clap(long, default_value = "bright-white", parse(try_from_str = parse_color))]
+    #[clap(long, default_value = "white", parse(try_from_str = parse_color))]
     pub text_bg: Box<dyn color::Color>,
 
     /// Foreground color for spans.
@@ -69,7 +69,7 @@ pub struct UiColors {
     pub span_fg: Box<dyn color::Color>,
 
     /// Background color for spans.
-    #[clap(long, default_value = "bright-white",
+    #[clap(long, default_value = "white",
                 parse(try_from_str = parse_color))]
     pub span_bg: Box<dyn color::Color>,
 
@@ -79,7 +79,7 @@ pub struct UiColors {
     pub focused_fg: Box<dyn color::Color>,
 
     /// Background color for the focused span.
-    #[clap(long, default_value = "bright-white",
+    #[clap(long, default_value = "white",
                 parse(try_from_str = parse_color))]
     pub focused_bg: Box<dyn color::Color>,
 
