@@ -29,14 +29,13 @@ impl<'a> ViewController<'a> {
 
     pub fn new(
         model: &'a mut textbuf::Model<'a>,
-        unique_hint: bool,
         focus_wrap_around: bool,
         default_output_destination: OutputDestination,
         rendering_colors: &'a UiColors,
         hint_alignment: &'a HintAlignment,
         hint_style: Option<HintStyle>,
     ) -> ViewController<'a> {
-        let matches = model.matches(unique_hint);
+        let matches = model.matches();
         let lookup_trie = textbuf::Model::build_lookup_trie(&matches);
         let focus_index = if model.reverse { matches.len() - 1 } else { 0 };
 
@@ -890,6 +889,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let custom_patterns = vec![];
         let alphabet = alphabet::Alphabet("abcd".to_string());
         let reverse = false;
+        let unique_hint = false;
         let mut model = textbuf::Model::new(
             content,
             &alphabet,
@@ -897,6 +897,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             &named_pat,
             &custom_patterns,
             reverse,
+            unique_hint,
         );
         let term_width: u16 = 80;
         let line_offsets = get_line_offsets(&model.lines, term_width);
@@ -965,6 +966,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let custom_patterns = vec![];
         let alphabet = alphabet::Alphabet("abcd".to_string());
         let reverse = true;
+        let unique_hint = false;
         let mut model = textbuf::Model::new(
             content,
             &alphabet,
@@ -972,8 +974,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             &named_pat,
             &custom_patterns,
             reverse,
+            unique_hint,
         );
-        let unique_hint = false;
         let wrap_around = false;
         let default_output_destination = OutputDestination::Tmux;
 
@@ -992,7 +994,6 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
 
         let ui = ViewController::new(
             &mut model,
-            unique_hint,
             wrap_around,
             default_output_destination,
             &rendering_colors,

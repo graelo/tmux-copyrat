@@ -17,6 +17,7 @@ pub struct Model<'a> {
     named_patterns: &'a [NamedPattern],
     custom_patterns: &'a [String],
     pub reverse: bool,
+    unique_hint: bool,
 }
 
 impl<'a> Model<'a> {
@@ -27,6 +28,7 @@ impl<'a> Model<'a> {
         named_patterns: &'a [NamedPattern],
         custom_patterns: &'a [String],
         reverse: bool,
+        unique_hint: bool,
     ) -> Model<'a> {
         let lines = buffer.split('\n').collect();
 
@@ -38,19 +40,20 @@ impl<'a> Model<'a> {
             named_patterns,
             custom_patterns,
             reverse,
+            unique_hint,
         }
     }
 
     /// Returns a vector of `Match`es, each corresponding to a pattern match
     /// in the lines, its location (x, y), and associated hint.
-    pub fn matches(&self, unique: bool) -> Vec<Match<'a>> {
+    pub fn matches(&self) -> Vec<Match<'a>> {
         let mut raw_matches = self.raw_matches();
 
         if self.reverse {
             raw_matches.reverse();
         }
 
-        let mut matches = self.associate_hints(&raw_matches, unique);
+        let mut matches = self.associate_hints(&raw_matches, self.unique_hint);
 
         if self.reverse {
             matches.reverse();
