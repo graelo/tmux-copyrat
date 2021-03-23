@@ -81,8 +81,10 @@ setup_pattern_binding "p" "--pattern-name path"
 setup_pattern_binding "u" "--pattern-name url"
 # prefix + t + m searches for Markdown URLs [...](matched.url)
 setup_pattern_binding "m" "--pattern-name markdown-url"
-# prefix + t + h searches for SHA1/2 (hashes)
+# prefix + t + h searches for SHA1/2 short or long hashes
 setup_pattern_binding "h" "--pattern-name sha"
+# prefix + t + d searches for dates or datetimes
+setup_pattern_binding "d" "--pattern-name datetime"
 # prefix + t + e searches for email addresses (see https://www.regular-expressions.info/email.html)
 setup_pattern_binding "e" "--pattern-name email"
 # prefix + t + D searches for docker shas
@@ -93,7 +95,7 @@ setup_pattern_binding "c" "--pattern-name hexcolor"
 setup_pattern_binding "U" "--pattern-name uuid"
 # prefix + t + v searches for version numbers
 setup_pattern_binding "v" "--pattern-name version"
-# prefix + t + d searches for any string of 4+ digits
+# prefix + t + G searches for any string of 4+ digits
 setup_pattern_binding "G" "--pattern-name digits"
 # prefix + t + m searches for hex numbers: 0xbedead
 setup_pattern_binding "P" "--pattern-name pointer-address"
