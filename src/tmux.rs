@@ -141,10 +141,10 @@ pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
 /// # Example
 /// ```get_options("@copyrat-")```
 pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> {
-    let output = duct::cmd!("tmux", "show", "-g").read()?;
+    let output = duct::cmd!("tmux", "show-options", "-g").read()?;
     let lines: Vec<&str> = output.split('\n').collect();
 
-    let pattern = format!(r#"{prefix}([\w\-0-9]+) "?(\w+)"?"#, prefix = prefix);
+    let pattern = format!(r#"({prefix}[\w\-0-9]+) "?(\w+)"?"#, prefix = prefix);
     let re = Regex::new(&pattern).unwrap();
 
     let args: HashMap<String, String> = lines

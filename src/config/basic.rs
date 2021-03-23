@@ -83,10 +83,12 @@ impl FromStr for HintStyleArg {
 
     fn from_str(s: &str) -> Result<Self, error::ParseError> {
         match s {
-            "leading" => Ok(HintStyleArg::Underline),
-            "trailing" => Ok(HintStyleArg::Surround),
+            "bold" => Ok(HintStyleArg::Bold),
+            "italic" => Ok(HintStyleArg::Italic),
+            "underline" => Ok(HintStyleArg::Underline),
+            "surrond" => Ok(HintStyleArg::Surround),
             _ => Err(error::ParseError::ExpectedString(String::from(
-                "underline or surround",
+                "bold, italic, underline or surround",
             ))),
         }
     }
