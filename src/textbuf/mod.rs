@@ -386,7 +386,7 @@ mod tests {
     }
 
     #[test]
-    fn match_addresses() {
+    fn match_pointer_addresses() {
         let buffer = "Lorem 0xfd70b5695 0x5246ddf lorem\n Lorem 0x973113tlorem";
         let lines = buffer.split('\n').collect::<Vec<_>>();
         let use_all_patterns = true;
@@ -407,11 +407,11 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 3);
-        assert_eq!(spans.get(0).unwrap().pattern, "mem-address");
+        assert_eq!(spans.get(0).unwrap().pattern, "pointer-address");
         assert_eq!(spans.get(0).unwrap().text, "0xfd70b5695");
-        assert_eq!(spans.get(1).unwrap().pattern, "mem-address");
+        assert_eq!(spans.get(1).unwrap().pattern, "pointer-address");
         assert_eq!(spans.get(1).unwrap().text, "0x5246ddf");
-        assert_eq!(spans.get(2).unwrap().pattern, "mem-address");
+        assert_eq!(spans.get(2).unwrap().pattern, "pointer-address");
         assert_eq!(spans.get(2).unwrap().text, "0x973113");
     }
 
