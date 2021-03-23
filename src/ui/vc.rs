@@ -265,7 +265,7 @@ impl<'a> ViewController<'a> {
                         fg_reset = fg_reset,
                         bg_reset = bg_reset,
                         sty = style::Bold,
-                        sty_reset = style::NoBold,
+                        sty_reset = style::Reset, // NoBold is not sufficient
                         hint = hint_text,
                     )
                     .unwrap();
