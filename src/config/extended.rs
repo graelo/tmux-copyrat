@@ -4,11 +4,7 @@ use std::fmt;
 use std::str::FromStr;
 
 use super::basic;
-use crate::{
-    error,
-    textbuf::{alphabet, regexes},
-    tmux, ui,
-};
+use crate::{error, textbuf::alphabet, tmux, ui};
 
 /// Extended configuration for handling Tmux-specific configuration (options
 /// and outputs). This is only used by `tmux-copyrat` and parsed from command
@@ -61,17 +57,11 @@ impl ConfigExt {
 
             for (name, value) in &tmux_options {
                 match name.as_ref() {
-                    "@copyrat-capture" => {
+                    "@copyrat-capture-region" => {
                         config_ext.capture_region = CaptureRegion::from_str(&value)?
                     }
                     "@copyrat-alphabet" => {
                         wrapped.alphabet = alphabet::parse_alphabet(value)?;
-                    }
-                    "@copyrat-pattern-name" => {
-                        wrapped.named_patterns = vec![regexes::parse_pattern_name(value)?]
-                    }
-                    "@copyrat-custom-pattern" => {
-                        wrapped.custom_patterns = vec![String::from(value)]
                     }
                     "@copyrat-reverse" => {
                         wrapped.reverse = value.parse::<bool>()?;
@@ -127,8 +117,8 @@ impl FromStr for CaptureRegion {
 
     fn from_str(s: &str) -> Result<Self, error::ParseError> {
         match s {
-            "leading" => Ok(CaptureRegion::EntireHistory),
-            "trailing" => Ok(CaptureRegion::VisibleArea),
+            "entire-history" => Ok(CaptureRegion::EntireHistory),
+            "visible-area" => Ok(CaptureRegion::VisibleArea),
             _ => Err(error::ParseError::ExpectedString(String::from(
                 "entire-history or visible-area",
             ))),
