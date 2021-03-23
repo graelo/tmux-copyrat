@@ -94,9 +94,9 @@ setup_pattern_binding "U" "--pattern-name uuid"
 # prefix + t + v searches for version numbers
 setup_pattern_binding "v" "--pattern-name version"
 # prefix + t + d searches for any string of 4+ digits
-setup_pattern_binding "d" "--pattern-name digits"
+setup_pattern_binding "G" "--pattern-name digits"
 # prefix + t + m searches for hex numbers: 0xbedead
-setup_pattern_binding "m" "--pattern-name mem-address"
+setup_pattern_binding "P" "--pattern-name pointer-address"
 # prefix + t + 4 searches for IPV4
 setup_pattern_binding "4" "--pattern-name ipv4"
 # prefix + t + 6 searches for IPV6
