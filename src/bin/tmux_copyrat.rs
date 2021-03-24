@@ -40,6 +40,10 @@ fn main() -> Result<(), error::ParseError> {
             output_destination,
         }) => {
             if uppercased {
+                if active_pane.is_copy_mode {
+                    // break out of copy mode
+                    duct::cmd!("tmux", "copy-mode", "-t", active_pane.id.as_str(), "-q").run()?;
+                }
                 duct::cmd!("tmux", "send-keys", "-t", active_pane.id.as_str(), &text).run()?;
             }
 
