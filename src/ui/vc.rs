@@ -5,6 +5,7 @@ use std::io;
 use termion::{self, color, cursor, event, style};
 
 use super::colors::UiColors;
+use super::window::Window;
 use super::Selection;
 use super::{HintAlignment, HintStyle};
 use crate::{config::extended::OutputDestination, textbuf};
@@ -29,8 +30,11 @@ use crate::{config::extended::OutputDestination, textbuf};
 /// width)
 /// - the third `WrappedLine` has `pos_y: 3` and `size: 1`
 ///
+#[derive(Debug)]
 struct WrappedLine {
+    index: usize,
     pos_y: usize,
+    size: usize,
 }
 
 pub struct ViewController<'a> {
@@ -62,8 +66,49 @@ impl<'a> ViewController<'a> {
             0
         };
 
-        let (term_width, _) = termion::terminal_size().unwrap_or((80u16, 30u16)); // .expect("Cannot read the terminal size.");
+        let (term_width, term_height) =
+            termion::terminal_size().expect("Cannot read the terminal size.");
         let wrapped_lines = compute_wrapped_lines(&model.lines, term_width);
+        for wl in &wrapped_lines {
+            println!("{:?}", wl);
+        }
+
+        let total_available_screen_lines = {
+            let last_line = wrapped_lines.last().unwrap();
+            last_line.pos_y + last_line.size
+        };
+        println!(
+            "total_available_screen_lines: {}",
+            total_available_screen_lines
+        );
+
+        let content_height = std::cmp::min(term_height as usize, total_available_screen_lines);
+        println!("content_height: {}", content_height);
+
+        // identify screenlines which fill the terminal height
+        let initial_position = 2;
+        let mut amount_before = 0;
+        let mut amount = 0;
+        let mut relevant_screen_lines = wrapped_lines
+            .iter()
+            .rev()
+            .skip_while(|sl| {
+                amount_before += sl.size as isize;
+                amount_before <= initial_position
+            })
+            .take_while(|sl| {
+                amount += sl.size as isize;
+                amount <= content_height as isize
+            })
+            .collect::<Vec<_>>();
+        relevant_screen_lines.reverse();
+
+        println!("relevant screen_lines");
+        for wl in &relevant_screen_lines {
+            println!("{:?}", wl);
+        }
+
+        let window = Window::new(relevant_screen_lines[0].pos_y, term_height as usize, 5000);
 
         ViewController {
             model,
@@ -629,7 +674,8 @@ impl<'a> ViewController<'a> {
 fn compute_wrapped_lines(lines: &[&str], term_width: u16) -> Vec<WrappedLine> {
     lines
         .iter()
-        .scan(0, |position, &line| {
+        .enumerate()
+        .scan(0, |position, (index, &line)| {
             // Save the value to return (yield is in unstable).
             let value = *position;
 
@@ -645,8 +691,9 @@ fn compute_wrapped_lines(lines: &[&str], term_width: u16) -> Vec<WrappedLine> {
             *position += 1 + extra;
 
             Some(WrappedLine {
+                index,
                 pos_y: value,
-                // size: 1 + extra,
+                size: 1 + extra,
             })
         })
         .collect()
@@ -675,12 +722,36 @@ path: /usr/local/bin/git
 path: /usr/local/bin/cargo";
         let lines: Vec<&str> = content.split('\n').collect();
         let wrapped_lines: Vec<WrappedLine> = vec![
-            WrappedLine { pos_y: 0 },
-            WrappedLine { pos_y: 1 },
-            WrappedLine { pos_y: 2 },
-            WrappedLine { pos_y: 3 },
-            WrappedLine { pos_y: 4 },
-            WrappedLine { pos_y: 5 },
+            WrappedLine {
+                index: 0,
+                pos_y: 0,
+                size: 1,
+            },
+            WrappedLine {
+                index: 1,
+                pos_y: 1,
+                size: 1,
+            },
+            WrappedLine {
+                index: 2,
+                pos_y: 2,
+                size: 1,
+            },
+            WrappedLine {
+                index: 3,
+                pos_y: 3,
+                size: 1,
+            },
+            WrappedLine {
+                index: 4,
+                pos_y: 4,
+                size: 1,
+            },
+            WrappedLine {
+                index: 5,
+                pos_y: 5,
+                size: 1,
+            },
         ];
 
         let colors = UiColors {

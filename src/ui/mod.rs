@@ -22,6 +22,7 @@ pub mod hint_alignment;
 pub mod hint_style;
 mod selection;
 mod vc;
+mod window;
 
 pub use hint_alignment::HintAlignment;
 pub use hint_style::HintStyle;
