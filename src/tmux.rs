@@ -15,16 +15,16 @@ use crate::error::ParseError;
 pub struct Pane {
     /// Pane identifier, e.g. `%37`.
     pub id: PaneId,
-    /// Describes if the pane is in some mode.
-    pub in_mode: bool,
+    /// Describes if the pane is in copy mode.
+    pub is_copy_mode: bool,
     /// Number of lines in the pane.
-    pub height: u32,
+    pub height: i32,
     /// Optional offset from the bottom if the pane is in some mode.
     ///
     /// When a pane is in copy mode, scrolling up changes the
     /// `scroll_position`. If the pane is in normal mode, or unscrolled,
     /// then `0` is returned.
-    pub scroll_position: u32,
+    pub scroll_position: i32,
     /// Describes if the pane is currently active (focused).
     pub is_active: bool,
 }
@@ -59,9 +59,9 @@ impl FromStr for Pane {
         // let id = id_str[1..].parse::<u32>()?;
         // let id = format!("%{}", id);
 
-        let in_mode = iter.next().unwrap().parse::<bool>()?;
+        let is_copy_mode = iter.next().unwrap().parse::<bool>()?;
 
-        let height = iter.next().unwrap().parse::<u32>()?;
+        let height = iter.next().unwrap().parse::<i32>()?;
 
         let scroll_position = iter.next().unwrap();
         let scroll_position = if scroll_position.is_empty() {
@@ -69,13 +69,13 @@ impl FromStr for Pane {
         } else {
             scroll_position
         };
-        let scroll_position = scroll_position.parse::<u32>()?;
+        let scroll_position = scroll_position.parse::<i32>()?;
 
         let is_active = iter.next().unwrap().parse::<bool>()?;
 
         Ok(Pane {
             id,
-            in_mode,
+            is_copy_mode,
             height,
             scroll_position,
             is_active,
@@ -141,10 +141,10 @@ pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
 /// # Example
 /// ```get_options("@copyrat-")```
 pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> {
-    let output = duct::cmd!("tmux", "show", "-g").read()?;
+    let output = duct::cmd!("tmux", "show-options", "-g").read()?;
     let lines: Vec<&str> = output.split('\n').collect();
 
-    let pattern = format!(r#"{prefix}([\w\-0-9]+) "?(\w+)"?"#, prefix = prefix);
+    let pattern = format!(r#"({prefix}[\w\-0-9]+) "?(\w+)"?"#, prefix = prefix);
     let re = Regex::new(&pattern).unwrap();
 
     let args: HashMap<String, String> = lines
@@ -167,35 +167,41 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> 
 /// The provided `region` specifies if the visible area is captured, or the
 /// entire history.
 ///
-/// # TODO
-///
-/// Capture with `capture-pane -J` joins wrapped lines.
-///
 /// # Note
 ///
-/// If the pane is in normal mode, capturing the visible area can be done
-/// without extra arguments (default behavior of `capture-pane`), but if the
-/// pane is in copy mode, we need to take into account the current scroll
-/// position. To support both cases, the implementation always provides those
-/// parameters to tmux.
+/// In Tmux, the start line is the line at the top of the pane. The end line
+/// is the last line at the bottom of the pane.
+///
+/// - In normal mode, the index of the start line is always 0. The index of
+/// the end line is always the pane's height minus one. These do not need to
+/// be specified when capturing the pane's content.
+///
+/// - If navigating history in copy mode, the index of the start line is the
+/// opposite of the pane's scroll position. For instance a pane of 40 lines,
+/// scrolled up by 3 lines. It is necessarily in copy mode. Its start line
+/// index is `-3`. The index of the last line is `(40-1) - 3 = 36`.
+///
 pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, ParseError> {
-    let mut args = format!("capture-pane -t {pane_id} -J -p", pane_id = pane.id);
+    let mut args_str = format!("capture-pane -t {pane_id} -J -p", pane_id = pane.id);
 
     let region_str = match region {
         CaptureRegion::VisibleArea => {
-            // Providing start/end helps support both copy and normal modes.
-            format!(
-                " -S {start} -E {end}",
-                start = pane.scroll_position,
-                end = pane.height - pane.scroll_position - 1
-            )
+            if pane.is_copy_mode && pane.scroll_position > 0 {
+                format!(
+                    " -S {start} -E {end}",
+                    start = -pane.scroll_position,
+                    end = pane.height - pane.scroll_position - 1
+                )
+            } else {
+                String::new()
+            }
         }
         CaptureRegion::EntireHistory => String::from(" -S - -E -"),
     };
 
-    args.push_str(&region_str);
+    args_str.push_str(&region_str);
 
-    let args: Vec<&str> = args.split(' ').collect();
+    let args: Vec<&str> = args_str.split(' ').collect();
 
     let output = duct::cmd("tmux", &args).read()?;
     Ok(output)
@@ -226,7 +232,7 @@ mod tests {
         let expected = vec![
             Pane {
                 id: PaneId::from_str("%52").unwrap(),
-                in_mode: false,
+                is_copy_mode: false,
                 height: 62,
                 scroll_position: 3,
                 is_active: false,
@@ -234,7 +240,7 @@ mod tests {
             Pane {
                 // id: PaneId::from_str("%53").unwrap(),
                 id: PaneId(String::from("%53")),
-                in_mode: false,
+                is_copy_mode: false,
                 height: 23,
                 scroll_position: 0,
                 is_active: true,
