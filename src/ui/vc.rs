@@ -9,10 +9,34 @@ use super::Selection;
 use super::{HintAlignment, HintStyle};
 use crate::{config::extended::OutputDestination, textbuf};
 
+/// Describes where a line from the buffer is displayed on the screen and how
+/// much vertical lines it takes.
+///
+/// The `pos_y` field is the actual vertical position due to wrapped lines
+/// before this line. The `size` field is the number of screen lines occupied
+/// by this line.
+///
+/// For example, given a buffer in which
+///
+/// - the first line is smaller than the screen width,
+/// - the second line is slightly larger,
+/// - and the third line is smaller than the screen width,
+///
+/// The corresponding `WrappedLine`s are
+///
+/// - the first `WrappedLine` has `pos_y: 0` and `size: 1`
+/// - the second `WrappedLine` has `pos_y: 1` and `size: 2` (larger than screen
+/// width)
+/// - the third `WrappedLine` has `pos_y: 3` and `size: 1`
+///
+struct WrappedLine {
+    pos_y: usize,
+}
+
 pub struct ViewController<'a> {
     model: &'a textbuf::Model<'a>,
     term_width: u16,
-    line_offsets: Vec<usize>,
+    wrapped_lines: Vec<WrappedLine>,
     focus_index: usize,
     focus_wrap_around: bool,
     default_output_destination: OutputDestination,
@@ -39,12 +63,12 @@ impl<'a> ViewController<'a> {
         };
 
         let (term_width, _) = termion::terminal_size().unwrap_or((80u16, 30u16)); // .expect("Cannot read the terminal size.");
-        let line_offsets = get_line_offsets(&model.lines, term_width);
+        let wrapped_lines = compute_wrapped_lines(&model.lines, term_width);
 
         ViewController {
             model,
             term_width,
-            line_offsets,
+            wrapped_lines,
             focus_index,
             focus_wrap_around,
             default_output_destination,
@@ -57,41 +81,44 @@ impl<'a> ViewController<'a> {
     // }}}
     // Coordinates {{{1
 
-    /// Convert the `Span` text into the coordinates of the wrapped lines.
+    /// Returns the adjusted position of a given `Span` within the buffer
+    /// line.
     ///
-    /// Compute the new x offset of the text as the remainder of the line width
-    /// (e.g. the Span could start at offset 120 in a 80-width terminal, the new
-    /// offset being 40).
+    /// This adjustment is necessary if multibyte characters occur before the
+    /// span (in the "prefix"). If this is the case then their compouding
+    /// takes less space on screen when printed: for instance ´ + e = é.
+    /// Consequently the span position has to be adjusted to the left.
     ///
-    /// Compute the new y offset of the text as the initial y offset plus any
-    /// additional offset due to previous split lines. This is obtained thanks to
-    /// the `offset_per_line` member.
-    fn map_coords_to_wrapped_space(&self, offset_x: usize, offset_y: usize) -> (usize, usize) {
-        let line_width = self.term_width as usize;
-
-        let new_offset_x = offset_x % line_width;
-        let new_offset_y =
-            self.line_offsets.get(offset_y as usize).unwrap() + offset_x / line_width;
-
-        (new_offset_x, new_offset_y)
-    }
-
-    /// Returns screen offset of a given `Span`.
-    ///
-    /// If multibyte characters occur before the hint (in the "prefix"), then
-    /// their compouding takes less space on screen when printed: for
-    /// instance ´ + e = é. Consequently the hint offset has to be adjusted
-    /// to the left.
-    fn span_offsets(&self, span: &textbuf::Span<'a>) -> (usize, usize) {
-        let offset_x = {
+    /// This computation must happen before mapping the span position to the
+    /// wrapped screen space.
+    fn adjusted_span_position(&self, span: &textbuf::Span<'a>) -> (usize, usize) {
+        let pos_x = {
             let line = &self.model.lines[span.y as usize];
             let prefix = &line[0..span.x as usize];
             let adjust = prefix.len() - prefix.chars().count();
-            (span.x as usize) - (adjust)
+            (span.x as usize) - adjust
         };
-        let offset_y = span.y as usize;
+        let pos_y = span.y as usize;
 
-        (offset_x, offset_y)
+        (pos_x, pos_y)
+    }
+
+    /// Convert the `Span` text into the coordinates of the wrapped lines.
+    ///
+    /// Compute the new x position of the text as the remainder of the line width
+    /// (e.g. the Span could start at position 120 in a 80-width terminal, the new
+    /// position being 40).
+    ///
+    /// Compute the new y position of the text as the initial y position plus any
+    /// additional offset due to previous split lines. This is obtained thanks to
+    /// the `wrapped_lines` field.
+    fn map_coords_to_wrapped_space(&self, pos_x: usize, pos_y: usize) -> (usize, usize) {
+        let line_width = self.term_width as usize;
+
+        let new_pos_x = pos_x % line_width;
+        let new_pos_y = self.wrapped_lines[pos_y as usize].pos_y + pos_x / line_width;
+
+        (new_pos_x, new_pos_y)
     }
 
     // }}}
@@ -144,7 +171,7 @@ impl<'a> ViewController<'a> {
     fn render_base_text(
         stdout: &mut dyn io::Write,
         lines: &[&str],
-        line_offsets: &[usize],
+        wrapped_lines: &[WrappedLine],
         colors: &UiColors,
     ) {
         write!(
@@ -159,13 +186,12 @@ impl<'a> ViewController<'a> {
             let trimmed_line = line.trim_end();
 
             if !trimmed_line.is_empty() {
-                let offset_y: usize =
-                    *(line_offsets.get(line_index)).expect("Cannot get offset_per_line.");
+                let pos_y: usize = wrapped_lines[line_index].pos_y;
 
                 write!(
                     stdout,
                     "{goto}{text}",
-                    goto = cursor::Goto(1, offset_y as u16 + 1),
+                    goto = cursor::Goto(1, pos_y as u16 + 1),
                     text = &trimmed_line,
                 )
                 .unwrap();
@@ -192,7 +218,7 @@ impl<'a> ViewController<'a> {
         stdout: &mut dyn io::Write,
         text: &str,
         focused: bool,
-        offset: (usize, usize),
+        pos: (usize, usize),
         colors: &UiColors,
     ) {
         // To help identify it, the span thas has focus is rendered with a dedicated color.
@@ -206,7 +232,7 @@ impl<'a> ViewController<'a> {
         write!(
             stdout,
             "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
-            goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1),
+            goto = cursor::Goto(pos.0 as u16 + 1, pos.1 as u16 + 1),
             fg_color = color::Fg(fg_color.as_ref()),
             bg_color = color::Bg(bg_color.as_ref()),
             fg_reset = color::Fg(color::Reset),
@@ -230,7 +256,7 @@ impl<'a> ViewController<'a> {
     fn render_span_hint(
         stdout: &mut dyn io::Write,
         hint_text: &str,
-        offset: (usize, usize),
+        pos: (usize, usize),
         colors: &UiColors,
         hint_style: &Option<HintStyle>,
     ) {
@@ -238,7 +264,7 @@ impl<'a> ViewController<'a> {
         let bg_color = color::Bg(colors.hint_bg.as_ref());
         let fg_reset = color::Fg(color::Reset);
         let bg_reset = color::Bg(color::Reset);
-        let goto = cursor::Goto(offset.0 as u16 + 1, offset.1 as u16 + 1);
+        let goto = cursor::Goto(pos.0 as u16 + 1, pos.1 as u16 + 1);
 
         match hint_style {
             None => {
@@ -324,14 +350,14 @@ impl<'a> ViewController<'a> {
     fn render_span(&self, stdout: &mut dyn io::Write, span: &textbuf::Span<'a>, focused: bool) {
         let text = span.text;
 
-        let (offset_x, offset_y) = self.span_offsets(span);
-        let (offset_x, offset_y) = self.map_coords_to_wrapped_space(offset_x, offset_y);
+        let (pos_x, pos_y) = self.adjusted_span_position(span);
+        let (pos_x, pos_y) = self.map_coords_to_wrapped_space(pos_x, pos_y);
 
         ViewController::render_span_text(
             stdout,
             text,
             focused,
-            (offset_x, offset_y),
+            (pos_x, pos_y),
             &self.rendering_colors,
         );
 
@@ -339,7 +365,7 @@ impl<'a> ViewController<'a> {
             // If not focused, render the hint (e.g. "eo") as an overlay on
             // top of the rendered text span, aligned at its leading or the
             // trailing edge.
-            let extra_offset = match self.hint_alignment {
+            let offset = match self.hint_alignment {
                 HintAlignment::Leading => 0,
                 HintAlignment::Trailing => text.len() - span.hint.len(),
             };
@@ -347,7 +373,7 @@ impl<'a> ViewController<'a> {
             ViewController::render_span_hint(
                 stdout,
                 &span.hint,
-                (offset_x + extra_offset, offset_y),
+                (pos_x + offset, pos_y),
                 &self.rendering_colors,
                 &self.hint_style,
             );
@@ -361,11 +387,12 @@ impl<'a> ViewController<'a> {
     /// - each Span's `text` is rendered as an overlay on top of it
     /// - each Span's `hint` text is rendered as a final overlay
     ///
-    /// Depending on the value of `self.hint_alignment`, the hint can be rendered
-    /// on the leading edge of the underlying Span's `text`,
-    /// or on the trailing edge.
+    /// Depending on the value of `self.hint_alignment`, the hint can be
+    /// rendered on the leading edge of the underlying Span's `text`, or on
+    /// the trailing edge.
     ///
     /// # Note
+    ///
     /// Multibyte characters are taken into account, so that the Span's `text`
     /// and `hint` are rendered in their proper position.
     fn full_render(&self, stdout: &mut dyn io::Write) {
@@ -373,7 +400,7 @@ impl<'a> ViewController<'a> {
         ViewController::render_base_text(
             stdout,
             &self.model.lines,
-            &self.line_offsets,
+            &self.wrapped_lines,
             &self.rendering_colors,
         );
 
@@ -597,27 +624,30 @@ impl<'a> ViewController<'a> {
     // }}}
 }
 
-/// Compute each line's actual y offset if displayed in a terminal of width
+/// Compute each line's actual y position and size if displayed in a terminal of width
 /// `term_width`.
-fn get_line_offsets(lines: &[&str], term_width: u16) -> Vec<usize> {
+fn compute_wrapped_lines(lines: &[&str], term_width: u16) -> Vec<WrappedLine> {
     lines
         .iter()
-        .scan(0, |offset, &line| {
+        .scan(0, |position, &line| {
             // Save the value to return (yield is in unstable).
-            let value = *offset;
+            let value = *position;
 
             let line_width = line.trim_end().chars().count() as isize;
 
             // Amount of extra y space taken by this line.
             // If the line has n chars, on a term of width n, this does not
             // produce an extra line; it needs to exceed the width by 1 char.
-            // In case the width is 0, we need to clamp line_width - 1 first.
+            // In case the width is 0, we need to first clamp line_width - 1.
             let extra = cmp::max(0, line_width - 1) as usize / term_width as usize;
 
-            // Update the offset of the next line.
-            *offset = *offset + 1 + extra;
+            // Update the position of the next line.
+            *position += 1 + extra;
 
-            Some(value)
+            Some(WrappedLine {
+                pos_y: value,
+                // size: 1 + extra,
+            })
         })
         .collect()
 }
@@ -644,7 +674,14 @@ path: /usr/local/bin/git
 
 path: /usr/local/bin/cargo";
         let lines: Vec<&str> = content.split('\n').collect();
-        let line_offsets: Vec<usize> = (0..lines.len()).collect();
+        let wrapped_lines: Vec<WrappedLine> = vec![
+            WrappedLine { pos_y: 0 },
+            WrappedLine { pos_y: 1 },
+            WrappedLine { pos_y: 2 },
+            WrappedLine { pos_y: 3 },
+            WrappedLine { pos_y: 4 },
+            WrappedLine { pos_y: 5 },
+        ];
 
         let colors = UiColors {
             text_fg: Box::new(color::Black),
@@ -658,7 +695,7 @@ path: /usr/local/bin/cargo";
         };
 
         let mut writer = vec![];
-        ViewController::render_base_text(&mut writer, &lines, &line_offsets, &colors);
+        ViewController::render_base_text(&mut writer, &lines, &wrapped_lines, &colors);
 
         let goto1 = cursor::Goto(1, 1);
         let goto2 = cursor::Goto(1, 2);
@@ -683,7 +720,7 @@ path: /usr/local/bin/cargo";
         let mut writer = vec![];
         let text = "https://en.wikipedia.org/wiki/Barcelona";
         let focused = true;
-        let offset: (usize, usize) = (3, 1);
+        let position: (usize, usize) = (3, 1);
         let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -695,7 +732,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        ViewController::render_span_text(&mut writer, text, focused, offset, &colors);
+        ViewController::render_span_text(&mut writer, text, focused, position, &colors);
 
         assert_eq!(
             writer,
@@ -717,7 +754,7 @@ path: /usr/local/bin/cargo";
         let mut writer = vec![];
         let text = "https://en.wikipedia.org/wiki/Barcelona";
         let focused = false;
-        let offset: (usize, usize) = (3, 1);
+        let position: (usize, usize) = (3, 1);
         let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -729,7 +766,7 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        ViewController::render_span_text(&mut writer, text, focused, offset, &colors);
+        ViewController::render_span_text(&mut writer, text, focused, position, &colors);
 
         assert_eq!(
             writer,
@@ -750,7 +787,7 @@ path: /usr/local/bin/cargo";
     fn test_render_unstyled_span_hint() {
         let mut writer = vec![];
         let hint_text = "eo";
-        let offset: (usize, usize) = (3, 1);
+        let position: (usize, usize) = (3, 1);
         let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -762,13 +799,13 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        let extra_offset = 0;
+        let offset = 0;
         let hint_style = None;
 
         ViewController::render_span_hint(
             &mut writer,
             hint_text,
-            (offset.0 + extra_offset, offset.1),
+            (position.0 + offset, position.1),
             &colors,
             &hint_style,
         );
@@ -792,7 +829,7 @@ path: /usr/local/bin/cargo";
     fn test_render_underlined_span_hint() {
         let mut writer = vec![];
         let hint_text = "eo";
-        let offset: (usize, usize) = (3, 1);
+        let position: (usize, usize) = (3, 1);
         let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -804,13 +841,13 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        let extra_offset = 0;
+        let offset = 0;
         let hint_style = Some(HintStyle::Underline);
 
         ViewController::render_span_hint(
             &mut writer,
             hint_text,
-            (offset.0 + extra_offset, offset.1),
+            (position.0 + offset, position.1),
             &colors,
             &hint_style,
         );
@@ -836,7 +873,7 @@ path: /usr/local/bin/cargo";
     fn test_render_bracketed_span_hint() {
         let mut writer = vec![];
         let hint_text = "eo";
-        let offset: (usize, usize) = (3, 1);
+        let position: (usize, usize) = (3, 1);
         let colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -848,13 +885,13 @@ path: /usr/local/bin/cargo";
             hint_bg: Box::new(color::Cyan),
         };
 
-        let extra_offset = 0;
+        let offset = 0;
         let hint_style = Some(HintStyle::Surround('{', '}'));
 
         ViewController::render_span_hint(
             &mut writer,
             hint_text,
-            (offset.0 + extra_offset, offset.1),
+            (position.0 + offset, position.1),
             &colors,
             &hint_style,
         );
@@ -900,7 +937,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             unique_hint,
         );
         let term_width: u16 = 80;
-        let line_offsets = get_line_offsets(&model.lines, term_width);
+        let wrapped_lines = compute_wrapped_lines(&model.lines, term_width);
         let rendering_colors = UiColors {
             text_fg: Box::new(color::Black),
             text_bg: Box::new(color::White),
@@ -917,7 +954,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let ui = ViewController {
             model: &mut model,
             term_width,
-            line_offsets,
+            wrapped_lines,
             focus_index: 0,
             focus_wrap_around: false,
             default_output_destination: OutputDestination::Tmux,
