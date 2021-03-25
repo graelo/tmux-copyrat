@@ -134,7 +134,7 @@ set -g @thumbs-reverse
 
 `default: disabled`
 
-Choose if you want to assign the same hint for the same matched strings.
+Choose if you want to assign the same hint for the same text spans.
 
 For example:
 
@@ -146,7 +146,7 @@ set -g @thumbs-unique
 
 `default: left`
 
-Choose where do you want to show the hint in the matched string. Options (left, right).
+Choose where do you want to show the hint in the text spans. Options (left, right).
 
 For example:
 
@@ -193,7 +193,7 @@ set -g @thumbs-upcase-command 'echo -n {} | pbcopy'
 
 `default: black`
 
-Sets the background color for matches
+Sets the background color for spans
 
 For example:
 
@@ -205,7 +205,7 @@ set -g @thumbs-bg-color blue
 
 `default: green`
 
-Sets the foreground color for matches
+Sets the foreground color for spans
 
 For example:
 
@@ -314,7 +314,7 @@ This is the list of available alphabets:
 
 ## Extra features
 
-- **Arrow navigation:** You can use the arrows to move around between all matched items.
+- **Arrow navigation:** You can use the arrows to move around between all spans.
 - **Auto paste:** If your last typed hint character is uppercase, you are going to pick and paste the desired hint.
 - **Multi selection:** If you run thumb with multi selection mode you will be able to choose multiple hints pressing the desired letter and `Space` to finalize the selection.
 
@@ -361,13 +361,13 @@ FLAGS:
     -h, --help        Prints help information
     -m, --multi       Enable multi-selection
     -r, --reverse     Reverse the order for assigned hints
-    -u, --unique      Don't show duplicated hints for the same match
+    -u, --unique      Don't show duplicated hints for the same span
     -V, --version     Prints version information
 
 OPTIONS:
     -a, --alphabet <alphabet>                          Sets the alphabet [default: qwerty]
-        --bg-color <background_color>                  Sets the background color for matches [default: black]
-        --fg-color <foreground_color>                  Sets the foregroud color for matches [default: green]
+        --bg-color <background_color>                  Sets the background color for spans [default: black]
+        --fg-color <foreground_color>                  Sets the foregroud color for spans [default: green]
     -f, --format <format>
             Specifies the out format for the picked hint. (%U: Upcase, %H: Hint) [default: %H]
 

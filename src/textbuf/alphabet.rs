@@ -139,35 +139,35 @@ mod tests {
     use super::*;
 
     #[test]
-    fn simple_matches() {
+    fn simple_hints() {
         let alphabet = Alphabet("abcd".to_string());
         let hints = alphabet.make_hints(3);
         assert_eq!(hints, ["a", "b", "c"]);
     }
 
     #[test]
-    fn composed_matches() {
+    fn composed_hints() {
         let alphabet = Alphabet("abcd".to_string());
         let hints = alphabet.make_hints(6);
         assert_eq!(hints, ["a", "b", "c", "da", "db", "dc"]);
     }
 
     #[test]
-    fn composed_matches_multiple() {
+    fn composed_hints_multiple() {
         let alphabet = Alphabet("abcd".to_string());
         let hints = alphabet.make_hints(8);
         assert_eq!(hints, ["a", "b", "ca", "cb", "da", "db", "dc", "dd"]);
     }
 
     #[test]
-    fn composed_matches_max_2() {
+    fn composed_hints_max_2() {
         let alphabet = Alphabet("ab".to_string());
         let hints = alphabet.make_hints(4);
         assert_eq!(hints, ["aa", "ab", "ba", "bb"]);
     }
 
     #[test]
-    fn composed_matches_max_4() {
+    fn composed_hints_max_4() {
         let alphabet = Alphabet("abcd".to_string());
         let hints = alphabet.make_hints(13);
         assert_eq!(
@@ -177,7 +177,7 @@ mod tests {
     }
 
     #[test]
-    fn matches_with_longest_alphabet() {
+    fn hints_with_longest_alphabet() {
         let alphabet = Alphabet("ab".to_string());
         let hints = alphabet.make_hints(2500);
         assert_eq!(hints.len(), 2500);
@@ -186,7 +186,7 @@ mod tests {
     }
 
     #[test]
-    fn matches_exceed_longest_alphabet() {
+    fn hints_exceed_longest_alphabet() {
         let alphabet = Alphabet("ab".to_string());
         let hints = alphabet.make_hints(10000);
         // 2500 unique hints are produced from the longest alphabet
