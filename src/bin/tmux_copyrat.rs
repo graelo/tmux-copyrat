@@ -9,14 +9,14 @@ fn main() -> Result<(), error::ParseError> {
     let config = ConfigExt::initialize()?;
 
     // Identify active pane and capture its content.
-    let panes: Vec<tmux::Pane> = tmux::list_panes()?;
+    let panes: Vec<tmux::Pane> = tmux::available_panes()?;
 
     let active_pane = panes
         .into_iter()
         .find(|p| p.is_active)
         .expect("Exactly one tmux pane should be active in the current window.");
 
-    let buffer = tmux::capture_pane(&active_pane, &config.capture_region)?;
+    let buffer = active_pane.capture(&config.capture_region)?;
     let lines = buffer.split('\n').collect::<Vec<_>>();
 
     // We have to dance a little with Panes, because this process' i/o streams
