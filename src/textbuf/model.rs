@@ -133,17 +133,16 @@ fn find_raw_spans<'a>(
             if *pat_name != "ansi_colors" {
                 let text = reg_match.as_str();
 
-                // In case the pattern has a capturing group, try obtaining
-                // that text and start offset, else use the entire match.
-                let (subtext, substart) = match reg
+                // All patterns must have a capturing group: try obtaining
+                // that text and start offset.
+                let capture = reg
                     .captures_iter(text)
                     .next()
                     .expect("This regex is guaranteed to match.")
                     .get(1)
-                {
-                    Some(capture) => (capture.as_str(), capture.start()),
-                    None => (text, 0),
-                };
+                    .expect("This regex should have a capture group.");
+
+                let (subtext, substart) = (capture.as_str(), capture.start());
 
                 raw_spans.push(RawSpan {
                     x: offset + reg_match.start() as i32 + substart as i32,

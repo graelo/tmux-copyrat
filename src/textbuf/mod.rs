@@ -579,7 +579,7 @@ mod tests {
         let lines = buffer.split('\n').collect::<Vec<_>>();
         let use_all_patterns = true;
         let named_pat = vec![];
-        let custom: Vec<String> = ["CUSTOM-[0-9]{4,}", "ISSUE-[0-9]{3}"]
+        let custom: Vec<String> = ["(CUSTOM-[0-9]{4,})", "(ISSUE-[0-9]{3})"]
             .iter()
             .map(|&s| s.to_string())
             .collect();
