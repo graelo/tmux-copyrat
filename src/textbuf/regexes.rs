@@ -10,8 +10,8 @@ pub(super) const EXCLUDE_PATTERNS: [(&str, &str); 1] =
 /// Holds all the regex patterns that are currently supported.
 ///
 /// The email address was obtained at https://www.regular-expressions.info/email.html.
-/// Others were obtained from Ferran Basora.
-pub(super) const PATTERNS: [(&str, &str); 17] = [
+/// Some others were obtained from Ferran Basora, the rest is by me.
+pub(super) const PATTERNS: [(&str, &str); 20] = [
     ("markdown-url", r"\[[^]]*\]\(([^)]+)\)"),
     (
         "url",
@@ -40,6 +40,9 @@ pub(super) const PATTERNS: [(&str, &str); 17] = [
         "datetime",
         r"(\d{4}-?\d{2}-?\d{2}([ T]\d{2}:\d{2}:\d{2}(\.\d{3,9})?)?)",
     ),
+    ("quoted-single", r#"'([^']+)'"#),
+    ("quoted-double", r#""([^"]+)""#),
+    ("quoted-tick", r#"`([^`]+)`"#),
     ("digits", r"([0-9]{4,})"),
 ];
 

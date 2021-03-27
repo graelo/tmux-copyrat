@@ -574,6 +574,41 @@ mod tests {
     }
 
     #[test]
+    fn match_quoted_string() {
+        let buffer =
+            r#"Lorem 'first string' and "second string" and `rustc --explain E0223` ipsum."#;
+        let lines = buffer.split('\n').collect::<Vec<_>>();
+
+        let use_all_patterns = false;
+        use crate::textbuf::regexes::parse_pattern_name;
+        let named_pat = vec![
+            parse_pattern_name("quoted-single").unwrap(),
+            parse_pattern_name("quoted-double").unwrap(),
+            parse_pattern_name("quoted-tick").unwrap(),
+        ];
+
+        let custom = vec![];
+        let alphabet = Alphabet("abcd".to_string());
+        let reverse = false;
+        let unique_hint = false;
+        let spans = Model::new(
+            &lines,
+            &alphabet,
+            use_all_patterns,
+            &named_pat,
+            &custom,
+            reverse,
+            unique_hint,
+        )
+        .spans;
+
+        assert_eq!(spans.len(), 3);
+        assert_eq!(spans.get(0).unwrap().text, "first string");
+        assert_eq!(spans.get(1).unwrap().text, "second string");
+        assert_eq!(spans.get(2).unwrap().text, "rustc --explain E0223");
+    }
+
+    #[test]
     fn priority_between_regexes() {
         let buffer = "Lorem [link](http://foo.bar) ipsum CUSTOM-52463 lorem ISSUE-123 lorem\nLorem /var/fd70b569/9999.log 52463 lorem\n Lorem 973113 lorem 123e4567-e89b-12d3-a456-426655440000 lorem 8888 lorem\n  https://crates.io/23456/fd70b569 lorem";
         let lines = buffer.split('\n').collect::<Vec<_>>();
