@@ -87,6 +87,8 @@ setup_pattern_binding "h" "--pattern-name sha"
 setup_pattern_binding "d" "--pattern-name datetime"
 # prefix + t + e searches for email addresses (see https://www.regular-expressions.info/email.html)
 setup_pattern_binding "e" "--pattern-name email"
+# prefix + t + q searches for strings inside single|double|backticks
+setup_pattern_binding "q" "-x quoted-single -x quoted-double -x quoted-tick"
 # prefix + t + D searches for docker shas
 setup_pattern_binding "D" "--pattern-name docker"
 # prefix + t + c searches for hex colors #aa00f5
