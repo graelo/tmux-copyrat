@@ -53,11 +53,6 @@ impl FromStr for Pane {
         // Pane id must be start with '%' followed by a `u32`
         let id_str = iter.next().unwrap();
         let id = PaneId::from_str(id_str)?;
-        // if !id_str.starts_with('%') {
-        //     return Err(ParseError::ExpectedPaneIdMarker);
-        // }
-        // let id = id_str[1..].parse::<u32>()?;
-        // let id = format!("%{}", id);
 
         let is_copy_mode = iter.next().unwrap().parse::<bool>()?;
 
@@ -83,6 +78,53 @@ impl FromStr for Pane {
     }
 }
 
+impl Pane {
+    /// Returns the entire Pane content as a `String`.
+    ///
+    /// The provided `region` specifies if the visible area is captured, or the
+    /// entire history.
+    ///
+    /// # Note
+    ///
+    /// In Tmux, the start line is the line at the top of the pane. The end line
+    /// is the last line at the bottom of the pane.
+    ///
+    /// - In normal mode, the index of the start line is always 0. The index of
+    /// the end line is always the pane's height minus one. These do not need to
+    /// be specified when capturing the pane's content.
+    ///
+    /// - If navigating history in copy mode, the index of the start line is the
+    /// opposite of the pane's scroll position. For instance a pane of 40 lines,
+    /// scrolled up by 3 lines. It is necessarily in copy mode. Its start line
+    /// index is `-3`. The index of the last line is `(40-1) - 3 = 36`.
+    ///
+    pub fn capture(&self, region: &CaptureRegion) -> Result<String, ParseError> {
+        let mut args_str = format!("capture-pane -t {pane_id} -J -p", pane_id = self.id);
+
+        let region_str = match region {
+            CaptureRegion::VisibleArea => {
+                if self.is_copy_mode && self.scroll_position > 0 {
+                    format!(
+                        " -S {start} -E {end}",
+                        start = -self.scroll_position,
+                        end = self.height - self.scroll_position - 1
+                    )
+                } else {
+                    String::new()
+                }
+            }
+            CaptureRegion::EntireHistory => String::from(" -S - -E -"),
+        };
+
+        args_str.push_str(&region_str);
+
+        let args: Vec<&str> = args_str.split(' ').collect();
+
+        let output = duct::cmd("tmux", &args).read()?;
+        Ok(output)
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct PaneId(String);
 
@@ -90,12 +132,12 @@ impl FromStr for PaneId {
     type Err = ParseError;
 
     /// Parse into PaneId. The `&str` must be start with '%'
-    /// followed by a `u32`.
+    /// followed by a `u16`.
     fn from_str(src: &str) -> Result<Self, Self::Err> {
         if !src.starts_with('%') {
             return Err(ParseError::ExpectedPaneIdMarker);
         }
-        let id = src[1..].parse::<u32>()?;
+        let id = src[1..].parse::<u16>()?;
         let id = format!("%{}", id);
         Ok(PaneId(id))
     }
@@ -114,7 +156,7 @@ impl fmt::Display for PaneId {
 }
 
 /// Returns a list of `Pane` from the current tmux session.
-pub fn list_panes() -> Result<Vec<Pane>, ParseError> {
+pub fn available_panes() -> Result<Vec<Pane>, ParseError> {
     let args = vec![
         "list-panes",
         "-F",
@@ -160,51 +202,6 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>, ParseError> 
         .collect();
 
     Ok(args)
-}
-
-/// Returns the entire Pane content as a `String`.
-///
-/// The provided `region` specifies if the visible area is captured, or the
-/// entire history.
-///
-/// # Note
-///
-/// In Tmux, the start line is the line at the top of the pane. The end line
-/// is the last line at the bottom of the pane.
-///
-/// - In normal mode, the index of the start line is always 0. The index of
-/// the end line is always the pane's height minus one. These do not need to
-/// be specified when capturing the pane's content.
-///
-/// - If navigating history in copy mode, the index of the start line is the
-/// opposite of the pane's scroll position. For instance a pane of 40 lines,
-/// scrolled up by 3 lines. It is necessarily in copy mode. Its start line
-/// index is `-3`. The index of the last line is `(40-1) - 3 = 36`.
-///
-pub fn capture_pane(pane: &Pane, region: &CaptureRegion) -> Result<String, ParseError> {
-    let mut args_str = format!("capture-pane -t {pane_id} -J -p", pane_id = pane.id);
-
-    let region_str = match region {
-        CaptureRegion::VisibleArea => {
-            if pane.is_copy_mode && pane.scroll_position > 0 {
-                format!(
-                    " -S {start} -E {end}",
-                    start = -pane.scroll_position,
-                    end = pane.height - pane.scroll_position - 1
-                )
-            } else {
-                String::new()
-            }
-        }
-        CaptureRegion::EntireHistory => String::from(" -S - -E -"),
-    };
-
-    args_str.push_str(&region_str);
-
-    let args: Vec<&str> = args_str.split(' ').collect();
-
-    let output = duct::cmd("tmux", &args).read()?;
-    Ok(output)
 }
 
 /// Ask tmux to swap the current Pane with the target_pane (uses Tmux format).
