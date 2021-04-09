@@ -75,32 +75,32 @@ setup_pattern_binding() {
 	tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} --window-name '"${window_name}"' --reverse --unique-hint ${pattern_arg}"
 }
 
-# prefix + t + p searches for absolute & relative paths
-setup_pattern_binding "p" "--pattern-name path"
-# prefix + t + u searches for URLs
-setup_pattern_binding "u" "--pattern-name url"
-# prefix + t + m searches for Markdown URLs [...](matched.url)
-setup_pattern_binding "m" "--pattern-name markdown-url"
-# prefix + t + h searches for SHA1/2 short or long hashes
-setup_pattern_binding "h" "--pattern-name sha"
-# prefix + t + d searches for dates or datetimes
-setup_pattern_binding "d" "--pattern-name datetime"
-# prefix + t + e searches for email addresses (see https://www.regular-expressions.info/email.html)
-setup_pattern_binding "e" "--pattern-name email"
-# prefix + t + q searches for strings inside single|double|backticks
-setup_pattern_binding "q" "-x quoted-single -x quoted-double -x quoted-tick"
-# prefix + t + D searches for docker shas
-setup_pattern_binding "D" "--pattern-name docker"
 # prefix + t + c searches for hex colors #aa00f5
 setup_pattern_binding "c" "--pattern-name hexcolor"
+# prefix + t + d searches for dates or datetimes
+setup_pattern_binding "d" "--pattern-name datetime"
+# prefix + t + D searches for docker shas
+setup_pattern_binding "D" "--pattern-name docker"
+# prefix + t + e searches for email addresses (see https://www.regular-expressions.info/email.html)
+setup_pattern_binding "e" "--pattern-name email"
+# prefix + t + G searches for any string of 4+ digits
+setup_pattern_binding "G" "--pattern-name digits"
+# prefix + t + h searches for SHA1/2 short or long hashes
+setup_pattern_binding "h" "--pattern-name sha"
+# prefix + t + m searches for Markdown URLs [...](matched.url)
+setup_pattern_binding "m" "--pattern-name markdown-url"
+# prefix + t + p searches for absolute & relative paths
+setup_pattern_binding "p" "--pattern-name path"
+# prefix + t + P searches for hex numbers: 0xbedead
+setup_pattern_binding "P" "--pattern-name pointer-address"
+# prefix + t + q searches for strings inside single|double|backticks
+setup_pattern_binding "q" "-x quoted-single -x quoted-double -x quoted-tick"
+# prefix + t + u searches for URLs
+setup_pattern_binding "u" "--pattern-name url"
 # prefix + t + U searches for UUIDs
 setup_pattern_binding "U" "--pattern-name uuid"
 # prefix + t + v searches for version numbers
 setup_pattern_binding "v" "--pattern-name version"
-# prefix + t + G searches for any string of 4+ digits
-setup_pattern_binding "G" "--pattern-name digits"
-# prefix + t + m searches for hex numbers: 0xbedead
-setup_pattern_binding "P" "--pattern-name pointer-address"
 # prefix + t + 4 searches for IPV4
 setup_pattern_binding "4" "--pattern-name ipv4"
 # prefix + t + 6 searches for IPV6
