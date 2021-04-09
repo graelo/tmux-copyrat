@@ -32,7 +32,7 @@ pub(super) const PATTERNS: [(&str, &str); 20] = [
         r"(v?\d{1,4}\.\d{1,4}(\.\d{1,4})?(-(alpha|beta|rc)(\.\d)?)?)[^.0-9s]",
     ),
     ("ipfs", r"(Qm[0-9a-zA-Z]{44})"),
-    ("sha", r"([0-9a-f]{7,40})"),
+    ("sha", r"([0-9A-f]{7,40})"),
     ("ipv4", r"(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})"),
     ("ipv6", r"([A-f0-9:]+:+[A-f0-9:]+[%\w\d]+)"),
     ("pointer-address", r"(0x[0-9a-fA-F]+)"),
