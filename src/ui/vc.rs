@@ -468,7 +468,7 @@ impl<'a> ViewController<'a> {
             let key_res = next_key.unwrap();
             if let Err(err) = key_res {
                 // Termion not being able to read from stdin is an unrecoverable error.
-                panic!(err);
+                panic!("{}", err);
             }
 
             match key_res.unwrap() {
