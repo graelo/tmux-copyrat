@@ -1,6 +1,10 @@
 # tmux-copyrat
 
-![Rust](https://github.com/graelo/tmux-copyrat/workflows/Rust/badge.svg)
+[![crate](https://img.shields.io/crates/v/tmux-copyrat.svg)](https://crates.io/crates/tmux-copyrat)
+[![documentation](https://docs.rs/tmux-copyrat/badge.svg)](https://docs.rs/tmux-copyrat)
+[![minimum rustc 1.8](https://img.shields.io/badge/rustc-1.50+-red.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![build status](https://github.com/graelo/tmux-copyrat/workflows/main/badge.svg)](https://github.com/graelo/tmux-copyrat/actions)
+
 
 A hommage to [tmux-copyrat](https://github.com/tmux-plugins/tmux-copycat), written in [Rust](https://www.rust-lang.org/) for copy pasting within [tmux](http://tmux.github.io).
 
