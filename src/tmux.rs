@@ -10,8 +10,10 @@ use std::str::FromStr;
 use regex::Regex;
 
 use crate::config::extended::CaptureRegion;
-use crate::{error::ParseError, Result};
+use crate::{error::Error, Result};
 
+/// Represents a simplified Tmux Pane, only holding the properties needed in
+/// this crate.
 #[derive(Debug, PartialEq)]
 pub struct Pane {
     /// Pane identifier, e.g. `%37`.
@@ -31,7 +33,7 @@ pub struct Pane {
 }
 
 impl FromStr for Pane {
-    type Err = ParseError;
+    type Err = Error;
 
     /// Parse a string containing tmux panes status into a new `Pane`.
     ///
@@ -130,13 +132,13 @@ impl Pane {
 pub struct PaneId(String);
 
 impl FromStr for PaneId {
-    type Err = ParseError;
+    type Err = Error;
 
     /// Parse into PaneId. The `&str` must be start with '%'
     /// followed by a `u16`.
     fn from_str(src: &str) -> std::result::Result<Self, Self::Err> {
         if !src.starts_with('%') {
-            return Err(ParseError::ExpectedPaneIdMarker);
+            return Err(Error::ExpectedPaneIdMarker);
         }
         let id = src[1..].parse::<u16>()?;
         let id = format!("%{}", id);
@@ -205,7 +207,7 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>> {
     Ok(args)
 }
 
-/// Ask tmux to swap the current Pane with the target_pane (uses Tmux format).
+/// Asks tmux to swap the current Pane with the target_pane (uses Tmux format).
 pub fn swap_pane_with(target_pane: &str) -> Result<()> {
     // -Z: keep the window zoomed if it was zoomed.
     duct::cmd!("tmux", "swap-pane", "-Z", "-s", target_pane).run()?;

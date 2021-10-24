@@ -1,7 +1,7 @@
 // use std::fmt;
 
 #[derive(thiserror::Error, Debug)]
-pub enum ParseError {
+pub enum Error {
     #[error("Expected 2 chars")]
     ExpectedSurroundingPair,
 
