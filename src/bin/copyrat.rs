@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use std::io::{self, Read};
 
 use copyrat::{config::basic, run, ui::Selection};

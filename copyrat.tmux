@@ -1,9 +1,10 @@
 #!/usr/bin/env zsh
 
-# This scripts provides a default configuration for tmux-copyrat options and key bindings.
-# It is run only once at tmux launch.
+# This scripts provides a default configuration for tmux-copyrat options and
+# key bindings. It is run only once at tmux launch.
 #
-# Each option and binding can be overridden in your `tmux.conf` by defining options like
+# Each option and binding can be overridden in your `tmux.conf` by defining
+# options like
 #
 #   set -g @copyrat-keytable "foobar"
 #   set -g @copyrat-keyswitch "z"
@@ -50,8 +51,9 @@ setup_option "window-name" "[copyrat]"
 # Get that window name as a local variable for use in pattern bindings below.
 window_name=$(tmux show-option -gqv @copyrat-window-name)
 
-# Sets the keytable for all bindings, providing a default if @copyrat-keytable was not defined.
-# Keytables open a new shortcut space: if 't' is the switcher (see below), prefix + t + <your-shortcut>
+# Sets the keytable for all bindings, providing a default if @copyrat-keytable
+# was not defined. Keytables open a new shortcut space: if 't' is the switcher
+# (see below), prefix + t + <your-shortcut>
 setup_option "keytable" "cpyrt"
 
 # Sets the key to access the keytable: prefix + <key> + <your-shortcut>
