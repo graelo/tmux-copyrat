@@ -1,50 +1,43 @@
-use std::fmt;
+// use std::fmt;
 
-#[derive(Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum ParseError {
+    #[error("Expected 2 chars")]
     ExpectedSurroundingPair,
+
+    #[error("Unknown alphabet")]
     UnknownAlphabet,
+
+    #[error("Unknown ANSI color name: allowed values are magenta, cyan, black, ...")]
     UnknownColor,
+
+    #[error("Unknown pattern name")]
     UnknownPatternName,
+
+    #[error("Expected a pane id marker")]
     ExpectedPaneIdMarker,
-    ExpectedInt(std::num::ParseIntError),
-    ExpectedBool(std::str::ParseBoolError),
+
+    #[error("Failed parsing integer")]
+    ExpectedInt {
+        #[from]
+        source: std::num::ParseIntError,
+    },
+
+    #[error("Failed to parse bool")]
+    ExpectedBool {
+        #[from]
+        source: std::str::ParseBoolError,
+    },
+
+    #[error("Expected the string `{0}`")]
     ExpectedString(String),
-    ProcessFailure(String),
-}
 
-impl fmt::Display for ParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            ParseError::ExpectedSurroundingPair => write!(f, "Expected 2 chars"),
-            ParseError::UnknownAlphabet => write!(f, "Expected a known alphabet"),
-            ParseError::UnknownColor => {
-                write!(f, "Expected ANSI color name (magenta, cyan, black, ...)")
-            }
-            ParseError::UnknownPatternName => write!(f, "Expected a known pattern name"),
-            ParseError::ExpectedPaneIdMarker => write!(f, "Expected pane id marker"),
-            ParseError::ExpectedInt(msg) => write!(f, "Expected an int: {}", msg),
-            ParseError::ExpectedBool(msg) => write!(f, "Expected a bool: {}", msg),
-            ParseError::ExpectedString(msg) => write!(f, "Expected {}", msg),
-            ParseError::ProcessFailure(msg) => write!(f, "{}", msg),
-        }
-    }
-}
+    #[error("Expected the value to be within `{0}`")]
+    ExpectedEnumVariant(String),
 
-impl From<std::num::ParseIntError> for ParseError {
-    fn from(error: std::num::ParseIntError) -> Self {
-        ParseError::ExpectedInt(error)
-    }
-}
-
-impl From<std::str::ParseBoolError> for ParseError {
-    fn from(error: std::str::ParseBoolError) -> Self {
-        ParseError::ExpectedBool(error)
-    }
-}
-
-impl From<std::io::Error> for ParseError {
-    fn from(error: std::io::Error) -> Self {
-        ParseError::ProcessFailure(error.to_string())
-    }
+    #[error("IOError: `{source}`")]
+    Io {
+        #[from]
+        source: std::io::Error,
+    },
 }

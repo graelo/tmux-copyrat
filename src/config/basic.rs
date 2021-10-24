@@ -1,14 +1,13 @@
-use clap::Clap;
-use std::str::FromStr;
+use clap::{ArgEnum, Parser};
 
 use crate::{
-    error,
+    error::ParseError,
     textbuf::{alphabet, regexes},
     ui,
 };
 
 /// Main configuration, parsed from command line.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(author, about, version)]
 pub struct Config {
     /// Alphabet to draw hints from.
@@ -59,7 +58,7 @@ pub struct Config {
     ///
     /// Underline or surround the hint for increased visibility.
     /// If not provided, only the hint colors will be used.
-    #[clap(short = 's', long, arg_enum)]
+    #[clap(short = 's', long, arg_enum, rename_all = "lowercase")]
     pub hint_style: Option<HintStyleArg>,
 
     /// Chars surrounding each hint, used with `Surround` style.
@@ -69,8 +68,8 @@ pub struct Config {
 }
 
 /// Type introduced due to parsing limitation,
-/// as we cannot directly parse into ui::HintStyle.
-#[derive(Debug, Clap)]
+/// as we cannot directly parse tuples into ui::HintStyle.
+#[derive(Debug, Clone, ArgEnum, Parser)]
 pub enum HintStyleArg {
     Bold,
     Italic,
@@ -78,26 +77,10 @@ pub enum HintStyleArg {
     Surround,
 }
 
-impl FromStr for HintStyleArg {
-    type Err = error::ParseError;
-
-    fn from_str(s: &str) -> Result<Self, error::ParseError> {
-        match s {
-            "bold" => Ok(HintStyleArg::Bold),
-            "italic" => Ok(HintStyleArg::Italic),
-            "underline" => Ok(HintStyleArg::Underline),
-            "surrond" => Ok(HintStyleArg::Surround),
-            _ => Err(error::ParseError::ExpectedString(String::from(
-                "bold, italic, underline or surround",
-            ))),
-        }
-    }
-}
-
 /// Try to parse a `&str` into a tuple of `char`s.
-fn parse_chars(src: &str) -> Result<(char, char), error::ParseError> {
+fn parse_chars(src: &str) -> Result<(char, char), ParseError> {
     if src.chars().count() != 2 {
-        return Err(error::ParseError::ExpectedSurroundingPair);
+        return Err(ParseError::ExpectedSurroundingPair);
     }
 
     let chars: Vec<char> = src.chars().collect();

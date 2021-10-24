@@ -1,15 +1,15 @@
-use clap::Clap;
 use std::collections::HashMap;
 use std::fmt;
-use std::str::FromStr;
+
+use clap::{ArgEnum, Parser};
 
 use super::basic;
-use crate::{error, textbuf::alphabet, tmux, ui};
+use crate::{error::ParseError, textbuf::alphabet, tmux, ui};
 
 /// Extended configuration for handling Tmux-specific configuration (options
 /// and outputs). This is only used by `tmux-copyrat` and parsed from command
-/// line..
-#[derive(Clap, Debug)]
+/// line.
+#[derive(Parser, Debug)]
 #[clap(author, about, version)]
 pub struct ConfigExt {
     /// Don't read options from Tmux.
@@ -30,13 +30,19 @@ pub struct ConfigExt {
     pub window_name: String,
 
     /// Capture visible area or entire pane history.
-    #[clap(long, arg_enum, default_value = "visible-area")]
+    #[clap(
+        arg_enum,
+        long,
+        rename_all = "kebab-case",
+        default_value = "visible-area"
+    )]
     pub capture_region: CaptureRegion,
 
     /// Name of the copy-to-clipboard executable.
     ///
     /// If during execution, the output destination is set to be clipboard,
     /// then copyrat will pipe the selected text to this executable.
+    /// On macOS, this is `pbcopy`, on Linux, this is `xclip`.
     #[clap(long, default_value = "pbcopy")]
     pub clipboard_exe: String,
 
@@ -46,46 +52,54 @@ pub struct ConfigExt {
 }
 
 impl ConfigExt {
-    pub fn initialize() -> Result<ConfigExt, error::ParseError> {
+    pub fn initialize() -> Result<ConfigExt, ParseError> {
         let mut config_ext = ConfigExt::parse();
 
         if !config_ext.ignore_tmux_options {
             let tmux_options: HashMap<String, String> = tmux::get_options("@copyrat-")?;
 
             // Override default values with those coming from tmux.
-            let wrapped = &mut config_ext.basic_config;
+            let inner = &mut config_ext.basic_config;
 
             for (name, value) in &tmux_options {
                 match name.as_ref() {
                     "@copyrat-capture-region" => {
-                        config_ext.capture_region = CaptureRegion::from_str(&value)?
+                        let case_insensitive = true;
+                        config_ext.capture_region = CaptureRegion::from_str(value, case_insensitive)
+                            .map_err(ParseError::ExpectedEnumVariant)?
                     }
                     "@copyrat-alphabet" => {
-                        wrapped.alphabet = alphabet::parse_alphabet(value)?;
+                        inner.alphabet = alphabet::parse_alphabet(value)?;
                     }
                     "@copyrat-reverse" => {
-                        wrapped.reverse = value.parse::<bool>()?;
+                        inner.reverse = value.parse::<bool>()?;
                     }
                     "@copyrat-unique-hint" => {
-                        wrapped.unique_hint = value.parse::<bool>()?;
+                        inner.unique_hint = value.parse::<bool>()?;
                     }
 
-                    "@copyrat-span-fg" => wrapped.colors.span_fg = ui::colors::parse_color(value)?,
-                    "@copyrat-span-bg" => wrapped.colors.span_bg = ui::colors::parse_color(value)?,
+                    "@copyrat-span-fg" => inner.colors.span_fg = ui::colors::parse_color(value)?,
+                    "@copyrat-span-bg" => inner.colors.span_bg = ui::colors::parse_color(value)?,
                     "@copyrat-focused-fg" => {
-                        wrapped.colors.focused_fg = ui::colors::parse_color(value)?
+                        inner.colors.focused_fg = ui::colors::parse_color(value)?
                     }
                     "@copyrat-focused-bg" => {
-                        wrapped.colors.focused_bg = ui::colors::parse_color(value)?
+                        inner.colors.focused_bg = ui::colors::parse_color(value)?
                     }
-                    "@copyrat-hint-fg" => wrapped.colors.hint_fg = ui::colors::parse_color(value)?,
-                    "@copyrat-hint-bg" => wrapped.colors.hint_bg = ui::colors::parse_color(value)?,
+                    "@copyrat-hint-fg" => inner.colors.hint_fg = ui::colors::parse_color(value)?,
+                    "@copyrat-hint-bg" => inner.colors.hint_bg = ui::colors::parse_color(value)?,
 
                     "@copyrat-hint-alignment" => {
-                        wrapped.hint_alignment = ui::HintAlignment::from_str(&value)?
+                        let case_insensitive = true;
+                        inner.hint_alignment = ui::HintAlignment::from_str(value, case_insensitive)
+                            .map_err(ParseError::ExpectedEnumVariant)?
                     }
                     "@copyrat-hint-style" => {
-                        wrapped.hint_style = Some(basic::HintStyleArg::from_str(&value)?)
+                        let case_insensitive = true;
+                        inner.hint_style = Some(
+                            basic::HintStyleArg::from_str(value, case_insensitive)
+                                .map_err(ParseError::ExpectedEnumVariant)?,
+                        )
                     }
 
                     // Ignore unknown options.
@@ -98,11 +112,11 @@ impl ConfigExt {
     }
 }
 
-#[derive(Clap, Debug)]
+/// Specifies which region of the terminal buffer to capture.
+#[derive(Debug, Clone, ArgEnum, Parser)]
 pub enum CaptureRegion {
     /// The entire history.
-    ///
-    /// This will end up sending `-S - -E -` to `tmux capture-pane`.
+    // This will end up sending `-S - -E -` to `tmux capture-pane`.
     EntireHistory,
     /// The visible area.
     VisibleArea,
@@ -110,20 +124,6 @@ pub enum CaptureRegion {
     /////
     ///// This works as defined in tmux's docs (order does not matter).
     //Region(i32, i32),
-}
-
-impl FromStr for CaptureRegion {
-    type Err = error::ParseError;
-
-    fn from_str(s: &str) -> Result<Self, error::ParseError> {
-        match s {
-            "entire-history" => Ok(CaptureRegion::EntireHistory),
-            "visible-area" => Ok(CaptureRegion::VisibleArea),
-            _ => Err(error::ParseError::ExpectedString(String::from(
-                "entire-history or visible-area",
-            ))),
-        }
-    }
 }
 
 /// Describes the type of buffer the selected should be copied to: either a

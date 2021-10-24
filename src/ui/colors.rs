@@ -1,5 +1,5 @@
 use crate::error;
-use clap::Clap;
+use clap::Parser;
 use termion::color;
 
 pub fn parse_color(src: &str) -> Result<Box<dyn color::Color>, error::ParseError> {
@@ -52,7 +52,7 @@ mod tests {
 /// - `focus_*` colors are used to render the currently focused text span.
 /// - `normal_*` colors are used to render other text spans.
 /// - `hint_*` colors are used to render the hints.
-#[derive(Clap, Debug)]
+#[derive(Parser, Debug)]
 #[clap(about)] // Needed to avoid this doc comment to be used as overall `about`.
 pub struct UiColors {
     /// Foreground color for base text.
