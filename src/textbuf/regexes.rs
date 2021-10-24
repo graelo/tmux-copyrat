@@ -2,7 +2,7 @@
 //!
 //! All patterns must have one capture group. The first group is used.
 
-use crate::error;
+use crate::{error::ParseError, Result};
 
 pub(super) const EXCLUDE_PATTERNS: [(&str, &str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
@@ -51,9 +51,9 @@ pub(super) const PATTERNS: [(&str, &str); 20] = [
 pub struct NamedPattern(pub String, pub String);
 
 /// Parse a name string into `NamedPattern`, used during CLI parsing.
-pub(crate) fn parse_pattern_name(src: &str) -> Result<NamedPattern, error::ParseError> {
+pub(crate) fn parse_pattern_name(src: &str) -> Result<NamedPattern> {
     match PATTERNS.iter().find(|&(name, _pattern)| name == &src) {
         Some((name, pattern)) => Ok(NamedPattern(name.to_string(), pattern.to_string())),
-        None => Err(error::ParseError::UnknownPatternName),
+        None => Err(ParseError::UnknownPatternName),
     }
 }

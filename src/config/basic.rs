@@ -3,7 +3,7 @@ use clap::{ArgEnum, Parser};
 use crate::{
     error::ParseError,
     textbuf::{alphabet, regexes},
-    ui,
+    ui, Result,
 };
 
 /// Main configuration, parsed from command line.
@@ -78,7 +78,7 @@ pub enum HintStyleArg {
 }
 
 /// Try to parse a `&str` into a tuple of `char`s.
-fn parse_chars(src: &str) -> Result<(char, char), ParseError> {
+fn parse_chars(src: &str) -> Result<(char, char)> {
     if src.chars().count() != 2 {
         return Err(ParseError::ExpectedSurroundingPair);
     }

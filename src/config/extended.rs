@@ -4,7 +4,7 @@ use std::fmt;
 use clap::{ArgEnum, Parser};
 
 use super::basic;
-use crate::{error::ParseError, textbuf::alphabet, tmux, ui};
+use crate::{error::ParseError, textbuf::alphabet, tmux, ui, Result};
 
 /// Extended configuration for handling Tmux-specific configuration (options
 /// and outputs). This is only used by `tmux-copyrat` and parsed from command
@@ -52,7 +52,7 @@ pub struct ConfigExt {
 }
 
 impl ConfigExt {
-    pub fn initialize() -> Result<ConfigExt, ParseError> {
+    pub fn initialize() -> Result<ConfigExt> {
         let mut config_ext = ConfigExt::parse();
 
         if !config_ext.ignore_tmux_options {
