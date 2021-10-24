@@ -2,326 +2,113 @@
 
 [![crate](https://img.shields.io/crates/v/tmux-copyrat.svg)](https://crates.io/crates/tmux-copyrat)
 [![documentation](https://docs.rs/tmux-copyrat/badge.svg)](https://docs.rs/tmux-copyrat)
-[![minimum rustc 1.8](https://img.shields.io/badge/rustc-1.56+-red.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
-[![minimum rustc 1.8](https://img.shields.io/badge/edition-2021-blue.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/index.html)
+[![minimum rustc 1.8](https://img.shields.io/badge/rustc-1.56+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![edition 2021](https://img.shields.io/badge/edition-2021-blue.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/index.html)
+[![tmux 3.x](https://img.shields.io/badge/tmux-3.0+-blue.svg)](https://tmux.github.io)
 [![build status](https://github.com/graelo/tmux-copyrat/workflows/main/badge.svg)](https://github.com/graelo/tmux-copyrat/actions)
 
+A tmux-plugin for copy-pasting spans of text from the [tmux] pane's history
+into a clipboard.
 
-A hommage to [tmux-copyrat](https://github.com/tmux-plugins/tmux-copycat), written in [Rust](https://www.rust-lang.org/) for copy pasting within [tmux](http://tmux.github.io).
+**Use case**: you're in tmux and press the key binding to highlight, say dates.
+This makes `tmux-copyrat` search within tmux's current pane history and
+highlight all spans of text which correspond to a date. All spans are displayed
+with a one or two key _hint_, which you can then press to copy-paste the span
+into the tmux clipboard or the system clipboard. Check out the demo below.
 
-## Usage
+The name is a tribute to [tmux-copyrat], which I used for many years.
 
-Press ( <kbd>prefix</kbd> + <kbd>Space</kbd> ) to highlist in you current tmux
-visible pane all text that match specific pattern. Then press the highlighted
-letter hint to yank the text in your tmux buffer.
-
-### Matched patterns
-
-- File paths
-- File in diff
-- Git SHAs
-- IPFS CID's
-- Colors in hex
-- Numbers ( 4+ digits )
-- Hex numbers
-- Markdown urls
-- IP4 addresses
-- Docker images
-- kubernetes resources
-- UUIDs
-
-These are the list of matched patterns that will be highlighted by default. If
-you want to highlight a pattern that is not in this list you can add one or
-more with `--regexp` parameter.
 
 ## Demo
 
 [![demo](https://asciinema.org/a/232775.png?ts=1)](https://asciinema.org/a/232775?autoplay=1)
 
-## Tmux integration
 
-Clone the repo:
+## Usage
 
-```
-git clone https://github.com/graelo/tmux-copyrat ~/.tmux/plugins/tmux-copyrat
-```
+Restart tmux after the plugin is installed and configured (see both
+[INSTALLATION.md] and [CONFIGURATION.md] pages). Press one of the pre-defined
+tmux key-bindings (see table below) in order to highlight spans of text
+matching a specific pattern. To yank some text span in the tmux buffer, press
+the corresponding _hint_, or press <kbd>Esc</kbd> to cancel and exit.
 
-Compile it with [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html):
+If instead you want to yank the text span into the system clipboard, either
+press the caps version of the key hint (for instance <kbd>E</kbd> instead of
+<kbd>e</kbd>), or first toggle the destination buffer with the <kbd>space</kbd>
+key and press the hint with no caps.
 
-```
-cd ~/.tmux/plugins/tmux-copyrat
-cargo build --release
-```
+You can also use the <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>Up</kbd> and
+<kbd>Down</kbd>) keys to move focus across the highlighted spans. Press
+<kbd>y</kbd> to yank the focused span into the tmux buffer, or press
+<kbd>Y</kbd> to yank it into the system clipboard.
 
-Source it in your `.tmux.conf`:
+By default, span highlighting starts from the bottom of the terminal, but you
+can reverse that behavior with the `--reverse` option (more on that in the
+[Configuration.md] page). The `--focus wrap-around` option makes navigation
+go back to the first span.
 
-```
-run-shell ~/.tmux/plugins/tmux-copyrat/copyrat.tmux
-```
 
-Reload TMUX conf by running:
+### Matched patterns and default key-bindings
 
-```
-tmux source-file ~/.tmux.conf
-```
+tmux-copyrat can match one or more pre-defined (named) patterns, but you can
+add your own too.
 
-## Using Tmux Plugin Manager
+The default configuration provided in the [`copyrat.tmux`](copyrat.tmux) plugin
+file provides the following key-bindings. Because they all start with
+<kbd>prefix</kbd> + <kbd>t</kbd>, the table below only lists the keyboard key
+that comes after. For instance, for URLs, the key is <kbd>u</kbd>, but you
+should type <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd>.
 
-You can add this line to your list of [TPM](https://github.com/tmux-plugins/tpm) plugins in `.tmux.conf`:
+| key binding      | searches for                           | pattern name      |
+| ---              | ---                                    | ---               |
+| <kbd>c</kbd>     | Hex color codes                        | `hexcolor`        |
+| <kbd>d</kbd>     | Dates or datetimes                     | `datetime`        |
+| <kbd>D</kbd>     | Docker/Podman IDs                      | `docker`          |
+| <kbd>e</kbd>     | Emails                                 | `email`           |
+| <kbd>G</kbd>     | String of 4+ digits                    | `digits`          |
+| <kbd>h</kbd>     | SHA-1/-2 short & long                  | `sha`             |
+| <kbd>m</kbd>     | Markdown URLs `[..](matched-url)`      | `markdown-url`    |
+| <kbd>p</kbd>     | Abs. and rel. filepaths                | `path`            |
+| <kbd>P</kbd>     | Hex numbers and pointer addresses      | `pointer-address` |
+|                  | strings inside single quotes           | `quoted-single`   |
+|                  | strings inside double quotes           | `quoted-double`   |
+|                  | strings inside backticks               | `quoted-tick`     |
+| <kbd>q</kbd>     | strings inside single/double/backticks |                   |
+| <kbd>u</kbd>     | URLs                                   | `url`             |
+| <kbd>U</kbd>     | UUIDs                                  | `uuid`            |
+| <kbd>v</kbd>     | version numbers                        | `version`         |
+| <kbd>4</kbd>     | IPv4 addresses                         | `4`               |
+| <kbd>6</kbd>     | IPv6 addresses                         | `6`               |
+| <kbd>space</kbd> | All patterns                           |                   |
 
-```
-set -g @plugin 'graelo/tmux-copyrat'
-```
+If you want additional patterns, you can provide them via the
+`--custom-pattern` command line option (short option: `-X`), see
+[CONFIGURATION.md].
 
-To be able to install the plugin just hit <kbd>prefix</kbd> + <kbd>I</kbd>. You should now be able to use
-the plugin!
 
-## Configuration
+## The `copyrat` companion executable
 
-If you want to customize how is shown your tmux-copyrat hints those all available
-parameters to set your perfect profile.
+The central binary of this crate is `tmux-copyrat`, however there is also the
+`copyrat` executable. It simply provides the same functionality, without any
+tmux dependency or integration.
 
-NOTE: for changes to take effect, you'll need to source again your `.tmux.conf` file.
+You can use `copyrat` to search a span of text that you provide to stdin.
 
-- [@copyrat-key](#thumbs-key)
-- [@copyrat-alphabet](#thumbs-alphabet)
-- [@copyrat-reverse](#thumbs-reverse)
-- [@copyrat-unique](#thumbs-unique)
-- [@copyrat-position](#thumbs-position)
-- [@copyrat-regexp-N](#thumbs-regexp-N)
-- [@copyrat-command](#thumbs-command)
-- [@copyrat-upcase-command](#thumbs-upcase-command)
-- [@copyrat-bg-color](#thumbs-bg-color)
-- [@copyrat-fg-color](#thumbs-fg-color)
-- [@copyrat-hint-bg-color](#thumbs-hint-bg-color)
-- [@copyrat-hint-fg-color](#thumbs-hint-fg-color)
-- [@copyrat-select-fg-color](#thumbs-select-fg-color)
-- [@copyrat-select-bg-color](#thumbs-select-bg-color)
-- [@copyrat-contrast](#thumbs-contrast)
+For instance here is a bunch of text, with dates and git hashes which you can
+search with copyrat.
 
-### @thumbs-key
-
-`default: space`
-
-Choose which key is used to enter in thumbs mode.
-
-For example:
-
-```
-set -g @thumbs-key F
-```
-
-### @thumbs-alphabet
-
-`default: qwerty`
-
-Choose which set of characters is used to build hints. Review all [available alphabets](#Alphabets)
-
-For example:
-
-```
-set -g @thumbs-alphabet dvorak-homerow
+```console
+$ echo -n '* e006b06 - (12 days ago = 2021-03-04T12:23:34) e006b06 e006b06 swapper: Make quotes\n/usr/local/bin/git\n\nlorem\n/usr/local/bin\nlorem\n/usr/local/bin/git\n* e006b06 - (12 days ago = 2021-03-04T12:23:34) e006b06 e006b06 swapper: Make quotes' \
+    | ./target/release/copyrat -r --unique-hint -s bold -X '(loca)' -x sha datetime
 ```
 
-### @thumbs-reverse
+You will see the following in your terminal
 
-`default: disabled`
+![[copyrat-output.png](images/copyrat-output.png)](images/copyrat-output.png)
 
-Choose in which direction you want to assign hints. Useful to get shorter hints closer to the cursor.
+You may have noticed that all identical spans share the same _hint_, this is
+due to the `-unique-hint` option (`-u`). The hints are in bold text, due to the `--hint-style bold` option (`-s`).
 
-For example:
-
-```
-set -g @thumbs-reverse
-```
-
-### @thumbs-unique
-
-`default: disabled`
-
-Choose if you want to assign the same hint for the same text spans.
-
-For example:
-
-```
-set -g @thumbs-unique
-```
-
-### @thumbs-position
-
-`default: left`
-
-Choose where do you want to show the hint in the text spans. Options (left, right).
-
-For example:
-
-```
-set -g @thumbs-position right
-```
-
-### @thumbs-regexp-N
-
-Add extra patterns to match. This parameter can have multiple instances.
-
-For example:
-
-```
-set -g @thumbs-regexp-1 '[a-z]+@[a-z]+.com' # Match emails
-set -g @thumbs-regexp-2 '[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:' # Match MAC addresses
-```
-
-### @thumbs-command
-
-`default: 'tmux set-buffer {}'`
-
-Choose which command execute when you press a hint. `tmux-thumbs` will replace `{}` with the picked hint.
-
-For example:
-
-```
-set -g @thumbs-command 'echo -n {} | pbcopy'
-```
-
-### @thumbs-upcase-command
-
-`default: 'tmux set-buffer {} && tmux paste-buffer'`
-
-Choose which command execute when you press a upcase hint. `tmux-thumbs` will replace `{}` with the picked hint.
-
-For example:
-
-```
-set -g @thumbs-upcase-command 'echo -n {} | pbcopy'
-```
-
-### @thumbs-bg-color
-
-`default: black`
-
-Sets the background color for spans
-
-For example:
-
-```
-set -g @thumbs-bg-color blue
-```
-
-### @thumbs-fg-color
-
-`default: green`
-
-Sets the foreground color for spans
-
-For example:
-
-```
-set -g @thumbs-fg-color green
-```
-
-### @thumbs-hint-bg-color
-
-`default: black`
-
-Sets the background color for hints
-
-For example:
-
-```
-set -g @thumbs-hint-bg-color blue
-```
-
-### @thumbs-hint-fg-color
-
-`default: yellow`
-
-Sets the foreground color for hints
-
-For example:
-
-```
-set -g @thumbs-hint-fg-color green
-```
-
-### @thumbs-select-fg-color
-
-`default: blue`
-
-Sets the foreground color for selection
-
-For example:
-
-```
-set -g @thumbs-select-fg-color red
-```
-
-### @thumbs-select-bg-color
-
-`default: black`
-
-Sets the background color for selection
-
-For example:
-
-```
-set -g @thumbs-select-bg-color red
-```
-
-### @thumbs-contrast
-
-`default: 0`
-
-Displays hint character in square brackets for extra visibility.
-
-For example:
-
-```
-set -g @thumbs-contrast 1
-```
-
-#### Colors
-
-This is the list of available colors:
-
-- black
-- red
-- green
-- yellow
-- blue
-- magenta
-- cyan
-- white
-- default
-
-#### Alphabets
-
-This is the list of available alphabets:
-
-- `qwerty`: asdfqwerzxcvjklmiuopghtybn
-- `qwerty-homerow`: asdfjklgh
-- `qwerty-left-hand`: asdfqwerzcxv
-- `qwerty-right-hand`: jkluiopmyhn
-- `azerty`: qsdfazerwxcvjklmuiopghtybn
-- `azerty-homerow`: qsdfjkmgh
-- `azerty-left-hand`: qsdfazerwxcv
-- `azerty-right-hand`: jklmuiophyn
-- `qwertz`: asdfqweryxcvjkluiopmghtzbn
-- `qwertz-homerow`: asdfghjkl
-- `qwertz-left-hand`: asdfqweryxcv
-- `qwertz-right-hand`: jkluiopmhzn
-- `dvorak`: aoeuqjkxpyhtnsgcrlmwvzfidb
-- `dvorak-homerow`: aoeuhtnsid
-- `dvorak-left-hand`: aoeupqjkyix
-- `dvorak-right-hand`: htnsgcrlmwvz
-- `colemak`: arstqwfpzxcvneioluymdhgjbk
-- `colemak-homerow`: arstneiodh
-- `colemak-left-hand`: arstqwfpzxcv
-- `colemak-right-hand`: neioluymjhk
-
-## Extra features
-
-- **Arrow navigation:** You can use the arrows to move around between all spans.
-- **Auto paste:** If your last typed hint character is uppercase, you are going to pick and paste the desired hint.
-- **Multi selection:** If you run thumb with multi selection mode you will be able to choose multiple hints pressing the desired letter and `Space` to finalize the selection.
 
 ## Tmux compatibility
 
@@ -329,7 +116,7 @@ This is the known list of versions of `tmux` compatible with `tmux-thumbs`:
 
 | Version | Compatible |
 |:-------:|:----------:|
-|   3.0b  |     ✅     |
+|   3.0+  |     ✅     |
 |   2.9a  |     ✅     |
 |   2.8   |      ❓    |
 |   2.7   |      ❓    |
@@ -340,7 +127,8 @@ This is the known list of versions of `tmux` compatible with `tmux-thumbs`:
 |   1.8   |      ❓    |
 |   1.7   |      ❓    |
 
-If you can check hat `tmux-thumbs` is or is not compatible with some specific version of `tmux`, let me know.
+Please report incompatibilities as you find them, I'll add them to the list.
+
 
 ## Standalone `thumbs`
 
@@ -413,18 +201,50 @@ During those days another alternative appeared, called [tmux-picker](https://git
 
 I was curious to know if this was possible to be written in [Rust](https://www.rust-lang.org/), and soon I realized that was something doable. The ability to implement tests for all critic parts of the application give you a great confidence about it. On the other hand, Rust has an awesome community that lets you achieve this kind of project in a short period of time.
 
-## Roadmap
 
-- [X] Support multi selection
-- [X] Decouple `tmux-thumbs` from `tmux`
-- [ ] Code [Kitty](https://github.com/kovidgoyal/kitty) plugin, now that `thumbs` can run standalone
+## Run code-coverage
 
-## Contribute
+Install the llvm-tools-preview component and grcov
 
-This project started as a side project to learn Rust, so I'm sure that is full
-of mistakes and areas to be improve. If you think you can tweak the code to
-make it better, I'll really appreaciate a pull request. ;)
+```sh
+rustup component add llvm-tools-preview
+cargo install grcov
+```
 
-# License
+Install nightly
 
-[MIT](https://github.com/fcsonline/tmux-thumbs/blob/master/LICENSE)
+```sh
+rustup toolchain install nightly
+```
+
+The following make invocation will switch to nigthly run the tests using
+Cargo, and output coverage HTML report in `./coverage/`
+
+```sh
+make coverage
+```
+
+The coverage report is located in `./coverage/index.html`
+
+
+
+## License
+
+Licensed under either of
+
+ * [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+ * [MIT license](http://opensource.org/licenses/MIT)
+
+at your option.
+
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall
+be dual licensed as above, without any additional terms or conditions.
+
+[tmux]: https://tmux.github.io
+[tmux-copyrat]: https://github.com/tmux-plugins/tmux-copycat
+[CONFIGURATION.md]: CONFIGURATION.md
+[INSTALLATION.md]: INSTALLATION.md

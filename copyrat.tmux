@@ -15,9 +15,10 @@
 #   bind-key -T foobar h new-window -d -n "[copyrat]" '/path/to/tmux-copyrat --window-name "[copyrat]" --pattern-name urls'
 #                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# changing this script may break integration with `tmux-copyrat`.
+# Please avoid modifying this script as it may break the integration with
+# `tmux-copyrat`.
 #
-
+#
 # Just make sure you first open a named window in the background and provide
 # that name to the binary `tmux-copyrat`.
 #
@@ -28,7 +29,8 @@
 # options and bindings in your `tmux.conf`.
 
 CURRENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
-BINARY="${CURRENT_DIR}/tmux-copyrat"
+PATH=${PATH}:${CURRENT_DIR}
+BINARY=$(realpath tmux-copyrat)
 
 
 #
@@ -36,11 +38,11 @@ BINARY="${CURRENT_DIR}/tmux-copyrat"
 #
 
 setup_option() {
-	local opt_name=$1
-	local default_value=$2
-	local current_value=$(tmux show-option -gqv @copyrat-${opt_name})
-	value=${current_value:-${default_value}}
-	tmux set-option -g @copyrat-${opt_name} ${value}
+    local opt_name=$1
+    local default_value=$2
+    local current_value=$(tmux show-option -gqv @copyrat-${opt_name})
+    value=${current_value:-${default_value}}
+    tmux set-option -g @copyrat-${opt_name} ${value}
 }
 
 
@@ -70,11 +72,11 @@ tmux bind-key ${keyswitch} switch-client -T ${keytable}
 #
 
 setup_pattern_binding() {
-	local key=$1
-	local pattern_arg="$2"
-  # The default window name `[copyrat]` has to be single quoted because it is
-  # interpreted by the shell when launched by tmux.
-	tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} --window-name '"${window_name}"' --reverse --unique-hint ${pattern_arg}"
+    local key=$1
+    local pattern_arg="$2"
+    # The default window name `[copyrat]` has to be single quoted because it is
+    # interpreted by the shell when launched by tmux.
+    tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} --window-name '"${window_name}"' --reverse --unique-hint ${pattern_arg}"
 }
 
 # prefix + t + c searches for hex colors #aa00f5
