@@ -1,7 +1,7 @@
 use clap::{ArgEnum, Parser};
 
 use crate::{
-    error::ParseError,
+    error::Error,
     textbuf::{alphabet, regexes},
     ui, Result,
 };
@@ -80,7 +80,7 @@ pub enum HintStyleArg {
 /// Try to parse a `&str` into a tuple of `char`s.
 fn parse_chars(src: &str) -> Result<(char, char)> {
     if src.chars().count() != 2 {
-        return Err(ParseError::ExpectedSurroundingPair);
+        return Err(Error::ExpectedSurroundingPair);
     }
 
     let chars: Vec<char> = src.chars().collect();

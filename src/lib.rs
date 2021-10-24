@@ -4,7 +4,7 @@ pub mod textbuf;
 pub mod tmux;
 pub mod ui;
 
-pub type Result<T> = std::result::Result<T, error::ParseError>;
+pub type Result<T> = std::result::Result<T, error::Error>;
 
 /// Run copyrat on an input string `buffer`, configured by `Opt`.
 ///

@@ -1,4 +1,4 @@
-use crate::{error::ParseError, Result};
+use crate::{error::Error, Result};
 
 /// Catalog of available alphabets.
 ///
@@ -49,7 +49,7 @@ pub fn parse_alphabet(src: &str) -> Result<Alphabet> {
             let letters = letters.replace(&['n', 'N', 'y', 'Y'][..], "");
             Ok(Alphabet(letters))
         }
-        None => Err(ParseError::UnknownAlphabet),
+        None => Err(Error::UnknownAlphabet),
     }
 }
 

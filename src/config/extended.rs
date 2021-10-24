@@ -4,7 +4,7 @@ use std::fmt;
 use clap::{ArgEnum, Parser};
 
 use super::basic;
-use crate::{error::ParseError, textbuf::alphabet, tmux, ui, Result};
+use crate::{error::Error, textbuf::alphabet, tmux, ui, Result};
 
 /// Extended configuration for handling Tmux-specific configuration (options
 /// and outputs). This is only used by `tmux-copyrat` and parsed from command
@@ -66,7 +66,7 @@ impl ConfigExt {
                     "@copyrat-capture-region" => {
                         let case_insensitive = true;
                         config_ext.capture_region = CaptureRegion::from_str(value, case_insensitive)
-                            .map_err(ParseError::ExpectedEnumVariant)?
+                            .map_err(Error::ExpectedEnumVariant)?
                     }
                     "@copyrat-alphabet" => {
                         inner.alphabet = alphabet::parse_alphabet(value)?;
@@ -92,13 +92,13 @@ impl ConfigExt {
                     "@copyrat-hint-alignment" => {
                         let case_insensitive = true;
                         inner.hint_alignment = ui::HintAlignment::from_str(value, case_insensitive)
-                            .map_err(ParseError::ExpectedEnumVariant)?
+                            .map_err(Error::ExpectedEnumVariant)?
                     }
                     "@copyrat-hint-style" => {
                         let case_insensitive = true;
                         inner.hint_style = Some(
                             basic::HintStyleArg::from_str(value, case_insensitive)
-                                .map_err(ParseError::ExpectedEnumVariant)?,
+                                .map_err(Error::ExpectedEnumVariant)?,
                         )
                     }
 
