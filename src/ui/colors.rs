@@ -1,8 +1,9 @@
-use crate::error;
 use clap::Parser;
 use termion::color;
 
-pub fn parse_color(src: &str) -> Result<Box<dyn color::Color>, error::ParseError> {
+use crate::{error::ParseError, Result};
+
+pub fn parse_color(src: &str) -> Result<Box<dyn color::Color>> {
     match src {
         "black" => Ok(Box::new(color::Black)),
         "red" => Ok(Box::new(color::Red)),
@@ -21,7 +22,7 @@ pub fn parse_color(src: &str) -> Result<Box<dyn color::Color>, error::ParseError
         "bright-cyan" | "brightcyan" => Ok(Box::new(color::LightCyan)),
         "bright-white" | "brightwhite" => Ok(Box::new(color::LightWhite)),
         "none" => Ok(Box::new(color::Reset)),
-        _ => Err(error::ParseError::UnknownColor),
+        _ => Err(ParseError::UnknownColor),
     }
 }
 

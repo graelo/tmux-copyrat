@@ -4,6 +4,8 @@ pub mod textbuf;
 pub mod tmux;
 pub mod ui;
 
+pub type Result<T> = std::result::Result<T, error::ParseError>;
+
 /// Run copyrat on an input string `buffer`, configured by `Opt`.
 ///
 /// # Note
@@ -11,7 +13,7 @@ pub mod ui;
 /// Maybe the decision to take ownership of the buffer is a bit bold.
 pub fn run(lines: &[&str], opt: &config::basic::Config) -> Option<ui::Selection> {
     let model = textbuf::Model::new(
-        &lines,
+        lines,
         &opt.alphabet,
         opt.use_all_patterns,
         &opt.named_patterns,
