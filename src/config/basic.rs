@@ -31,7 +31,8 @@ pub struct Config {
     #[clap(short = 'x', long = "--pattern-name", parse(try_from_str = regexes::parse_pattern_name))]
     pub named_patterns: Vec<regexes::NamedPattern>,
 
-    /// Additional regex patterns ("foo*bar", etc).
+    /// Additional regex patterns ("(foo.*)bar", etc). Must have a capture
+    /// group.
     #[clap(short = 'X', long = "--custom-pattern")]
     pub custom_patterns: Vec<String>,
 
