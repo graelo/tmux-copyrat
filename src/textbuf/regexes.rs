@@ -42,7 +42,7 @@ pub(super) const PATTERNS: [(&str, &str); 20] = [
     ),
     ("quoted-single", r#"'([^']+)'"#),
     ("quoted-double", r#""([^"]+)""#),
-    ("quoted-tick", r#"`([^`]+)`"#),
+    ("quoted-backtick", r#"`([^`]+)`"#),
     ("digits", r"([0-9]{4,})"),
 ];
 
