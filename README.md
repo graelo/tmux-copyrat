@@ -16,7 +16,9 @@ highlight all spans of text which correspond to a date. All spans are displayed
 with a one or two key _hint_, which you can then press to copy-paste the span
 into the tmux clipboard or the system clipboard. Check out the demo below.
 
-The name is a tribute to [tmux-copyrat], which I used for many years.
+The name is a tribute to [tmux-copyrat], which I used for many years for that
+same functionality. For this Rust implementation, I got inspired by
+[tmux-thumbs], and I even borrowed some parts of his regex tests.
 
 
 ## Demo
@@ -26,11 +28,13 @@ The name is a tribute to [tmux-copyrat], which I used for many years.
 
 ## Usage
 
-Restart tmux after the plugin is installed and configured (see both
-[INSTALLATION.md] and [CONFIGURATION.md] pages). Press one of the pre-defined
-tmux key-bindings (see table below) in order to highlight spans of text
-matching a specific pattern. To yank some text span in the tmux buffer, press
-the corresponding _hint_, or press <kbd>Esc</kbd> to cancel and exit.
+First install and optionally customize the plugin (see both [INSTALLATION.md]
+and [CONFIGURATION.md] pages) and restart tmux.
+
+Press one of the pre-defined tmux key-bindings (see table below) in order to
+highlight spans of text matching a specific pattern. To yank some text span in
+the tmux buffer, press the corresponding _hint_, or press <kbd>Esc</kbd> to
+cancel and exit.
 
 If instead you want to yank the text span into the system clipboard, either
 press the caps version of the key hint (for instance <kbd>E</kbd> instead of
@@ -43,9 +47,9 @@ You can also use the <kbd>n</kbd> and <kbd>N</kbd> (or <kbd>Up</kbd> and
 <kbd>Y</kbd> to yank it into the system clipboard.
 
 By default, span highlighting starts from the bottom of the terminal, but you
-can reverse that behavior with the `--reverse` option (more on that in the
-[Configuration.md] page). The `--focus wrap-around` option makes navigation
-go back to the first span.
+can reverse that behavior with the `--reverse` option. The
+`--focus-wrap-around` option makes navigation go back to the first span. Many
+more options are described in [CONFIGURATION.md].
 
 
 ### Matched patterns and default key-bindings
@@ -82,20 +86,46 @@ should type <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd>.
 | <kbd>space</kbd> | All patterns                           |                   |
 
 
-## The `copyrat` companion executable
+## Tmux compatibility
 
-The central binary of this crate is `tmux-copyrat`, however there is also the
-`copyrat` executable which provides the same functionality minus any tmux
-dependency or integration and instead reads from stdin.
+`tmux-copyrat` is known to be compatible with tmux 3.0 onwards.
 
-You can use `copyrat` to search a span of text that you provide to stdin.
+Testing this kind of integration with tmux is time consuming, so I'll be
+grateful if you report incompatibilities as you find them.
+
+
+## The `copyrat` standalone executable
+
+Although the central binary of this crate is `tmux-copyrat`, the crate also
+ships with the `copyrat` executable which provides the same functionality,
+minus any tmux dependency or integration and instead reads from stdin.
+
+You can use `copyrat` to search a span of text that you provide to stdin, à la
+[FZF] but more focused and less interactive.
 
 For instance here is a bunch of text, with dates and git hashes which you can
 search with copyrat.
 
+```text
+* e006b06 - (12 days ago = 2021-03-04T12:23:34) e006b06 e006b06 swapper: Make quotes
+/usr/local/bin/git
+
+lorem
+/usr/local/bin
+lorem
+The error was `Error no such file`
+```
+
+Let's imagine you want a quick way to always search for SHA-1/2, datetimes, strings within backticks, you would define once the following alias
+
+```zsh
+$ alias pick='copyrat -r --unique-hint -s bold -x sha datetime quoted-backtick | pbcopy'
+```
+
+and simply
+
 ```console
-$ echo -n '* e006b06 - (12 days ago = 2021-03-04T12:23:34) e006b06 e006b06 swapper: Make quotes\n/usr/local/bin/git\n\nlorem\n/usr/local/bin\nlorem\nThe error was `Error no such file`\n/usr/local/bin/git' \
-    | ./target/release/copyrat -r --unique-hint -s bold -X '(loca)' -x sha datetime quoted-backtick
+$ git log | pick
 ```
 
 You will see the following in your terminal
@@ -109,26 +139,6 @@ due to the `-unique-hint` option (`-u`). The hints are in bold text, due to the
 "loca", due to the `--custom-regex-pattern` option (`-X`). The sha, datetime
 and content inside backticks were highlighted due to the `--named-pattern`
 option (`-x`).
-
-
-## Tmux compatibility
-
-This is the known list of versions of `tmux` compatible with `tmux-thumbs`:
-
-| Version | Compatible |
-|:-------:|:----------:|
-|   3.0+  |     ✅     |
-|   2.9a  |     ✅     |
-|   2.8   |      ❓    |
-|   2.7   |      ❓    |
-|   2.6   |     ✅     |
-|   2.5   |      ❓    |
-|   2.4   |      ❓    |
-|   2.3   |      ❓    |
-|   1.8   |      ❓    |
-|   1.7   |      ❓    |
-
-Please report incompatibilities as you find them, I'll add them to the list.
 
 
 ## Standalone `thumbs`
@@ -182,26 +192,6 @@ If you want to enjoy terminal hints, you can do things like this without `tmux`:
 > git log | pick
 ```
 
-Or multi selection:
-
-```
-> git log | thumbs -m
-1df9fa69c8831ac042c6466af81e65402ee2a007
-4897dc4ecbd2ac90b17de95e00e9e75bb540e37f
-```
-
-Standalone `thumbs` has some similarities to [FZF](https://github.com/junegunn/fzf).
-
-## Background
-
-As I said, this project is based in [tmux-fingers](https://github.com/Morantron/tmux-fingers). Morantron did an extraordinary job, building all necessary pieces in Bash to achieve the text picker behaviour. He only deserves my gratitude for all the time I have been using [tmux-fingers](https://github.com/Morantron/tmux-fingers).
-
-During a [Fosdem](https://fosdem.org/) conf, we had the idea to rewrite it to another language. He had these thoughts many times ago but it was hard to start from scratch. So, we decided to start playing with Node.js and [react-blessed](https://github.com/Yomguithereal/react-blessed), but we detected some unacceptable latency when the program booted. We didn't investigate much about this latency.
-
-During those days another alternative appeared, called [tmux-picker](https://github.com/RTBHOUSE/tmux-picker), implemented in python and reusing many parts from [tmux-fingers](https://github.com/Morantron/tmux-fingers). It was nice, because it was fast and added original terminal color support.
-
-I was curious to know if this was possible to be written in [Rust](https://www.rust-lang.org/), and soon I realized that was something doable. The ability to implement tests for all critic parts of the application give you a great confidence about it. On the other hand, Rust has an awesome community that lets you achieve this kind of project in a short period of time.
-
 
 ## Run code-coverage
 
@@ -231,10 +221,7 @@ The coverage report is located in `./coverage/index.html`
 
 ## License
 
-Licensed under either of
-
- * [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
- * [MIT license](http://opensource.org/licenses/MIT)
+This project is licensed under the [MIT license]
 
 at your option.
 
@@ -242,10 +229,14 @@ at your option.
 ### Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the Apache-2.0 license, shall
-be dual licensed as above, without any additional terms or conditions.
+for inclusion in the work by you, as defined in the MIT license, shall
+be licensed as MIT, without any additional terms or conditions.
 
 [tmux]: https://tmux.github.io
 [tmux-copyrat]: https://github.com/tmux-plugins/tmux-copycat
 [CONFIGURATION.md]: CONFIGURATION.md
 [INSTALLATION.md]: INSTALLATION.md
+[tmux-thumbs]: https://crates.io/crates/tmux-thumbs
+[FZF]: https://github.com/junegunn/fzf
+[xsel]: https://ostechnix.com/access-clipboard-contents-using-xclip-and-xsel-in-linux/
+[MIT license]: http://opensource.org/licenses/MIT
