@@ -584,7 +584,7 @@ mod tests {
         let named_pat = vec![
             parse_pattern_name("quoted-single").unwrap(),
             parse_pattern_name("quoted-double").unwrap(),
-            parse_pattern_name("quoted-tick").unwrap(),
+            parse_pattern_name("quoted-backtick").unwrap(),
         ];
 
         let custom = vec![];

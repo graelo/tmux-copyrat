@@ -37,7 +37,7 @@ press the caps version of the key hint (for instance <kbd>E</kbd> instead of
 <kbd>e</kbd>), or first toggle the destination buffer with the <kbd>space</kbd>
 key and press the hint with no caps.
 
-You can also use the <kbd>n</kbd> and <kbd>p</kbd> (or <kbd>Up</kbd> and
+You can also use the <kbd>n</kbd> and <kbd>N</kbd> (or <kbd>Up</kbd> and
 <kbd>Down</kbd>) keys to move focus across the highlighted spans. Press
 <kbd>y</kbd> to yank the focused span into the tmux buffer, or press
 <kbd>Y</kbd> to yank it into the system clipboard.
@@ -51,7 +51,7 @@ go back to the first span.
 ### Matched patterns and default key-bindings
 
 tmux-copyrat can match one or more pre-defined (named) patterns, but you can
-add your own too.
+add your own too (see [CONFIGURATION.md]).
 
 The default configuration provided in the [`copyrat.tmux`](copyrat.tmux) plugin
 file provides the following key-bindings. Because they all start with
@@ -72,7 +72,7 @@ should type <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd>.
 | <kbd>P</kbd>     | Hex numbers and pointer addresses      | `pointer-address` |
 |                  | strings inside single quotes           | `quoted-single`   |
 |                  | strings inside double quotes           | `quoted-double`   |
-|                  | strings inside backticks               | `quoted-tick`     |
+|                  | strings inside backticks               | `quoted-backtick` |
 | <kbd>q</kbd>     | strings inside single/double/backticks |                   |
 | <kbd>u</kbd>     | URLs                                   | `url`             |
 | <kbd>U</kbd>     | UUIDs                                  | `uuid`            |
@@ -81,16 +81,12 @@ should type <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd>.
 | <kbd>6</kbd>     | IPv6 addresses                         | `6`               |
 | <kbd>space</kbd> | All patterns                           |                   |
 
-If you want additional patterns, you can provide them via the
-`--custom-pattern` command line option (short option: `-X`), see
-[CONFIGURATION.md].
-
 
 ## The `copyrat` companion executable
 
 The central binary of this crate is `tmux-copyrat`, however there is also the
-`copyrat` executable. It simply provides the same functionality, without any
-tmux dependency or integration.
+`copyrat` executable which provides the same functionality minus any tmux
+dependency or integration and instead reads from stdin.
 
 You can use `copyrat` to search a span of text that you provide to stdin.
 
@@ -98,8 +94,8 @@ For instance here is a bunch of text, with dates and git hashes which you can
 search with copyrat.
 
 ```console
-$ echo -n '* e006b06 - (12 days ago = 2021-03-04T12:23:34) e006b06 e006b06 swapper: Make quotes\n/usr/local/bin/git\n\nlorem\n/usr/local/bin\nlorem\n/usr/local/bin/git\n* e006b06 - (12 days ago = 2021-03-04T12:23:34) e006b06 e006b06 swapper: Make quotes' \
-    | ./target/release/copyrat -r --unique-hint -s bold -X '(loca)' -x sha datetime
+$ echo -n '* e006b06 - (12 days ago = 2021-03-04T12:23:34) e006b06 e006b06 swapper: Make quotes\n/usr/local/bin/git\n\nlorem\n/usr/local/bin\nlorem\nThe error was `Error no such file`\n/usr/local/bin/git' \
+    | ./target/release/copyrat -r --unique-hint -s bold -X '(loca)' -x sha datetime quoted-backtick
 ```
 
 You will see the following in your terminal
@@ -107,7 +103,12 @@ You will see the following in your terminal
 ![[copyrat-output.png](images/copyrat-output.png)](images/copyrat-output.png)
 
 You may have noticed that all identical spans share the same _hint_, this is
-due to the `-unique-hint` option (`-u`). The hints are in bold text, due to the `--hint-style bold` option (`-s`).
+due to the `-unique-hint` option (`-u`). The hints are in bold text, due to the
+`--hint-style bold` option (`-s`). Hints start from the bottom, due to the
+`--reverse` option (`-r`). A custom pattern was provided for matching any
+"loca", due to the `--custom-regex-pattern` option (`-X`). The sha, datetime
+and content inside backticks were highlighted due to the `--named-pattern`
+option (`-x`).
 
 
 ## Tmux compatibility
