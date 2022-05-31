@@ -2,7 +2,7 @@
 //!
 //! All patterns must have one capture group. The first group is used.
 
-use crate::{error::Error, Result};
+use crate::{Error, Result};
 
 pub(super) const EXCLUDE_PATTERNS: [(&str, &str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];

@@ -1,4 +1,4 @@
-use crate::{error::Error, Result};
+use crate::{Error, Result};
 
 /// Catalog of available alphabets.
 ///

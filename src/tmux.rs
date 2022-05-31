@@ -10,7 +10,7 @@ use std::str::FromStr;
 use regex::Regex;
 
 use crate::config::extended::CaptureRegion;
-use crate::{error::Error, Result};
+use crate::{Error, Result};
 
 /// Represents a simplified Tmux Pane, only holding the properties needed in
 /// this crate.
