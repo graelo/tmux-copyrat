@@ -1,7 +1,7 @@
 use clap::Parser;
 use termion::color;
 
-use crate::{error::Error, Result};
+use crate::{Error, Result};
 
 pub fn parse_color(src: &str) -> Result<Box<dyn color::Color>> {
     match src {

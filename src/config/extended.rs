@@ -4,7 +4,7 @@ use std::fmt;
 use clap::{ArgEnum, Parser};
 
 use super::basic;
-use crate::{error::Error, textbuf::alphabet, tmux, ui, Result};
+use crate::{textbuf::alphabet, tmux, ui, Error, Result};
 
 /// Extended configuration for handling Tmux-specific configuration (options
 /// and outputs). This is only used by `tmux-copyrat` and parsed from command

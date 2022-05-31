@@ -1,9 +1,8 @@
 use clap::{ArgEnum, Parser};
 
 use crate::{
-    error::Error,
     textbuf::{alphabet, regexes},
-    ui, Result,
+    ui, Error, Result,
 };
 
 /// Main configuration, parsed from command line.
@@ -70,7 +69,7 @@ pub struct Config {
 
 /// Type introduced due to parsing limitation,
 /// as we cannot directly parse tuples into ui::HintStyle.
-#[derive(Debug, Clone, ArgEnum, Parser)]
+#[derive(Debug, Clone, ArgEnum)]
 pub enum HintStyleArg {
     Bold,
     Italic,
