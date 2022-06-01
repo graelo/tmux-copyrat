@@ -119,7 +119,7 @@ The error was `Error no such file`
 Let's imagine you want a quick way to always search for SHA-1/2, datetimes, strings within backticks, you would define once the following alias
 
 ```zsh
-$ alias pick='copyrat -r --unique-hint -s bold -x sha datetime quoted-backtick | pbcopy'
+$ alias pick='copyrat -r --unique-hint -s bold -x sha -x datetime -x quoted-backtick | pbcopy'
 ```
 
 and simply
