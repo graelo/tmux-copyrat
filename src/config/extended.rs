@@ -96,7 +96,7 @@ impl ConfigExt {
                     }
                     "@copyrat-hint-style" => {
                         let case_insensitive = true;
-                        inner.hint_style = Some(
+                        inner.hint_style_arg = Some(
                             basic::HintStyleArg::from_str(value, case_insensitive)
                                 .map_err(Error::ExpectedEnumVariant)?,
                         )

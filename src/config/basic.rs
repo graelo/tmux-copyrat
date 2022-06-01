@@ -58,12 +58,12 @@ pub struct Config {
     ///
     /// Underline or surround the hint for increased visibility.
     /// If not provided, only the hint colors will be used.
-    #[clap(short = 's', long, arg_enum, rename_all = "lowercase")]
-    pub hint_style: Option<HintStyleArg>,
+    #[clap(short = 's', long = "hint-style", arg_enum, rename_all = "lowercase")]
+    pub hint_style_arg: Option<HintStyleArg>,
 
     /// Chars surrounding each hint, used with `Surround` style.
     #[clap(long, default_value = "{}",
-                parse(try_from_str = parse_chars))]
+                parse(try_from_str = try_parse_chars))]
     pub hint_surroundings: (char, char),
 }
 
@@ -78,11 +78,28 @@ pub enum HintStyleArg {
 }
 
 /// Try to parse a `&str` into a tuple of `char`s.
-fn parse_chars(src: &str) -> Result<(char, char)> {
+fn try_parse_chars(src: &str) -> Result<(char, char)> {
     if src.chars().count() != 2 {
         return Err(Error::ExpectedSurroundingPair);
     }
 
     let chars: Vec<char> = src.chars().collect();
     Ok((chars[0], chars[1]))
+}
+
+impl Config {
+    pub fn hint_style(&self) -> Option<ui::HintStyle> {
+        match &self.hint_style_arg {
+            None => None,
+            Some(style) => match style {
+                HintStyleArg::Bold => Some(ui::HintStyle::Bold),
+                HintStyleArg::Italic => Some(ui::HintStyle::Italic),
+                HintStyleArg::Underline => Some(ui::HintStyle::Underline),
+                HintStyleArg::Surround => {
+                    let (open, close) = self.hint_surroundings;
+                    Some(ui::HintStyle::Surround(open, close))
+                }
+            },
+        }
+    }
 }
