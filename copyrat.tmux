@@ -29,8 +29,7 @@
 # options and bindings in your `tmux.conf`.
 
 CURRENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
-PATH=${PATH}:${CURRENT_DIR}
-BINARY=$(realpath tmux-copyrat)
+BINARY=${CURRENT_DIR}/tmux-copyrat
 
 
 #
