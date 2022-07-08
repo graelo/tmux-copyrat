@@ -15,7 +15,7 @@ pub(super) const PATTERNS: [(&str, &str); 20] = [
     ("markdown-url", r"\[[^]]*\]\(([^)]+)\)"),
     (
         "url",
-        r"((https?://|git@|git://|ssh://|ftp://|file:///)[^ \(\)\[\]\{\}]+)",
+        r"((https?://|git@|git://|ssh://|ftp://|file:///)[^ \(\)\[\]\{\}>]+)",
     ),
     ("email", r"\b([A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,})\b"),
     ("diff-a", r"--- a/([^ ]+)"),
