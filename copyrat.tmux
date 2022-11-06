@@ -1,9 +1,10 @@
 #!/usr/bin/env zsh
 
-# This scripts provides a default configuration for tmux-copyrat options and key bindings.
-# It is run only once at tmux launch.
+# This scripts provides a default configuration for tmux-copyrat options and
+# key bindings. It is run only once at tmux launch.
 #
-# Each option and binding can be overridden in your `tmux.conf` by defining options like
+# Each option and binding can be overridden in your `tmux.conf` by defining
+# options like
 #
 #   set -g @copyrat-keytable "foobar"
 #   set -g @copyrat-keyswitch "z"
@@ -14,9 +15,10 @@
 #   bind-key -T foobar h new-window -d -n "[copyrat]" '/path/to/tmux-copyrat --window-name "[copyrat]" --pattern-name urls'
 #                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #
-# changing this script may break integration with `tmux-copyrat`.
+# Please avoid modifying this script as it may break the integration with
+# `tmux-copyrat`.
 #
-
+#
 # Just make sure you first open a named window in the background and provide
 # that name to the binary `tmux-copyrat`.
 #
@@ -27,7 +29,7 @@
 # options and bindings in your `tmux.conf`.
 
 CURRENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
-BINARY="${CURRENT_DIR}/tmux-copyrat"
+BINARY=${CURRENT_DIR}/tmux-copyrat
 
 
 #
@@ -35,11 +37,11 @@ BINARY="${CURRENT_DIR}/tmux-copyrat"
 #
 
 setup_option() {
-	local opt_name=$1
-	local default_value=$2
-	local current_value=$(tmux show-option -gqv @copyrat-${opt_name})
-	value=${current_value:-${default_value}}
-	tmux set-option -g @copyrat-${opt_name} ${value}
+    local opt_name=$1
+    local default_value=$2
+    local current_value=$(tmux show-option -gqv @copyrat-${opt_name})
+    value=${current_value:-${default_value}}
+    tmux set-option -g @copyrat-${opt_name} ${value}
 }
 
 
@@ -50,8 +52,9 @@ setup_option "window-name" "[copyrat]"
 # Get that window name as a local variable for use in pattern bindings below.
 window_name=$(tmux show-option -gqv @copyrat-window-name)
 
-# Sets the keytable for all bindings, providing a default if @copyrat-keytable was not defined.
-# Keytables open a new shortcut space: if 't' is the switcher (see below), prefix + t + <your-shortcut>
+# Sets the keytable for all bindings, providing a default if @copyrat-keytable
+# was not defined. Keytables open a new shortcut space: if 't' is the switcher
+# (see below), prefix + t + <your-shortcut>
 setup_option "keytable" "cpyrt"
 
 # Sets the key to access the keytable: prefix + <key> + <your-shortcut>
@@ -68,11 +71,11 @@ tmux bind-key ${keyswitch} switch-client -T ${keytable}
 #
 
 setup_pattern_binding() {
-	local key=$1
-	local pattern_arg="$2"
-  # The default window name `[copyrat]` has to be single quoted because it is
-  # interpreted by the shell when launched by tmux.
-	tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} --window-name '"${window_name}"' --reverse --unique-hint ${pattern_arg}"
+    local key=$1
+    local pattern_arg="$2"
+    # The default window name `[copyrat]` has to be single quoted because it is
+    # interpreted by the shell when launched by tmux.
+    tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} --window-name '"${window_name}"' --reverse --unique-hint ${pattern_arg}"
 }
 
 # prefix + t + c searches for hex colors #aa00f5
@@ -94,7 +97,7 @@ setup_pattern_binding "p" "--pattern-name path"
 # prefix + t + P searches for hex numbers: 0xbedead
 setup_pattern_binding "P" "--pattern-name pointer-address"
 # prefix + t + q searches for strings inside single|double|backticks
-setup_pattern_binding "q" "-x quoted-single -x quoted-double -x quoted-tick"
+setup_pattern_binding "q" "-x quoted-single -x quoted-double -x quoted-backtick"
 # prefix + t + u searches for URLs
 setup_pattern_binding "u" "--pattern-name url"
 # prefix + t + U searches for UUIDs

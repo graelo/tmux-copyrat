@@ -2,7 +2,7 @@
 //!
 //! All patterns must have one capture group. The first group is used.
 
-use crate::error;
+use crate::{Error, Result};
 
 pub(super) const EXCLUDE_PATTERNS: [(&str, &str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
@@ -15,7 +15,7 @@ pub(super) const PATTERNS: [(&str, &str); 20] = [
     ("markdown-url", r"\[[^]]*\]\(([^)]+)\)"),
     (
         "url",
-        r"((https?://|git@|git://|ssh://|ftp://|file:///)[^ \(\)\[\]\{\}]+)",
+        r"((https?://|git@|git://|ssh://|ftp://|file:///)[^ \(\)\[\]\{\}>]+)",
     ),
     ("email", r"\b([A-z0-9._%+-]+@[A-z0-9.-]+\.[A-z]{2,})\b"),
     ("diff-a", r"--- a/([^ ]+)"),
@@ -42,18 +42,18 @@ pub(super) const PATTERNS: [(&str, &str); 20] = [
     ),
     ("quoted-single", r#"'([^']+)'"#),
     ("quoted-double", r#""([^"]+)""#),
-    ("quoted-tick", r#"`([^`]+)`"#),
+    ("quoted-backtick", r#"`([^`]+)`"#),
     ("digits", r"([0-9]{4,})"),
 ];
 
 /// Type-safe string Pattern Name (newtype).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NamedPattern(pub String, pub String);
 
 /// Parse a name string into `NamedPattern`, used during CLI parsing.
-pub(crate) fn parse_pattern_name(src: &str) -> Result<NamedPattern, error::ParseError> {
+pub(crate) fn parse_pattern_name(src: &str) -> Result<NamedPattern> {
     match PATTERNS.iter().find(|&(name, _pattern)| name == &src) {
         Some((name, pattern)) => Ok(NamedPattern(name.to_string(), pattern.to_string())),
-        None => Err(error::ParseError::UnknownPatternName),
+        None => Err(Error::UnknownPatternName),
     }
 }
