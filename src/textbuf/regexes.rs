@@ -47,7 +47,7 @@ pub(super) const PATTERNS: [(&str, &str); 20] = [
 ];
 
 /// Type-safe string Pattern Name (newtype).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NamedPattern(pub String, pub String);
 
 /// Parse a name string into `NamedPattern`, used during CLI parsing.
