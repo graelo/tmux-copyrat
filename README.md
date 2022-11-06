@@ -2,7 +2,7 @@
 
 [![crate](https://img.shields.io/crates/v/tmux-copyrat.svg)](https://crates.io/crates/tmux-copyrat)
 [![documentation](https://docs.rs/tmux-copyrat/badge.svg)](https://docs.rs/tmux-copyrat)
-[![minimum rustc 1.8](https://img.shields.io/badge/rustc-1.56+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![minimum rustc 1.8](https://img.shields.io/badge/rustc-1.60+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
 [![edition 2021](https://img.shields.io/badge/edition-2021-blue.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/index.html)
 [![tmux 3.x](https://img.shields.io/badge/tmux-3.0+-blue.svg)](https://tmux.github.io)
 [![build status](https://github.com/graelo/tmux-copyrat/workflows/main/badge.svg)](https://github.com/graelo/tmux-copyrat/actions)
