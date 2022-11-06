@@ -14,7 +14,7 @@ use crate::{Error, Result};
 
 /// Represents a simplified Tmux Pane, only holding the properties needed in
 /// this crate.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Pane {
     /// Pane identifier, e.g. `%37`.
     pub id: PaneId,
@@ -128,7 +128,7 @@ impl Pane {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct PaneId(String);
 
 impl FromStr for PaneId {
@@ -173,7 +173,7 @@ pub fn available_panes() -> Result<Vec<Pane>> {
     let result: Result<Vec<Pane>> = output
         .trim_end() // trim last '\n' as it would create an empty line
         .split('\n')
-        .map(|line| Pane::from_str(line))
+        .map(Pane::from_str) // .map(|line| Pane::from_str(line))
         .collect();
 
     result
