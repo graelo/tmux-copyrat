@@ -27,7 +27,7 @@ impl<'a> Model<'a> {
         unique_hint: bool,
     ) -> Model<'a> {
         let mut raw_spans =
-            find_raw_spans(&lines, named_patterns, custom_patterns, use_all_patterns);
+            find_raw_spans(lines, named_patterns, custom_patterns, use_all_patterns);
 
         if reverse {
             raw_spans.reverse();
@@ -113,9 +113,10 @@ fn find_raw_spans<'a>(
             // the start and end byte indices with respect to the chunk.
             let chunk_matches = all_regexes
                 .iter()
-                .filter_map(|(&ref pat_name, reg)| match reg.find_iter(chunk).next() {
-                    Some(reg_match) => Some((pat_name, reg, reg_match)),
-                    None => None,
+                .filter_map(|(&ref pat_name, reg)| {
+                    reg.find_iter(chunk)
+                        .next()
+                        .map(|reg_match| (pat_name, reg, reg_match))
                 })
                 .collect::<Vec<_>>();
 
