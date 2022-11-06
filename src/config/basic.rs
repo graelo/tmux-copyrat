@@ -1,4 +1,6 @@
-use clap::{ArgEnum, Parser};
+use std::fmt::Display;
+
+use clap::{ArgAction, Parser, ValueEnum};
 
 use crate::{
     textbuf::{alphabet, regexes},
@@ -18,58 +20,70 @@ pub struct Config {
     /// # Examples
     ///
     /// "qwerty", "dvorak-homerow", "azerty-right-hand".
-    #[clap(short = 'k', long, default_value = "dvorak",
-                parse(try_from_str = alphabet::parse_alphabet))]
+    #[arg(
+        short = 'k',
+        long,
+        default_value = "dvorak",
+        value_parser(alphabet::parse_alphabet)
+    )]
     pub alphabet: alphabet::Alphabet,
 
     /// Use all available regex patterns.
-    #[clap(short = 'A', long = "--all-patterns")]
+    #[arg(short = 'A', long = "all-patterns")]
     pub use_all_patterns: bool,
 
     /// Pattern names to use ("email", ... see doc).
-    #[clap(short = 'x', long = "--pattern-name", parse(try_from_str = regexes::parse_pattern_name))]
+    #[arg(
+        short = 'x',
+        long = "pattern-name",
+        value_parser(regexes::parse_pattern_name)
+    )]
     pub named_patterns: Vec<regexes::NamedPattern>,
 
     /// Additional regex patterns ("(foo.*)bar", etc). Must have a capture
     /// group.
-    #[clap(short = 'X', long = "--custom-pattern")]
+    #[arg(short = 'X', long)]
     pub custom_patterns: Vec<String>,
 
     /// Assign hints starting from the bottom of the screen.
-    #[clap(short, long)]
+    #[arg(short, long, action = ArgAction::SetTrue)]
     pub reverse: bool,
 
     /// Keep the same hint for identical spans.
-    #[clap(short, long)]
+    #[arg(short, long, action = ArgAction::SetTrue)]
     pub unique_hint: bool,
 
     /// Move focus back to first/last span.
-    #[clap(short = 'w', long)]
+    #[arg(short = 'w', long, action = ArgAction::SetTrue)]
     pub focus_wrap_around: bool,
 
-    #[clap(flatten)]
+    #[command(flatten)]
     pub colors: ui::colors::UiColors,
 
     /// Align hint with its span.
-    #[clap(long, arg_enum, default_value = "leading")]
+    #[arg(long, value_enum, default_value_t = ui::HintAlignment::Leading)]
     pub hint_alignment: ui::HintAlignment,
 
     /// Optional hint styling.
     ///
     /// Underline or surround the hint for increased visibility.
     /// If not provided, only the hint colors will be used.
-    #[clap(short = 's', long = "hint-style", arg_enum, rename_all = "lowercase")]
+    #[arg(short = 's', long = "hint-style", rename_all = "lowercase", value_enum)]
     pub hint_style_arg: Option<HintStyleArg>,
 
     /// Chars surrounding each hint, used with `Surround` style.
-    #[clap(long, default_value = "{}",
-                parse(try_from_str = try_parse_chars))]
-    pub hint_surroundings: (char, char),
+    #[clap(
+        long,
+        // default_value_t = HintSurroundingsArg{open: '{', close: '}'},
+        default_value = "{}",
+        value_parser(try_parse_chars)
+    )]
+    pub hint_surroundings: HintSurroundingsArg,
 }
 
 /// Type introduced due to parsing limitation,
 /// as we cannot directly parse tuples into ui::HintStyle.
-#[derive(Debug, Clone, ArgEnum)]
+#[derive(Debug, Clone, ValueEnum)]
 pub enum HintStyleArg {
     Bold,
     Italic,
@@ -77,14 +91,29 @@ pub enum HintStyleArg {
     Surround,
 }
 
+#[derive(Debug, Clone)]
+pub struct HintSurroundingsArg {
+    pub open: char,
+    pub close: char,
+}
+
+impl Display for HintSurroundingsArg {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.open, self.close)
+    }
+}
+
 /// Try to parse a `&str` into a tuple of `char`s.
-fn try_parse_chars(src: &str) -> Result<(char, char)> {
+fn try_parse_chars(src: &str) -> Result<HintSurroundingsArg> {
     if src.chars().count() != 2 {
         return Err(Error::ExpectedSurroundingPair);
     }
 
     let chars: Vec<char> = src.chars().collect();
-    Ok((chars[0], chars[1]))
+    Ok(HintSurroundingsArg {
+        open: chars[0],
+        close: chars[1],
+    })
 }
 
 impl Config {
@@ -96,7 +125,7 @@ impl Config {
                 HintStyleArg::Italic => Some(ui::HintStyle::Italic),
                 HintStyleArg::Underline => Some(ui::HintStyle::Underline),
                 HintStyleArg::Surround => {
-                    let (open, close) = self.hint_surroundings;
+                    let HintSurroundingsArg { open, close } = self.hint_surroundings;
                     Some(ui::HintStyle::Surround(open, close))
                 }
             },

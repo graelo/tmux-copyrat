@@ -1,8 +1,9 @@
 use std::char;
 use std::cmp;
 use std::io;
+use std::io::Write;
 
-use termion::{self, color, cursor, event, style};
+use termion::{self, color, cursor, event, screen::IntoAlternateScreen, style};
 
 use super::colors::UiColors;
 use super::Selection;
@@ -63,7 +64,7 @@ impl<'a> ViewController<'a> {
         };
 
         let (term_width, _) = termion::terminal_size().unwrap_or((80u16, 30u16)); // .expect("Cannot read the terminal size.");
-        let wrapped_lines = compute_wrapped_lines(&model.lines, term_width);
+        let wrapped_lines = compute_wrapped_lines(model.lines, term_width);
 
         ViewController {
             model,
@@ -177,8 +178,8 @@ impl<'a> ViewController<'a> {
         write!(
             stdout,
             "{bg_color}{fg_color}",
-            fg_color = color::Fg(colors.text_fg.as_ref()),
-            bg_color = color::Bg(colors.text_bg.as_ref()),
+            fg_color = color::Fg(colors.text_fg),
+            bg_color = color::Bg(colors.text_bg),
         )
         .unwrap();
 
@@ -233,8 +234,8 @@ impl<'a> ViewController<'a> {
             stdout,
             "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
             goto = cursor::Goto(pos.0 as u16 + 1, pos.1 as u16 + 1),
-            fg_color = color::Fg(fg_color.as_ref()),
-            bg_color = color::Bg(bg_color.as_ref()),
+            fg_color = color::Fg(*fg_color),
+            bg_color = color::Bg(*bg_color),
             fg_reset = color::Fg(color::Reset),
             bg_reset = color::Bg(color::Reset),
             text = &text,
@@ -260,8 +261,8 @@ impl<'a> ViewController<'a> {
         colors: &UiColors,
         hint_style: &Option<HintStyle>,
     ) {
-        let fg_color = color::Fg(colors.hint_fg.as_ref());
-        let bg_color = color::Bg(colors.hint_bg.as_ref());
+        let fg_color = color::Fg(colors.hint_fg);
+        let bg_color = color::Bg(colors.hint_bg);
         let fg_reset = color::Fg(color::Reset);
         let bg_reset = color::Bg(color::Reset);
         let goto = cursor::Goto(pos.0 as u16 + 1, pos.1 as u16 + 1);
@@ -358,7 +359,7 @@ impl<'a> ViewController<'a> {
             text,
             focused,
             (pos_x, pos_y),
-            &self.rendering_colors,
+            self.rendering_colors,
         );
 
         if !focused {
@@ -374,7 +375,7 @@ impl<'a> ViewController<'a> {
                 stdout,
                 &span.hint,
                 (pos_x + offset, pos_y),
-                &self.rendering_colors,
+                self.rendering_colors,
                 &self.hint_style,
             );
         }
@@ -399,9 +400,9 @@ impl<'a> ViewController<'a> {
         // 1. Trim all lines and render non-empty ones.
         ViewController::render_base_text(
             stdout,
-            &self.model.lines,
+            self.model.lines,
             &self.wrapped_lines,
-            &self.rendering_colors,
+            self.rendering_colors,
         );
 
         for (index, span) in self.model.spans.iter().enumerate() {
@@ -598,17 +599,16 @@ impl<'a> ViewController<'a> {
     /// - Setup steps: switch to alternate screen, switch to raw mode, hide the cursor.
     /// - Teardown steps: show cursor, back to main screen.
     pub fn present(&mut self) -> Option<Selection> {
-        use std::io::Write;
         use termion::raw::IntoRawMode;
-        use termion::screen::AlternateScreen;
 
         let mut stdin = termion::async_stdin();
-        let mut stdout = AlternateScreen::from(
-            io::stdout()
-                .into_raw_mode()
-                .expect("Cannot access alternate screen."),
-        );
+        let mut stdout = io::stdout()
+            .into_alternate_screen()
+            .expect("Cannot access alternate screen.")
+            .into_raw_mode()
+            .expect("Cannot access alternate screen.");
 
+        // stdout.write(cursor::Hide.into()).unwrap();
         write!(stdout, "{}", cursor::Hide).unwrap();
 
         let selection = match self.listen(&mut stdin, &mut stdout) {
@@ -663,7 +663,7 @@ enum Event {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::textbuf::alphabet;
+    use crate::{textbuf::alphabet, ui::colors};
 
     #[test]
     fn test_render_all_lines() {
@@ -684,14 +684,14 @@ path: /usr/local/bin/cargo";
         ];
 
         let colors = UiColors {
-            text_fg: Box::new(color::Black),
-            text_bg: Box::new(color::White),
-            focused_fg: Box::new(color::Red),
-            focused_bg: Box::new(color::Blue),
-            span_fg: Box::new(color::Green),
-            span_bg: Box::new(color::Magenta),
-            hint_fg: Box::new(color::Yellow),
-            hint_bg: Box::new(color::Cyan),
+            text_fg: colors::BLACK,
+            text_bg: colors::WHITE,
+            focused_fg: colors::RED,
+            focused_bg: colors::BLUE,
+            span_fg: colors::GREEN,
+            span_bg: colors::MAGENTA,
+            hint_fg: colors::YELLOW,
+            hint_bg: colors::CYAN,
         };
 
         let mut writer = vec![];
@@ -706,8 +706,8 @@ path: /usr/local/bin/cargo";
             format!(
                 "{bg}{fg}{g1}some text{g2}* e006b06 - (12 days ago) swapper: Make quotes{g3}path: /usr/local/bin/git{g6}path: /usr/local/bin/cargo{fg_reset}{bg_reset}",
                 g1 = goto1, g2 = goto2, g3 = goto3, g6 = goto6,
-                fg = color::Fg(colors.text_fg.as_ref()),
-                bg = color::Bg(colors.text_bg.as_ref()),
+                fg = color::Fg(colors.text_fg),
+                bg = color::Bg(colors.text_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
                 )
@@ -722,14 +722,14 @@ path: /usr/local/bin/cargo";
         let focused = true;
         let position: (usize, usize) = (3, 1);
         let colors = UiColors {
-            text_fg: Box::new(color::Black),
-            text_bg: Box::new(color::White),
-            focused_fg: Box::new(color::Red),
-            focused_bg: Box::new(color::Blue),
-            span_fg: Box::new(color::Green),
-            span_bg: Box::new(color::Magenta),
-            hint_fg: Box::new(color::Yellow),
-            hint_bg: Box::new(color::Cyan),
+            text_fg: colors::BLACK,
+            text_bg: colors::WHITE,
+            focused_fg: colors::RED,
+            focused_bg: colors::BLUE,
+            span_fg: colors::GREEN,
+            span_bg: colors::MAGENTA,
+            hint_fg: colors::YELLOW,
+            hint_bg: colors::CYAN,
         };
 
         ViewController::render_span_text(&mut writer, text, focused, position, &colors);
@@ -739,8 +739,8 @@ path: /usr/local/bin/cargo";
             format!(
                 "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
                 goto = cursor::Goto(4, 2),
-                fg = color::Fg(colors.focused_fg.as_ref()),
-                bg = color::Bg(colors.focused_bg.as_ref()),
+                fg = color::Fg(colors.focused_fg),
+                bg = color::Bg(colors.focused_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
                 text = &text,
@@ -756,14 +756,14 @@ path: /usr/local/bin/cargo";
         let focused = false;
         let position: (usize, usize) = (3, 1);
         let colors = UiColors {
-            text_fg: Box::new(color::Black),
-            text_bg: Box::new(color::White),
-            focused_fg: Box::new(color::Red),
-            focused_bg: Box::new(color::Blue),
-            span_fg: Box::new(color::Green),
-            span_bg: Box::new(color::Magenta),
-            hint_fg: Box::new(color::Yellow),
-            hint_bg: Box::new(color::Cyan),
+            text_fg: colors::BLACK,
+            text_bg: colors::WHITE,
+            focused_fg: colors::RED,
+            focused_bg: colors::BLUE,
+            span_fg: colors::GREEN,
+            span_bg: colors::MAGENTA,
+            hint_fg: colors::YELLOW,
+            hint_bg: colors::CYAN,
         };
 
         ViewController::render_span_text(&mut writer, text, focused, position, &colors);
@@ -773,8 +773,8 @@ path: /usr/local/bin/cargo";
             format!(
                 "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
                 goto = cursor::Goto(4, 2),
-                fg = color::Fg(colors.span_fg.as_ref()),
-                bg = color::Bg(colors.span_bg.as_ref()),
+                fg = color::Fg(colors.span_fg),
+                bg = color::Bg(colors.span_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
                 text = &text,
@@ -789,14 +789,14 @@ path: /usr/local/bin/cargo";
         let hint_text = "eo";
         let position: (usize, usize) = (3, 1);
         let colors = UiColors {
-            text_fg: Box::new(color::Black),
-            text_bg: Box::new(color::White),
-            focused_fg: Box::new(color::Red),
-            focused_bg: Box::new(color::Blue),
-            span_fg: Box::new(color::Green),
-            span_bg: Box::new(color::Magenta),
-            hint_fg: Box::new(color::Yellow),
-            hint_bg: Box::new(color::Cyan),
+            text_fg: colors::BLACK,
+            text_bg: colors::WHITE,
+            focused_fg: colors::RED,
+            focused_bg: colors::BLUE,
+            span_fg: colors::GREEN,
+            span_bg: colors::MAGENTA,
+            hint_fg: colors::YELLOW,
+            hint_bg: colors::CYAN,
         };
 
         let offset = 0;
@@ -815,8 +815,8 @@ path: /usr/local/bin/cargo";
             format!(
                 "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
                 goto = cursor::Goto(4, 2),
-                fg = color::Fg(colors.hint_fg.as_ref()),
-                bg = color::Bg(colors.hint_bg.as_ref()),
+                fg = color::Fg(colors.hint_fg),
+                bg = color::Bg(colors.hint_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
                 text = "eo",
@@ -831,14 +831,14 @@ path: /usr/local/bin/cargo";
         let hint_text = "eo";
         let position: (usize, usize) = (3, 1);
         let colors = UiColors {
-            text_fg: Box::new(color::Black),
-            text_bg: Box::new(color::White),
-            focused_fg: Box::new(color::Red),
-            focused_bg: Box::new(color::Blue),
-            span_fg: Box::new(color::Green),
-            span_bg: Box::new(color::Magenta),
-            hint_fg: Box::new(color::Yellow),
-            hint_bg: Box::new(color::Cyan),
+            text_fg: colors::BLACK,
+            text_bg: colors::WHITE,
+            focused_fg: colors::RED,
+            focused_bg: colors::BLUE,
+            span_fg: colors::GREEN,
+            span_bg: colors::MAGENTA,
+            hint_fg: colors::YELLOW,
+            hint_bg: colors::CYAN,
         };
 
         let offset = 0;
@@ -857,8 +857,8 @@ path: /usr/local/bin/cargo";
             format!(
                 "{goto}{bg}{fg}{sty}{text}{sty_reset}{fg_reset}{bg_reset}",
                 goto = cursor::Goto(4, 2),
-                fg = color::Fg(colors.hint_fg.as_ref()),
-                bg = color::Bg(colors.hint_bg.as_ref()),
+                fg = color::Fg(colors.hint_fg),
+                bg = color::Bg(colors.hint_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
                 sty = style::Underline,
@@ -875,14 +875,14 @@ path: /usr/local/bin/cargo";
         let hint_text = "eo";
         let position: (usize, usize) = (3, 1);
         let colors = UiColors {
-            text_fg: Box::new(color::Black),
-            text_bg: Box::new(color::White),
-            focused_fg: Box::new(color::Red),
-            focused_bg: Box::new(color::Blue),
-            span_fg: Box::new(color::Green),
-            span_bg: Box::new(color::Magenta),
-            hint_fg: Box::new(color::Yellow),
-            hint_bg: Box::new(color::Cyan),
+            text_fg: colors::BLACK,
+            text_bg: colors::WHITE,
+            focused_fg: colors::RED,
+            focused_bg: colors::BLUE,
+            span_fg: colors::GREEN,
+            span_bg: colors::MAGENTA,
+            hint_fg: colors::YELLOW,
+            hint_bg: colors::CYAN,
         };
 
         let offset = 0;
@@ -901,8 +901,8 @@ path: /usr/local/bin/cargo";
             format!(
                 "{goto}{bg}{fg}{bra}{text}{bra_close}{fg_reset}{bg_reset}",
                 goto = cursor::Goto(4, 2),
-                fg = color::Fg(colors.hint_fg.as_ref()),
-                bg = color::Bg(colors.hint_bg.as_ref()),
+                fg = color::Fg(colors.hint_fg),
+                bg = color::Bg(colors.hint_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
                 bra = '{',
@@ -937,16 +937,16 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             unique_hint,
         );
         let term_width: u16 = 80;
-        let wrapped_lines = compute_wrapped_lines(&model.lines, term_width);
+        let wrapped_lines = compute_wrapped_lines(model.lines, term_width);
         let rendering_colors = UiColors {
-            text_fg: Box::new(color::Black),
-            text_bg: Box::new(color::White),
-            focused_fg: Box::new(color::Red),
-            focused_bg: Box::new(color::Blue),
-            span_fg: Box::new(color::Green),
-            span_bg: Box::new(color::Magenta),
-            hint_fg: Box::new(color::Yellow),
-            hint_bg: Box::new(color::Cyan),
+            text_fg: colors::BLACK,
+            text_bg: colors::WHITE,
+            focused_fg: colors::RED,
+            focused_bg: colors::BLUE,
+            span_fg: colors::GREEN,
+            span_bg: colors::MAGENTA,
+            hint_fg: colors::YELLOW,
+            hint_bg: colors::CYAN,
         };
         let hint_alignment = HintAlignment::Leading;
 
@@ -974,8 +974,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
             goto1 = goto1,
             goto3 = goto3,
-            fg = color::Fg(rendering_colors.text_fg.as_ref()),
-            bg = color::Bg(rendering_colors.text_bg.as_ref()),
+            fg = color::Fg(rendering_colors.text_fg),
+            bg = color::Bg(rendering_colors.text_bg),
             fg_reset = color::Fg(color::Reset),
             bg_reset = color::Bg(color::Reset),
         );
@@ -1013,14 +1013,14 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let default_output_destination = OutputDestination::Tmux;
 
         let rendering_colors = UiColors {
-            text_fg: Box::new(color::Black),
-            text_bg: Box::new(color::White),
-            focused_fg: Box::new(color::Red),
-            focused_bg: Box::new(color::Blue),
-            span_fg: Box::new(color::Green),
-            span_bg: Box::new(color::Magenta),
-            hint_fg: Box::new(color::Yellow),
-            hint_bg: Box::new(color::Cyan),
+            text_fg: colors::BLACK,
+            text_bg: colors::WHITE,
+            focused_fg: colors::RED,
+            focused_bg: colors::BLUE,
+            span_fg: colors::GREEN,
+            span_bg: colors::MAGENTA,
+            hint_fg: colors::YELLOW,
+            hint_bg: colors::CYAN,
         };
         let hint_alignment = HintAlignment::Leading;
         let hint_style = None;
@@ -1046,8 +1046,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
                 goto1 = goto1,
                 goto3 = goto3,
-                fg = color::Fg(rendering_colors.text_fg.as_ref()),
-                bg = color::Bg(rendering_colors.text_bg.as_ref()),
+                fg = color::Fg(rendering_colors.text_fg),
+                bg = color::Bg(rendering_colors.text_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset)
             )
@@ -1058,8 +1058,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             format!(
                 "{goto7_1}{span_bg}{span_fg}127.0.0.1{fg_reset}{bg_reset}",
                 goto7_1 = goto7_1,
-                span_fg = color::Fg(rendering_colors.span_fg.as_ref()),
-                span_bg = color::Bg(rendering_colors.span_bg.as_ref()),
+                span_fg = color::Fg(rendering_colors.span_fg),
+                span_bg = color::Bg(rendering_colors.span_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset)
             )
@@ -1071,8 +1071,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             format!(
                 "{goto7_1}{hint_bg}{hint_fg}b{fg_reset}{bg_reset}",
                 goto7_1 = goto7_1,
-                hint_fg = color::Fg(rendering_colors.hint_fg.as_ref()),
-                hint_bg = color::Bg(rendering_colors.hint_bg.as_ref()),
+                hint_fg = color::Fg(rendering_colors.hint_fg),
+                hint_bg = color::Bg(rendering_colors.hint_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset)
             )
@@ -1083,8 +1083,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             format!(
         "{goto11_3}{focus_bg}{focus_fg}https://en.wikipedia.org/wiki/Barcelona{fg_reset}{bg_reset}",
         goto11_3 = goto11_3,
-        focus_fg = color::Fg(rendering_colors.focused_fg.as_ref()),
-        focus_bg = color::Bg(rendering_colors.focused_bg.as_ref()),
+        focus_fg = color::Fg(rendering_colors.focused_fg),
+        focus_bg = color::Bg(rendering_colors.focused_bg),
         fg_reset = color::Fg(color::Reset),
         bg_reset = color::Bg(color::Reset)
       )

@@ -54,7 +54,7 @@ pub fn parse_alphabet(src: &str) -> Result<Alphabet> {
 }
 
 /// Type-safe string alphabet (newtype).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Alphabet(pub String);
 
 impl Alphabet {

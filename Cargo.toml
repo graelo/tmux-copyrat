@@ -1,20 +1,26 @@
 [package]
 name = "copyrat"
 version = "0.4.1"
-authors = ["graelo <graelo@graelo.cc>"]
 edition = "2021"
-
 description = "A tmux plugin for copy-pasting within tmux panes."
-repository = "https://github.com/graelo/tmux-copyrat"
-keywords = ["rust", "tmux", "tmux-plugin", "tmux-copycat"]
+readme = "README.md"
+
 license = "MIT"
+authors = ["graelo <graelo@graelo.cc>"]
+repository = "https://github.com/graelo/tmux-copyrat"
+homepage = "https://github.com/graelo/tmux-copyrat"
+documentation = "https://docs.rs/tmux-copyrat"
+
+keywords = ["rust", "tmux", "tmux-plugin", "tmux-copycat"]
+categories = ["command-line-utilities"]
+exclude = ["/.github"]
 
 [dependencies]
 thiserror = "1"
 
-termion = "1.5"
-regex = "1.5"
-clap = { version = "3.1", features = ["derive", "wrap_help"]}
+termion = "2"
+regex = "1.6"
+clap = { version = "4.0", features = ["derive", "wrap_help"]}
 sequence_trie = "0.3.6"
 duct = "0.13"
 

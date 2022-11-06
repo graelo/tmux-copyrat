@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use clap::{ArgEnum, Parser};
+use clap::{Parser, ValueEnum};
 
 use super::basic;
 use crate::{textbuf::alphabet, tmux, ui, Error, Result};
@@ -31,7 +31,7 @@ pub struct ConfigExt {
 
     /// Capture visible area or entire pane history.
     #[clap(
-        arg_enum,
+        value_enum,
         long,
         rename_all = "kebab-case",
         default_value = "visible-area"
@@ -113,7 +113,7 @@ impl ConfigExt {
 }
 
 /// Specifies which region of the terminal buffer to capture.
-#[derive(Debug, Clone, ArgEnum, Parser)]
+#[derive(Debug, Clone, ValueEnum, Parser)]
 pub enum CaptureRegion {
     /// The entire history.
     // This will end up sending `-S - -E -` to `tmux capture-pane`.
