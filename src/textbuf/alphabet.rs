@@ -1,4 +1,4 @@
-use crate::error;
+use crate::{Error, Result};
 
 /// Catalog of available alphabets.
 ///
@@ -41,7 +41,7 @@ const ALPHABETS: [(&str, &str); 21] = [
 /// Letters 'n' and 'N' are systematically removed to prevent conflict with
 /// navigation keys (arrows and 'n' 'N'). Letters 'y' and 'Y' are also removed
 /// to prevent conflict with yank/copy.
-pub fn parse_alphabet(src: &str) -> Result<Alphabet, error::ParseError> {
+pub fn parse_alphabet(src: &str) -> Result<Alphabet> {
     let alphabet_pair = ALPHABETS.iter().find(|&(name, _letters)| name == &src);
 
     match alphabet_pair {
@@ -49,12 +49,12 @@ pub fn parse_alphabet(src: &str) -> Result<Alphabet, error::ParseError> {
             let letters = letters.replace(&['n', 'N', 'y', 'Y'][..], "");
             Ok(Alphabet(letters))
         }
-        None => Err(error::ParseError::UnknownAlphabet),
+        None => Err(Error::UnknownAlphabet),
     }
 }
 
 /// Type-safe string alphabet (newtype).
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Alphabet(pub String);
 
 impl Alphabet {

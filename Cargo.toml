@@ -1,17 +1,26 @@
 [package]
 name = "copyrat"
 version = "0.4.1"
-authors = ["graelo <graelo@graelo.cc>"]
-edition = "2018"
-description = "This is tmux-copycat on Rust steroids."
-repository = "https://github.com/graelo/tmux-copyrat"
-keywords = ["rust", "tmux", "tmux-plugin", "tmux-copycat"]
+edition = "2021"
+description = "A tmux plugin for copy-pasting within tmux panes."
+readme = "README.md"
+
 license = "MIT"
+authors = ["graelo <graelo@graelo.cc>"]
+repository = "https://github.com/graelo/tmux-copyrat"
+homepage = "https://github.com/graelo/tmux-copyrat"
+documentation = "https://docs.rs/tmux-copyrat"
+
+keywords = ["rust", "tmux", "tmux-plugin", "tmux-copycat"]
+categories = ["command-line-utilities"]
+exclude = ["/.github"]
 
 [dependencies]
-termion = "1.5"
-regex = "1.4"
-clap = { version = "3.0.0-beta.2", features = ["suggestions", "color", "wrap_help"]}
+thiserror = "1"
+
+termion = "2"
+regex = "1.6"
+clap = { version = "4.0", features = ["derive", "wrap_help"]}
 sequence_trie = "0.3.6"
 duct = "0.13"
 
@@ -22,3 +31,26 @@ path = "src/bin/copyrat.rs"
 [[bin]]
 name = "tmux-copyrat"
 path = "src/bin/tmux_copyrat.rs"
+
+[profile.release]
+# Enable link-time optimization (LTO). It’s a kind of whole-program or
+# inter-module optimization as it runs as the very last step when linking the
+# different parts of your binary together. You can think of it as allowing
+# better inlining across dependency boundaries (but it’s of course more
+# complicated that that).
+#
+# Rust can use multiple linker flavors, and the one we want is “optimize across
+# all crates”, which is called “fat”. To set this, add the lto flag to your
+# profile:
+lto = "fat"
+
+# To speed up compile times, Rust tries to split your crates into small chunks
+# and compile as many in parallel as possible. The downside is that there’s
+# less opportunities for the compiler to optimize code across these chunks. So,
+# let’s tell it to do one chunk per crate:
+codegen-units = 1
+
+# Rust by default uses stack unwinding (on the most common platforms). That
+# costs performance, so let’s skip stack traces and the ability to catch panics
+# for reduced code size and better cache usage:
+panic = "abort"

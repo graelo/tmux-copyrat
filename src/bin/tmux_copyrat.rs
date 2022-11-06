@@ -1,11 +1,11 @@
 use copyrat::{
     config::extended::{ConfigExt, OutputDestination},
-    error, tmux,
+    tmux,
     ui::Selection,
+    Result,
 };
 
-///
-fn main() -> Result<(), error::ParseError> {
+fn main() -> Result<()> {
     let config = ConfigExt::initialize()?;
 
     // Identify active pane and capture its content.
