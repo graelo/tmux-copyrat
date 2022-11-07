@@ -113,7 +113,7 @@ fn find_raw_spans<'a>(
             // the start and end byte indices with respect to the chunk.
             let chunk_matches = all_regexes
                 .iter()
-                .filter_map(|(&ref pat_name, reg)| {
+                .filter_map(|(pat_name, reg)| {
                     reg.find_iter(chunk)
                         .next()
                         .map(|reg_match| (pat_name, reg, reg_match))
@@ -131,7 +131,7 @@ fn find_raw_spans<'a>(
                 .unwrap();
 
             // Never hint or break ansi color sequences.
-            if *pat_name != "ansi_colors" {
+            if **pat_name != "ansi_colors" {
                 let text = reg_match.as_str();
 
                 // All patterns must have a capturing group: try obtaining
