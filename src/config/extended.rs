@@ -18,7 +18,7 @@ pub struct ConfigExt {
     /// However, you should consider reading them from the config file (the
     /// default option) as this saves both a command call (about 10ms) and a
     /// Regex compilation.
-    #[clap(short = 'n', long)]
+    #[arg(short = 'n', long)]
     pub ignore_tmux_options: bool,
 
     /// Name of the copyrat temporary Tmux window.
@@ -26,11 +26,11 @@ pub struct ConfigExt {
     /// Copyrat is launched in a temporary window of that name. The only pane
     /// in this temp window gets swapped with the current active one for
     /// in-place searching, then swapped back and killed after we exit.
-    #[clap(short = 'W', long, default_value = "[copyrat]")]
+    #[arg(short = 'W', long, default_value = "[copyrat]")]
     pub window_name: String,
 
     /// Capture visible area or entire pane history.
-    #[clap(
+    #[arg(
         value_enum,
         long,
         rename_all = "kebab-case",
@@ -43,11 +43,11 @@ pub struct ConfigExt {
     /// If during execution, the output destination is set to be clipboard,
     /// then copyrat will pipe the selected text to this executable.
     /// On macOS, this is `pbcopy`, on Linux, this is `xclip`.
-    #[clap(long, default_value = "pbcopy")]
+    #[arg(long, default_value = "pbcopy")]
     pub clipboard_exe: String,
 
     // Include fields from the basic config
-    #[clap(flatten)]
+    #[command(flatten)]
     pub basic_config: basic::Config,
 }
 
