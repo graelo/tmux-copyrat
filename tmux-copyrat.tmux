@@ -1,4 +1,4 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
 
 # This scripts provides a default configuration for tmux-copyrat options and
 # key bindings. It is run only once at tmux launch.
@@ -28,18 +28,19 @@
 # You can also entirely ignore this file (not even source it) and define all
 # options and bindings in your `tmux.conf`.
 
-CURRENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
-BINARY=${CURRENT_DIR}/tmux-copyrat
+BINARY=$(which tmux-copyrat)
+# CURRENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
+# BINARY=${CURRENT_DIR}/tmux-copyrat
 
 
 #
 # Top-level options
 #
 
-setup_option() {
-    local opt_name=$1
-    local default_value=$2
-    local current_value=$(tmux show-option -gqv @copyrat-${opt_name})
+setup_option () {
+    opt_name=$1
+    default_value=$2
+    current_value=$(tmux show-option -gqv @copyrat-${opt_name})
     value=${current_value:-${default_value}}
     tmux set-option -g @copyrat-${opt_name} ${value}
 }
@@ -70,12 +71,12 @@ tmux bind-key ${keyswitch} switch-client -T ${keytable}
 # Pattern bindings
 #
 
-setup_pattern_binding() {
-    local key=$1
-    local pattern_arg="$2"
+setup_pattern_binding () {
+    key=$1
+    pattern_arg="$2"
     # The default window name `[copyrat]` has to be single quoted because it is
     # interpreted by the shell when launched by tmux.
-    tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} --window-name '"${window_name}"' --reverse --unique-hint ${pattern_arg}"
+    tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} run --window-name '"${window_name}"' --reverse --unique-hint ${pattern_arg}"
 }
 
 # prefix + t + c searches for hex colors #aa00f5
@@ -112,10 +113,4 @@ setup_pattern_binding "6" "--pattern-name ipv6"
 setup_pattern_binding "space" "--all-patterns"
 
 # prefix + t + / prompts for a pattern and search for it
-tmux bind-key -T ${keytable} "/" command-prompt -p "search:" "new-window -d -n '${window_name}' \"${BINARY}\" --window-name '${window_name}' --reverse --unique-hint --custom-pattern %%"
-
-
-# Auto-install is currently disabled as it requires the user to have cargo installed.
-# if [ ! -f "$BINARY" ]; then
-#   cd "${CURRENT_DIR}" && cargo build --release
-# fi
+tmux bind-key -T ${keytable} "/" command-prompt -p "search:" "new-window -d -n '${window_name}' \"${BINARY}\" run --window-name '${window_name}' --reverse --unique-hint --custom-pattern %%"

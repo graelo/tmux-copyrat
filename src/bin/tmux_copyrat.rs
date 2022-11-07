@@ -1,13 +1,30 @@
+use clap::Parser;
 use copyrat::{
-    config::extended::{ConfigExt, OutputDestination},
+    config::extended::{ConfigExt, MainConfig, OutputDestination},
     tmux,
     ui::Selection,
     Result,
 };
 
 fn main() -> Result<()> {
-    let config = ConfigExt::initialize()?;
+    let main_config = MainConfig::parse();
 
+    match main_config {
+        MainConfig::Init => init(),
+        MainConfig::Run { config_ext } => {
+            let config = config_ext.build()?;
+            run(config)
+        }
+    }
+}
+
+fn init() -> Result<()> {
+    let text = std::include_str!("../../tmux-copyrat.tmux");
+    println!("{text}");
+    Ok(())
+}
+
+fn run(config: ConfigExt) -> Result<()> {
     // Identify active pane and capture its content.
     let panes: Vec<tmux::Pane> = tmux::available_panes()?;
 
