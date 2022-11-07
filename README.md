@@ -5,26 +5,30 @@
 [![minimum rustc 1.8](https://img.shields.io/badge/rustc-1.60+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
 [![edition 2021](https://img.shields.io/badge/edition-2021-blue.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/index.html)
 [![tmux 3.x](https://img.shields.io/badge/tmux-3.0+-blue.svg)](https://tmux.github.io)
-[![build status](https://github.com/graelo/tmux-copyrat/workflows/main/badge.svg)](https://github.com/graelo/tmux-copyrat/actions)
+[![build status](https://github.com/graelo/tmux-copyrat/actions/workflows/essentials.yml/badge.svg)](https://github.com/graelo/tmux-copyrat/actions)
+
+<!-- cargo-sync-readme start -->
+
 
 A tmux-plugin for copy-pasting spans of text from the [tmux] pane's history
 into a clipboard.
 
-**Use case**: you're in tmux and press the key binding to highlight, say dates.
-This makes `tmux-copyrat` search within tmux's current pane history and
-highlight all spans of text which correspond to a date. All spans are displayed
-with a one or two key _hint_, which you can then press to copy-paste the span
-into the tmux clipboard or the system clipboard. Check out the demo below.
+**Use case**: you're in tmux and your pane history has some dates you want to
+copy. You press the key binding to highlight dates (see below for
+configuration). `tmux-copyrat` kicks-in and highlights all spans of text which
+correspond to a date. All spans are displayed with a one or two key _hint_,
+which you can then press to copy-paste the span into the tmux clipboard or the
+system clipboard. Check out the demo below.
 
 The name is a tribute to [tmux-copyrat], which I used for many years for that
 same functionality. For this Rust implementation, I got inspired by
 [tmux-thumbs], and I even borrowed some parts of his regex tests.
 
+Version requirement: _rustc 1.60+_
 
 ## Demo
 
-[![demo](https://asciinema.org/a/232775.png?ts=1)](https://asciinema.org/a/232775?autoplay=1)
-
+Upcoming
 
 ## Usage
 
@@ -50,7 +54,6 @@ By default, span highlighting starts from the bottom of the terminal, but you
 can reverse that behavior with the `--reverse` option. The
 `--focus-wrap-around` option makes navigation go back to the first span. Many
 more options are described in [CONFIGURATION.md].
-
 
 ### Matched patterns and default key-bindings
 
@@ -85,14 +88,12 @@ should type <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd>.
 | <kbd>6</kbd>     | IPv6 addresses                         | `6`               |
 | <kbd>space</kbd> | All patterns                           |                   |
 
-
 ## Tmux compatibility
 
 `tmux-copyrat` is known to be compatible with tmux 3.0 onwards.
 
 Testing this kind of integration with tmux is time consuming, so I'll be
 grateful if you report incompatibilities as you find them.
-
 
 ## The `copyrat` standalone executable
 
@@ -119,13 +120,13 @@ The error was `Error no such file`
 Let's imagine you want a quick way to always search for SHA-1/2, datetimes, strings within backticks, you would define once the following alias
 
 ```zsh
-$ alias pick='copyrat -r --unique-hint -s bold -x sha -x datetime -x quoted-backtick | pbcopy'
+alias pick='copyrat -r --unique-hint -s bold -x sha -x datetime -x quoted-backtick | pbcopy'
 ```
 
 and simply
 
 ```console
-$ git log | pick
+git log | pick
 ```
 
 You will see the following in your terminal
@@ -139,59 +140,6 @@ due to the `-unique-hint` option (`-u`). The hints are in bold text, due to the
 "loca", due to the `--custom-regex-pattern` option (`-X`). The sha, datetime
 and content inside backticks were highlighted due to the `--named-pattern`
 option (`-x`).
-
-
-## Standalone `thumbs`
-
-This project started as a `tmux` plugin but after reviewing it with some
-friends we decided to explore all the possibilities of decoupling thumbs from
-`tmux`. You can install it with a simple command:
-
-```
-cargo install thumbs
-```
-
-And those are all available options:
-
-```
-thumbs 0.4.1
-A lightning fast version copy/pasting like vimium/vimperator
-
-USAGE:
-    thumbs [FLAGS] [OPTIONS]
-
-FLAGS:
-    -c, --contrast    Put square brackets around hint for visibility
-    -h, --help        Prints help information
-    -m, --multi       Enable multi-selection
-    -r, --reverse     Reverse the order for assigned hints
-    -u, --unique      Don't show duplicated hints for the same span
-    -V, --version     Prints version information
-
-OPTIONS:
-    -a, --alphabet <alphabet>                          Sets the alphabet [default: qwerty]
-        --bg-color <background_color>                  Sets the background color for spans [default: black]
-        --fg-color <foreground_color>                  Sets the foregroud color for spans [default: green]
-    -f, --format <format>
-            Specifies the out format for the picked hint. (%U: Upcase, %H: Hint) [default: %H]
-
-        --hint-bg-color <hint_background_color>        Sets the background color for hints [default: black]
-        --hint-fg-color <hint_foreground_color>        Sets the foregroud color for hints [default: yellow]
-    -p, --position <position>                          Hint position [default: left]
-    -x, --regexp <regexp>...                           Use this regexp as extra pattern to match
-        --select-bg-color <select_background_color>    Sets the background color for selection [default: black]
-        --select-fg-color <select_foreground_color>    Sets the foreground color for selection [default: blue]
-    -t, --target <target>                              Stores the hint in the specified path
-```
-
-
-If you want to enjoy terminal hints, you can do things like this without `tmux`:
-
-```
-> alias pick='thumbs -u -r | xsel --clipboard -i'
-> git log | pick
-```
-
 
 ## Run code-coverage
 
@@ -217,14 +165,11 @@ make coverage
 
 The coverage report is located in `./coverage/index.html`
 
-
-
 ## License
 
 This project is licensed under the [MIT license]
 
 at your option.
-
 
 ### Contribution
 
@@ -238,5 +183,7 @@ be licensed as MIT, without any additional terms or conditions.
 [INSTALLATION.md]: INSTALLATION.md
 [tmux-thumbs]: https://crates.io/crates/tmux-thumbs
 [FZF]: https://github.com/junegunn/fzf
-[xsel]: https://ostechnix.com/access-clipboard-contents-using-xclip-and-xsel-in-linux/
 [MIT license]: http://opensource.org/licenses/MIT
+
+
+<!-- cargo-sync-readme end -->
