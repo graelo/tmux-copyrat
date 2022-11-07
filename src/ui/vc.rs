@@ -117,7 +117,7 @@ impl<'a> ViewController<'a> {
         let line_width = self.term_width as usize;
 
         let new_pos_x = pos_x % line_width;
-        let new_pos_y = self.wrapped_lines[pos_y as usize].pos_y + pos_x / line_width;
+        let new_pos_y = self.wrapped_lines[pos_y].pos_y + pos_x / line_width;
 
         (new_pos_x, new_pos_y)
     }
