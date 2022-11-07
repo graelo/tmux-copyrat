@@ -1000,7 +1000,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let alphabet = alphabet::Alphabet("abcd".to_string());
         let reverse = true;
         let unique_hint = false;
-        let mut model = textbuf::Model::new(
+        let model = textbuf::Model::new(
             &lines,
             &alphabet,
             use_all_patterns,
@@ -1026,7 +1026,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let hint_style = None;
 
         let ui = ViewController::new(
-            &mut model,
+            &model,
             wrap_around,
             default_output_destination,
             &rendering_colors,
