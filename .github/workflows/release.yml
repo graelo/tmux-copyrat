@@ -27,11 +27,11 @@ jobs:
             rust: stable
             suffix: ''
             archive_ext: tar.xz
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            rust: stable
-            suffix: .exe
-            archive_ext: zip
+          # - os: windows-latest
+          #   target: x86_64-pc-windows-msvc
+          #   rust: stable
+          #   suffix: .exe
+          #   archive_ext: zip
     steps:
       - name: Rust install
         uses: actions-rs/toolchain@v1
@@ -127,9 +127,9 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: ${{ github.event.repository.name }}-x86_64-apple-darwin.zip
-      - uses: actions/download-artifact@v3
-        with:
-          name: ${{ github.event.repository.name }}-x86_64-pc-windows-msvc.zip
+      # - uses: actions/download-artifact@v3
+      #   with:
+      #     name: ${{ github.event.repository.name }}-x86_64-pc-windows-msvc.zip
 
       - uses: ncipollo/release-action@v1
         with:
