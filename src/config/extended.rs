@@ -1,16 +1,27 @@
 use std::collections::HashMap;
 use std::fmt;
 
-use clap::{Parser, ValueEnum};
+use clap::{Args, Parser, ValueEnum};
 
 use super::basic;
 use crate::{textbuf::alphabet, tmux, ui, Error, Result};
 
+#[derive(Parser, Debug)]
+#[clap(author, about, version)]
+pub enum MainConfig {
+    /// Run tmux-copyrat.
+    Run {
+        #[command(flatten)]
+        config_ext: ConfigExt,
+    },
+    /// Print the tmux plugin config file for initial configuration.
+    Init,
+}
+
 /// Extended configuration for handling Tmux-specific configuration (options
 /// and outputs). This is only used by `tmux-copyrat` and parsed from command
 /// line.
-#[derive(Parser, Debug)]
-#[clap(author, about, version)]
+#[derive(Args, Debug)]
 pub struct ConfigExt {
     /// Don't read options from Tmux.
     ///
@@ -52,20 +63,19 @@ pub struct ConfigExt {
 }
 
 impl ConfigExt {
-    pub fn initialize() -> Result<ConfigExt> {
-        let mut config_ext = ConfigExt::parse();
-
-        if !config_ext.ignore_tmux_options {
+    /// Finalize the ConfigExt by merging the tmux options.
+    pub fn build(mut self) -> Result<ConfigExt> {
+        if !self.ignore_tmux_options {
             let tmux_options: HashMap<String, String> = tmux::get_options("@copyrat-")?;
 
             // Override default values with those coming from tmux.
-            let inner = &mut config_ext.basic_config;
+            let inner = &mut self.basic_config;
 
             for (name, value) in &tmux_options {
                 match name.as_ref() {
                     "@copyrat-capture-region" => {
                         let case_insensitive = true;
-                        config_ext.capture_region = CaptureRegion::from_str(value, case_insensitive)
+                        self.capture_region = CaptureRegion::from_str(value, case_insensitive)
                             .map_err(Error::ExpectedEnumVariant)?
                     }
                     "@copyrat-alphabet" => {
@@ -108,7 +118,7 @@ impl ConfigExt {
             }
         }
 
-        Ok(config_ext)
+        Ok(self)
     }
 }
 
