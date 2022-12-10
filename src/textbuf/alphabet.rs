@@ -114,7 +114,7 @@ impl Alphabet {
             let gen: Vec<String> = letters
                 .iter()
                 .take(n - lead.len() - prev.len())
-                .map(|c| format!("{}{}", prefix, c))
+                .map(|c| format!("{prefix}{c}"))
                 .collect();
 
             // Insert gen in front of prev
