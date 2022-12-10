@@ -271,13 +271,7 @@ impl<'a> ViewController<'a> {
             None => {
                 write!(
                     stdout,
-                    "{goto}{bg_color}{fg_color}{hint}{fg_reset}{bg_reset}",
-                    goto = goto,
-                    fg_color = fg_color,
-                    bg_color = bg_color,
-                    fg_reset = fg_reset,
-                    bg_reset = bg_reset,
-                    hint = hint_text,
+                    "{goto}{bg_color}{fg_color}{hint_text}{fg_reset}{bg_reset}",
                 )
                 .unwrap();
             }
@@ -330,15 +324,7 @@ impl<'a> ViewController<'a> {
                 HintStyle::Surround(opening, closing) => {
                     write!(
                         stdout,
-                        "{goto}{bg_color}{fg_color}{bra}{hint}{bra_close}{fg_reset}{bg_reset}",
-                        goto = goto,
-                        fg_color = fg_color,
-                        bg_color = bg_color,
-                        fg_reset = fg_reset,
-                        bg_reset = bg_reset,
-                        bra = opening,
-                        bra_close = closing,
-                        hint = hint_text,
+                        "{goto}{bg_color}{fg_color}{opening}{hint_text}{closing}{fg_reset}{bg_reset}",
                     )
                     .unwrap();
                 }
@@ -531,7 +517,7 @@ impl<'a> ViewController<'a> {
 
                 event::Key::Char(_ch @ ' ') => {
                     output_destination.toggle();
-                    let message = format!("output destination: `{}`", output_destination);
+                    let message = format!("output destination: `{output_destination}`");
                     duct::cmd!("tmux", "display-message", &message)
                         .run()
                         .expect("could not make tmux display the message.");

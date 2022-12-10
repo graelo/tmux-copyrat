@@ -13,7 +13,7 @@ impl tcolor::Color for Color {
     #[inline]
     fn write_fg(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.0 {
-            Some(value) => write!(f, "\x1B[38;5;{}m", value),
+            Some(value) => write!(f, "\x1B[38;5;{value}m"),
             None => write!(f, "\x1B[39m"),
         }
     }
@@ -21,7 +21,7 @@ impl tcolor::Color for Color {
     #[inline]
     fn write_bg(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self.0 {
-            Some(value) => write!(f, "\x1B[48;5;{}m", value),
+            Some(value) => write!(f, "\x1B[48;5;{value}m"),
             None => write!(f, "\x1B[49m"),
         }
     }

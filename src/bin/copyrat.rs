@@ -24,5 +24,5 @@ fn main() {
     }
 
     let Selection { text, .. } = selection.unwrap();
-    println!("{}", text);
+    println!("{text}");
 }

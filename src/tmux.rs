@@ -141,7 +141,7 @@ impl FromStr for PaneId {
             return Err(Error::ExpectedPaneIdMarker);
         }
         let id = src[1..].parse::<u16>()?;
-        let id = format!("%{}", id);
+        let id = format!("%{id}");
         Ok(PaneId(id))
     }
 }
@@ -189,7 +189,7 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>> {
     let output = duct::cmd!("tmux", "show-options", "-g").read()?;
     let lines: Vec<&str> = output.split('\n').collect();
 
-    let pattern = format!(r#"({prefix}[\w\-0-9]+) "?(\w+)"?"#, prefix = prefix);
+    let pattern = format!(r#"({prefix}[\w\-0-9]+) "?(\w+)"?"#);
     let re = Regex::new(&pattern).unwrap();
 
     let args: HashMap<String, String> = lines
