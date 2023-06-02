@@ -320,7 +320,10 @@ mod tests {
 
     #[test]
     fn match_urls() {
-        let buffer = "Lorem ipsum https://www.rust-lang.org/tools lorem\n Lorem ipsumhttps://crates.io lorem https://github.io?foo=bar lorem ssh://github.io";
+        let buffer = "Lorem ipsum https://www.rust-lang.org/tools lorem\
+                      Lorem ipsumhttps://crates.io lorem https://github.io?foo=bar \
+                      lorem ssh://github.io lorem s3://mybucket/mypath \
+                      lorem gs://mybucket.domain/mypath lorem";
         let lines = buffer.split('\n').collect::<Vec<_>>();
         let use_all_patterns = true;
         let named_pat = vec![];
@@ -339,7 +342,7 @@ mod tests {
         )
         .spans;
 
-        assert_eq!(spans.len(), 4);
+        assert_eq!(spans.len(), 6);
         assert_eq!(
             spans.get(0).unwrap().text,
             "https://www.rust-lang.org/tools"
@@ -351,6 +354,10 @@ mod tests {
         assert_eq!(spans.get(2).unwrap().pattern, "url");
         assert_eq!(spans.get(3).unwrap().text, "ssh://github.io");
         assert_eq!(spans.get(3).unwrap().pattern, "url");
+        assert_eq!(spans.get(4).unwrap().text, "s3://mybucket/mypath");
+        assert_eq!(spans.get(4).unwrap().pattern, "url");
+        assert_eq!(spans.get(5).unwrap().text, "gs://mybucket.domain/mypath");
+        assert_eq!(spans.get(5).unwrap().pattern, "url");
     }
 
     #[test]
