@@ -71,12 +71,23 @@ tmux bind-key ${keyswitch} switch-client -T ${keytable}
 # Pattern bindings
 #
 
+if [[ "$OSTYPE" == darwin* ]]; then
+  setup_option "clipboard-exe" "pbcopy"
+else
+  if [[ "$XDG_SESSION_TYPE" == wayland ]]; then
+    setup_option "clipboard-exe" "wl-copy"
+  else
+    setup_option "clipboard-exe" "xclip -selection clipboard"
+  fi
+fi
+clipboard_exe=$(tmux show-option -gv @copyrat-clipboard-exe)
+
 setup_pattern_binding () {
     key=$1
     pattern_arg="$2"
     # The default window name `[copyrat]` has to be single quoted because it is
     # interpreted by the shell when launched by tmux.
-    tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} run --window-name '"${window_name}"' --reverse --unique-hint ${pattern_arg}"
+    tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} run --window-name '"${window_name}"' --clipboard-exe ${clipboard_exe} --reverse --unique-hint ${pattern_arg}"
 }
 
 # prefix + t + c searches for hex colors #aa00f5
