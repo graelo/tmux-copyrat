@@ -1,4 +1,3 @@
-//!
 //! A tmux-plugin for copy-pasting spans of text from the [tmux] pane's history
 //! into a clipboard.
 //!
