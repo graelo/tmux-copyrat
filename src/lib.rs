@@ -12,7 +12,7 @@
 //! same functionality. For this Rust implementation, I got inspired by
 //! [tmux-thumbs], and I even borrowed some parts of his regex tests.
 //!
-//! Version requirement: _rustc 1.64+_
+//! Version requirement: _rustc 1.70+_
 //!
 //! ## Demo
 //!
