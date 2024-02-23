@@ -560,11 +560,9 @@ impl<'a> ViewController<'a> {
                             uppercased,
                             output_destination,
                         });
-                    } else {
-                        // The prefix of a hint was entered, but we
-                        // still need more keys.
-                        continue;
                     }
+                    // The prefix of a hint was entered, but we
+                    // still need more keys.
                 }
 
                 // Unknown keys are ignored.
@@ -589,9 +587,9 @@ impl<'a> ViewController<'a> {
 
         let mut stdin = termion::async_stdin();
         let mut stdout = io::stdout()
-            .into_alternate_screen()
-            .expect("Cannot access alternate screen.")
             .into_raw_mode()
+            .expect("Cannot access alternate screen.")
+            .into_alternate_screen()
             .expect("Cannot access alternate screen.");
 
         // stdout.write(cursor::Hide.into()).unwrap();
