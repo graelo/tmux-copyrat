@@ -18,7 +18,7 @@ exclude = ["/.github"]
 [dependencies]
 thiserror = "1"
 
-termion = "2"
+termion = "3"
 regex = "1.6"
 clap = { version = "4.0", features = ["derive", "wrap_help"]}
 sequence_trie = "0.3.6"
