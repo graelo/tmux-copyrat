@@ -27,7 +27,7 @@ use crate::{config::extended::OutputDestination, textbuf};
 ///
 /// - the first `WrappedLine` has `pos_y: 0` and `size: 1`
 /// - the second `WrappedLine` has `pos_y: 1` and `size: 2` (larger than screen
-/// width)
+///   width)
 /// - the third `WrappedLine` has `pos_y: 3` and `size: 1`
 ///
 struct WrappedLine {

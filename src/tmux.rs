@@ -93,13 +93,13 @@ impl Pane {
     /// is the last line at the bottom of the pane.
     ///
     /// - In normal mode, the index of the start line is always 0. The index of
-    /// the end line is always the pane's height minus one. These do not need to
-    /// be specified when capturing the pane's content.
+    ///   the end line is always the pane's height minus one. These do not need to
+    ///   be specified when capturing the pane's content.
     ///
-    /// - If navigating history in copy mode, the index of the start line is the
-    /// opposite of the pane's scroll position. For instance a pane of 40 lines,
-    /// scrolled up by 3 lines. It is necessarily in copy mode. Its start line
-    /// index is `-3`. The index of the last line is `(40-1) - 3 = 36`.
+    /// - In normal mode, the index of the start line is always 0. The index of
+    ///   the end line is always the pane's height minus one. These do not need to
+    ///   be specified when capturing the pane's content.
+    ///   index is `-3`. The index of the last line is `(40-1) - 3 = 36`.
     ///
     pub fn capture(&self, region: &CaptureRegion) -> Result<String> {
         let mut args_str = format!("capture-pane -t {pane_id} -J -p", pane_id = self.id);
@@ -222,7 +222,7 @@ mod tests {
 
     #[test]
     fn test_parse_pass() {
-        let output = vec!["%52:false:62:3:false", "%53:false:23::true"];
+        let output = ["%52:false:62:3:false", "%53:false:23::true"];
         let panes: Result<Vec<Pane>> = output.iter().map(|&line| Pane::from_str(line)).collect();
         let panes = panes.expect("Could not parse tmux panes");
 
