@@ -90,6 +90,8 @@ setup_pattern_binding () {
     tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} run --window-name '"${window_name}"' --clipboard-exe ${clipboard_exe} --reverse --unique-hint ${pattern_arg}"
 }
 
+# prefix + t + a searches for command-line arguments
+setup_pattern_binding "a" "--pattern-name command-line-args"
 # prefix + t + c searches for hex colors #aa00f5
 setup_pattern_binding "c" "--pattern-name hexcolor"
 # prefix + t + d searches for dates or datetimes

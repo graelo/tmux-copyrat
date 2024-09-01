@@ -179,9 +179,11 @@ pub fn available_panes() -> Result<Vec<Pane>> {
     result
 }
 
-/// Returns tmux global options as a `HashMap`. The prefix argument is for
-/// convenience, in order to target only some of our options. For instance,
-/// `get_options("@copyrat-")` will return a `HashMap` which keys are tmux options names like `@copyrat-command`, and associated values.
+/// Returns tmux global options as a `HashMap`.
+///
+/// The prefix argument is for convenience, in order to target only some of our options. For
+/// instance, `get_options("@copyrat-")` will return a `HashMap` which keys are tmux options names
+/// like `@copyrat-command`, and associated values.
 ///
 /// # Example
 /// ```get_options("@copyrat-")```

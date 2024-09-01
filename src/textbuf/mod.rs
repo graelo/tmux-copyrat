@@ -87,7 +87,7 @@ mod tests {
 
         assert_eq!(spans.len(), 1);
         assert_eq!(
-            spans.get(0).unwrap().text,
+            spans.first().unwrap().text,
             "30557a29d5abc51e5f1d5b472e79b7e296f595abcf19fe6b9199dbbc809c6ff4"
         );
     }
@@ -115,7 +115,7 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 3);
-        assert_eq!(spans.get(0).unwrap().text, "/var/log/nginx.log");
+        assert_eq!(spans.first().unwrap().text, "/var/log/nginx.log");
         assert_eq!(spans.get(1).unwrap().text, "test/log/nginx-2.log");
         assert_eq!(spans.get(2).unwrap().text, "folder/.nginx@4df2.log");
     }
@@ -143,7 +143,7 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 3);
-        assert_eq!(spans.get(0).unwrap().text, "/tmp/foo/bar_lol");
+        assert_eq!(spans.first().unwrap().text, "/tmp/foo/bar_lol");
         assert_eq!(spans.get(1).unwrap().text, "/var/log/boot-strap.log");
         assert_eq!(spans.get(2).unwrap().text, "../log/kern.log");
     }
@@ -170,7 +170,7 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 1);
-        assert_eq!(spans.get(0).unwrap().text, "~/.gnu/.config.txt");
+        assert_eq!(spans.first().unwrap().text, "~/.gnu/.config.txt");
     }
 
     #[test]
@@ -219,7 +219,7 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 4);
-        assert_eq!(spans.get(0).unwrap().text, "fd70b5695");
+        assert_eq!(spans.first().unwrap().text, "fd70b5695");
         assert_eq!(spans.get(1).unwrap().text, "5246ddf");
         assert_eq!(spans.get(2).unwrap().text, "f924213");
         assert_eq!(
@@ -250,8 +250,8 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 3);
-        assert_eq!(spans.get(0).unwrap().pattern, "ipv4");
-        assert_eq!(spans.get(0).unwrap().text, "127.0.0.1");
+        assert_eq!(spans.first().unwrap().pattern, "ipv4");
+        assert_eq!(spans.first().unwrap().text, "127.0.0.1");
         assert_eq!(spans.get(1).unwrap().pattern, "ipv4");
         assert_eq!(spans.get(1).unwrap().text, "255.255.10.255");
         assert_eq!(spans.get(2).unwrap().pattern, "ipv4");
@@ -280,7 +280,7 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 4);
-        assert_eq!(spans.get(0).unwrap().text, "fe80::2:202:fe4");
+        assert_eq!(spans.first().unwrap().text, "fe80::2:202:fe4");
         assert_eq!(
             spans.get(1).unwrap().text,
             "2001:67c:670:202:7ba8:5e41:1591:d723"
@@ -312,8 +312,8 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 2);
-        assert_eq!(spans.get(0).unwrap().pattern, "markdown-url");
-        assert_eq!(spans.get(0).unwrap().text, "https://github.io?foo=bar");
+        assert_eq!(spans.first().unwrap().pattern, "markdown-url");
+        assert_eq!(spans.first().unwrap().text, "https://github.io?foo=bar");
         assert_eq!(spans.get(1).unwrap().pattern, "markdown-url");
         assert_eq!(spans.get(1).unwrap().text, "http://cdn.com/img.jpg");
     }
@@ -344,10 +344,10 @@ mod tests {
 
         assert_eq!(spans.len(), 6);
         assert_eq!(
-            spans.get(0).unwrap().text,
+            spans.first().unwrap().text,
             "https://www.rust-lang.org/tools"
         );
-        assert_eq!(spans.get(0).unwrap().pattern, "url");
+        assert_eq!(spans.first().unwrap().pattern, "url");
         assert_eq!(spans.get(1).unwrap().text, "https://crates.io");
         assert_eq!(spans.get(1).unwrap().pattern, "url");
         assert_eq!(spans.get(2).unwrap().text, "https://github.io?foo=bar");
@@ -383,8 +383,8 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 2);
-        assert_eq!(spans.get(0).unwrap().pattern, "email");
-        assert_eq!(spans.get(0).unwrap().text, "first.last+social@example.com");
+        assert_eq!(spans.first().unwrap().pattern, "email");
+        assert_eq!(spans.first().unwrap().text, "first.last+social@example.com");
         assert_eq!(spans.get(1).unwrap().pattern, "email");
         assert_eq!(
             spans.get(1).unwrap().text,
@@ -414,8 +414,8 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 3);
-        assert_eq!(spans.get(0).unwrap().pattern, "pointer-address");
-        assert_eq!(spans.get(0).unwrap().text, "0xfd70b5695");
+        assert_eq!(spans.first().unwrap().pattern, "pointer-address");
+        assert_eq!(spans.first().unwrap().text, "0xfd70b5695");
         assert_eq!(spans.get(1).unwrap().pattern, "pointer-address");
         assert_eq!(spans.get(1).unwrap().text, "0x5246ddf");
         assert_eq!(spans.get(2).unwrap().pattern, "pointer-address");
@@ -444,7 +444,7 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 4);
-        assert_eq!(spans.get(0).unwrap().text, "#fd7b56");
+        assert_eq!(spans.first().unwrap().text, "#fd7b56");
         assert_eq!(spans.get(1).unwrap().text, "#FF00FF");
         assert_eq!(spans.get(2).unwrap().text, "#00fF05");
         assert_eq!(spans.get(3).unwrap().text, "#abcd00");
@@ -473,7 +473,7 @@ mod tests {
 
         assert_eq!(spans.len(), 1);
         assert_eq!(
-            spans.get(0).unwrap().text,
+            spans.first().unwrap().text,
             "QmRdbNSxDJBXmssAc9fvTtux4duptMvfSGiGuq6yHAQVKQ"
         );
     }
@@ -524,8 +524,8 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 1);
-        assert_eq!(spans.get(0).unwrap().pattern, "diff-a");
-        assert_eq!(spans.get(0).unwrap().text, "src/main.rs");
+        assert_eq!(spans.first().unwrap().pattern, "diff-a");
+        assert_eq!(spans.first().unwrap().text, "src/main.rs");
     }
 
     #[test]
@@ -550,8 +550,8 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 1);
-        assert_eq!(spans.get(0).unwrap().pattern, "diff-b");
-        assert_eq!(spans.get(0).unwrap().text, "src/main.rs");
+        assert_eq!(spans.first().unwrap().pattern, "diff-b");
+        assert_eq!(spans.first().unwrap().text, "src/main.rs");
     }
 
     #[test]
@@ -576,8 +576,8 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 1);
-        assert_eq!(spans.get(0).unwrap().pattern, "datetime");
-        assert_eq!(spans.get(0).unwrap().text, "2021-03-04T12:23:34");
+        assert_eq!(spans.first().unwrap().pattern, "datetime");
+        assert_eq!(spans.first().unwrap().text, "2021-03-04T12:23:34");
     }
 
     #[test]
@@ -610,9 +610,41 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 3);
-        assert_eq!(spans.get(0).unwrap().text, "first string");
+        assert_eq!(spans.first().unwrap().text, "first string");
         assert_eq!(spans.get(1).unwrap().text, "second string");
         assert_eq!(spans.get(2).unwrap().text, "rustc --explain E0223");
+    }
+
+    #[test]
+    fn match_commandline_args() {
+        let buffer =
+            "command --arg arg1 --arg=arg2 --arg arg3-long -x hashes -a -u -l -x others\n'";
+        let lines = buffer.split('\n').collect::<Vec<_>>();
+
+        let use_all_patterns = false;
+        use crate::textbuf::regexes::parse_pattern_name;
+        let named_pat = vec![parse_pattern_name("command-line-args").unwrap()];
+        let custom = vec![];
+        let alphabet = Alphabet("abcd".to_string());
+        let reverse = false;
+        let unique_hint = false;
+        let spans = Model::new(
+            &lines,
+            &alphabet,
+            use_all_patterns,
+            &named_pat,
+            &custom,
+            reverse,
+            unique_hint,
+        )
+        .spans;
+
+        assert_eq!(spans.len(), 5);
+        assert_eq!(spans.first().unwrap().text, "arg1");
+        assert_eq!(spans.get(1).unwrap().text, "arg2");
+        assert_eq!(spans.get(2).unwrap().text, "arg3-long");
+        assert_eq!(spans.get(3).unwrap().text, "hashes");
+        assert_eq!(spans.get(4).unwrap().text, "others");
     }
 
     #[test]
@@ -640,7 +672,7 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 9);
-        assert_eq!(spans.get(0).unwrap().text, "http://foo.bar");
+        assert_eq!(spans.first().unwrap().text, "http://foo.bar");
         assert_eq!(spans.get(1).unwrap().text, "CUSTOM-52463");
         assert_eq!(spans.get(2).unwrap().text, "ISSUE-123");
         assert_eq!(spans.get(3).unwrap().text, "/var/fd70b569/9999.log");
@@ -682,7 +714,7 @@ mod tests {
         .spans;
 
         assert_eq!(spans.len(), 2);
-        assert_eq!(spans.get(0).unwrap().text, "http://foo.bar");
+        assert_eq!(spans.first().unwrap().text, "http://foo.bar");
         assert_eq!(
             spans.get(1).unwrap().text,
             "https://crates.io/23456/fd70b569"
