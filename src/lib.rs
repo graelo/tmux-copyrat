@@ -16,7 +16,11 @@
 //!
 //! ## Demo
 //!
-//! Upcoming
+//! Pressing <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> shows the following
+//! hints on all hashes. Typing the hint letters will automatically copy the
+//! hash in the tmux clipboard (or system clipboard if you prefer)
+//!
+//! ![[tmux-copyrat-hashes.png](images/tmux-copyrat-hashes.png)](images/tmux-copyrat-hashes.png)
 //!
 //! ## Usage
 //!

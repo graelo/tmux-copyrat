@@ -1,7 +1,7 @@
 # tmux-copyrat
 
-[![crate](https://img.shields.io/crates/v/tmux-copyrat.svg)](https://crates.io/crates/tmux-copyrat)
-[![documentation](https://docs.rs/tmux-copyrat/badge.svg)](https://docs.rs/tmux-copyrat)
+[![crate](https://img.shields.io/crates/v/copyrat.svg)](https://crates.io/crates/copyrat)
+[![documentation](https://docs.rs/copyrat/badge.svg)](https://docs.rs/copyrat)
 [![minimum rustc 1.74](https://img.shields.io/badge/rustc-1.74+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
 [![edition 2021](https://img.shields.io/badge/edition-2021-blue.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/index.html)
 [![tmux 3.x](https://img.shields.io/badge/tmux-3.0+-blue.svg)](https://tmux.github.io)
@@ -27,7 +27,11 @@ Version requirement: _rustc 1.74+_
 
 ## Demo
 
-Upcoming
+Pressing <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> shows the following
+hints on all hashes. Typing the hint letters will automatically copy the
+hash in the tmux clipboard (or system clipboard if you prefer)
+
+![[tmux-copyrat-hashes.png](images/tmux-copyrat-hashes.png)](images/tmux-copyrat-hashes.png)
 
 ## Usage
 
