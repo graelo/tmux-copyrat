@@ -1,6 +1,7 @@
 # Installation
 
-This guide provides multiple ways to install `tmux-copyrat`. Choose the method that best suits your setup.
+This guide provides multiple ways to install `tmux-copyrat`. Choose the method
+that best suits your setup.
 
 ## Prerequisites
 
@@ -17,8 +18,11 @@ set -g @plugin 'graelo/tmux-copyrat'
 
 Then reload your tmux configuration:
 
-1. Press <kbd>prefix</kbd> + <kbd>I</kbd> to install the plugin
-2. The plugin will automatically download the appropriate binary for your system on first use
+1. Ask TPM to install the plugin: press <kbd>prefix</kbd> + <kbd>I</kbd>
+2. The plugin will automatically download the appropriate binary for your
+   system on first use
+3. Later on, ask TPM to update the plugin: press <kbd>prefix</kbd> +
+   <kbd>U</kbd>. See section [Updating](#updating) below.
 
 ## Method 2: Manual Installation
 
@@ -43,7 +47,8 @@ run-shell ~/.tmux/plugins/tmux-copyrat/tmux-copyrat.tmux
 tmux source-file ~/.tmux.conf
 ```
 
-The plugin will automatically download the appropriate binary for your system on first use.
+The plugin will automatically download the appropriate binary for your system
+on first use.
 
 ## Method 3: Custom Key Bindings
 
