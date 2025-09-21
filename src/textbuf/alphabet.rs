@@ -125,8 +125,7 @@ impl Alphabet {
         // with "" as necessary.
         let lead: Vec<String> = lead.iter().map(|c| c.to_string()).collect();
 
-        let filler: Vec<String> = std::iter::repeat("")
-            .take(n - lead.len() - prev.len())
+        let filler: Vec<String> = std::iter::repeat_n("", n - lead.len() - prev.len())
             .map(|s| s.to_string())
             .collect();
 
@@ -192,6 +191,6 @@ mod tests {
         // 2500 unique hints are produced from the longest alphabet
         // The 7500 last ones come from the filler ("" empty hints).
         assert_eq!(hints.len(), 10000);
-        assert!(&hints[2500..].iter().all(|s| s == ""));
+        assert!(&hints[2500..].iter().all(|s| s.is_empty()));
     }
 }
