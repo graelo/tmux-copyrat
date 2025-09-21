@@ -104,7 +104,7 @@ impl Display for HintSurroundingsArg {
 }
 
 /// Try to parse a `&str` into a tuple of `char`s.
-fn try_parse_chars(src: &str) -> Result<HintSurroundingsArg> {
+pub(crate) fn try_parse_chars(src: &str) -> Result<HintSurroundingsArg> {
     if src.chars().count() != 2 {
         return Err(Error::ExpectedSurroundingPair);
     }
