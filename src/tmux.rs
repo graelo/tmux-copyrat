@@ -191,7 +191,7 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>> {
     let output = duct::cmd!("tmux", "show-options", "-g").read()?;
     let lines: Vec<&str> = output.split('\n').collect();
 
-    let pattern = format!(r#"({prefix}[\w\-0-9]+) "?(\w+)"?"#);
+    let pattern = format!(r#"({prefix}[\w\-0-9]+) "?([\w-]+)"?"#);
     let re = Regex::new(&pattern).unwrap();
 
     let args: HashMap<String, String> = lines
