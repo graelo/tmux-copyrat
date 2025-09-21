@@ -1,14 +1,14 @@
 name: Release
 on:
   push:
-   tags:
-     - 'v*'
+    tags:
+      - 'v*'
 
 jobs:
   prepare-artifacts:
     name: Prepare release artifacts
     # if: github.ref == 'refs/heads/main'
-    runs-on: '${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
@@ -52,25 +52,28 @@ jobs:
              ~/.cargo/registry/cache/
              ~/.cargo/git/db/
              target/
-          key: '${{ runner.os }}-${{ matrix.target }}-cargo-${{ matrix.rust }}-hash-${{ hashFiles(''**/Cargo.lock'') }}'
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ matrix.rust }}-hash-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build Release
         run: cargo build --release
 
       - name: Compress to zip (macOS)
         if: ${{ matrix.os == 'macos-latest' || matrix.os == 'macos-13' }}
-        run:
-          zip -A ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }} target/release/${{ github.event.repository.name }}
+        run: |
+          cp target/release/${{ github.event.repository.name }} .
+          zip -A ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }} ${{ github.event.repository.name }}
 
       - name: Compress to zip (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
-        run:
-          Compress-Archive target/release/${{ github.event.repository.name }}${{ matrix.suffix }} ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }}
+        run: |
+          Copy-Item target/release/${{ github.event.repository.name }}${{ matrix.suffix }} .
+          Compress-Archive ${{ github.event.repository.name }}${{ matrix.suffix }} ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }}
 
       - name: Compress to tar.xz (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' }}
-        run:
-          tar Jcf ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }} target/release/${{ github.event.repository.name }}
+        run: |
+          cp target/release/${{ github.event.repository.name }} .
+          tar Jcf ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }} ${{ github.event.repository.name }}
 
       - name: List files
         run: |
@@ -148,7 +151,7 @@ jobs:
           echo "tag-name=${GITHUB_REF#refs/tags/}" >> ${GITHUB_OUTPUT}
 
       - uses: mislav/bump-homebrew-formula-action@v3
-        if: "!contains(github.ref, '-')" # skip prereleases
+        if: ${{ !contains(github.ref, '-') }} # skip prereleases
         with:
           formula-name: tmux-copyrat
           homebrew-tap: graelo/homebrew-tap

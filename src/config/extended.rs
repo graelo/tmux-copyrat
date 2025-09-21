@@ -87,7 +87,12 @@ impl ConfigExt {
                     "@copyrat-unique-hint" => {
                         inner.unique_hint = value.parse::<bool>()?;
                     }
+                    "@copyrat-focus-wrap-around" => {
+                        inner.focus_wrap_around = value.parse::<bool>()?
+                    }
 
+                    "@copyrat-text-fg" => inner.colors.text_fg = ui::colors::parse_color(value)?,
+                    "@copyrat-text-bg" => inner.colors.text_bg = ui::colors::parse_color(value)?,
                     "@copyrat-span-fg" => inner.colors.span_fg = ui::colors::parse_color(value)?,
                     "@copyrat-span-bg" => inner.colors.span_bg = ui::colors::parse_color(value)?,
                     "@copyrat-focused-fg" => {
@@ -110,6 +115,9 @@ impl ConfigExt {
                             basic::HintStyleArg::from_str(value, case_insensitive)
                                 .map_err(Error::ExpectedEnumVariant)?,
                         )
+                    }
+                    "@copyrat-hint-surroundings" => {
+                        inner.hint_surroundings = basic::try_parse_chars(value)?;
                     }
 
                     // Ignore unknown options.

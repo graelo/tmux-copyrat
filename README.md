@@ -1,8 +1,8 @@
 # tmux-copyrat
 
-[![crate](https://img.shields.io/crates/v/tmux-copyrat.svg)](https://crates.io/crates/tmux-copyrat)
-[![documentation](https://docs.rs/tmux-copyrat/badge.svg)](https://docs.rs/tmux-copyrat)
-[![minimum rustc 1.74](https://img.shields.io/badge/rustc-1.74+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![crate](https://img.shields.io/crates/v/copyrat.svg)](https://crates.io/crates/copyrat)
+[![documentation](https://docs.rs/copyrat/badge.svg)](https://docs.rs/copyrat)
+[![minimum rustc 1.85](https://img.shields.io/badge/rustc-1.85+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
 [![edition 2021](https://img.shields.io/badge/edition-2021-blue.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/index.html)
 [![tmux 3.x](https://img.shields.io/badge/tmux-3.0+-blue.svg)](https://tmux.github.io)
 [![build status](https://github.com/graelo/tmux-copyrat/actions/workflows/essentials.yml/badge.svg)](https://github.com/graelo/tmux-copyrat/actions)
@@ -23,16 +23,24 @@ The name is a tribute to [tmux-copyrat], which I used for many years for that
 same functionality. For this Rust implementation, I got inspired by
 [tmux-thumbs], and I even borrowed some parts of his regex tests.
 
-Version requirement: _rustc 1.74+_
+Version requirement: _rustc 1.85+_
 
 ## Demo
 
-Upcoming
+Pressing <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> shows the following
+hints on all hashes. Typing the hint letters will automatically copy the
+hash in the tmux clipboard (or system clipboard if you prefer)
+
+![[tmux-copyrat-hashes.png](images/tmux-copyrat-hashes.png)](images/tmux-copyrat-hashes.png)
 
 ## Usage
 
 First install and optionally customize the plugin (see both [INSTALLATION.md]
 and [CONFIGURATION.md] pages) and restart tmux.
+
+**Note**: When customizing, add options to your `~/.tmux.conf` rather than
+*modifying plugin files directly - this ensures your customizations survive
+*plugin updates.
 
 Press one of the pre-defined tmux key-bindings (see table below) in order to
 highlight spans of text matching a specific pattern. To yank some text span in
@@ -58,6 +66,8 @@ more options are described in [CONFIGURATION.md].
 
 tmux-copyrat can match one or more pre-defined (named) patterns, but you can
 add your own too (see [CONFIGURATION.md]).
+
+**Key binding customization**: You can override any default binding, add new custom patterns, or remove unwanted bindings using `@copyrat-bind-{key}` options in your `~/.tmux.conf`. See [CONFIGURATION.md] for details.
 
 The default configuration provided in the [`copyrat.tmux`](copyrat.tmux) plugin
 file provides the following key-bindings. Because they all start with

@@ -1,100 +1,106 @@
 # Installation
 
-## A note on extending tmux functionality
+This guide provides multiple ways to install `tmux-copyrat`. Choose the method
+that best suits your setup.
 
-Extending [tmux] functionality is easy: it boils down to adding key-bindings
-which call internal commands or external programs that you provide.
+## Prerequisites
 
-The minimalistic way to add functionality is simply to add your key-bindings
-directly inside `~/.tmux.conf`. I don't do this because it ends up being messy,
-but it's still an option described below.
+- [tmux](https://tmux.github.io) 3.0+
+- `curl` or `wget` (for automatic binary download)
 
-In contrast, the most flexible way to extend is via plugins. You declare your
-bindings in a plugin file often located in
-`~/.tmux/plugins/your-plugin-dir/plugin-file.tmux`, and optionally provide your
-external programs in the same folder or elsewhere. You then simply ask tmux to
-_run_ your plugin file by adding `run-shell
-~/.tmux/plugins/your-plugin-dir/plugin-file.tmux` inside your `tmux.conf`. Your
-key-bindings will be registered on tmux initial start.
+## Method 1: Tmux Plugin Manager (TPM) - Recommended
 
-[TPM], the tmux plugin manager, is an integrated way of doing the same. It adds
-a level of indirection: when tmux first starts, it runs TPM, which asks tmux to
-_run_ all the plugin files in `~/.tmux/plugins/**/` as executables.
-When run, each plugin file registers their key-bindings with tmux. TPM also has
-an installation mechanism for plugins.
-
-
-## Minimalistic installation
-
-As described above, a valid option is to ignore the [`copyrat.tmux`] plugin
-file simply add a few key bindings to tmux. You just have to create
-key-bindings which launch the `tmux-copyrat` binary with its command line
-options. Notice you probably need the absolute path to the binary.
-
-However, when creating your bindings, avoid using `run-shell` to run `tmux-copyrat`
-because by design tmux launches processes without attaching them to a pty.
-Take inspiration from [`copyrat.tmux`] for correct syntax.
-
-
-## Standard installation (recommended)
-
-The easiest way to install is to copy the config file [`copyrat.tmux`] into `~/.tmux/plugins/tmux-copyrat/` and tell tmux to source it either via
-
-- sourcing it directly from your `~/.tmux.conf`: you simply add the line `source-file ~/.tmux/plugins/tmux-copyrat/copyrat.tmux`
-- or, if you use [TPM], registering it with TPM in your `~/.tmux.conf`: you simply add the line
-
+If you use [TPM](https://github.com/tmux-plugins/tpm), add this line to your `~/.tmux.conf`:
 
 ```tmux
-set -g @tpm_plugins '              \
-  tmux-plugins/tpm                 \
-  tmux-plugins/tmux-copyrat        \  <- line added
-  tmux-plugins/tmux-yank           \
-  ...
-```
-
-
-second style of tmux integration is more declarative: you configure the tmux key bindings to pass none or very few command line arguments to `tmux-copyrat`, and ask `tmux-copyrat` to query back tmux for the rest of the configuration.
-
-
-
-## Tmux integration
-
-Clone the repo:
-
-```
-git clone https://github.com/graelo/tmux-copyrat ~/.tmux/plugins/tmux-copyrat
-```
-
-Compile it with [cargo](https://doc.rust-lang.org/cargo/getting-started/installation.html):
-
-```
-cd ~/.tmux/plugins/tmux-copyrat
-cargo build --release
-```
-
-Source it in your `.tmux.conf`:
-
-```
-run-shell ~/.tmux/plugins/tmux-copyrat/copyrat.tmux
-```
-
-Reload TMUX conf by running:
-
-```
-tmux source-file ~/.tmux.conf
-```
-
-## Using Tmux Plugin Manager
-
-You can add this line to your list of [TPM](https://github.com/tmux-plugins/tpm) plugins in `.tmux.conf`:
-
-```
 set -g @plugin 'graelo/tmux-copyrat'
 ```
 
-To be able to install the plugin just hit <kbd>prefix</kbd> + <kbd>I</kbd>. You should now be able to use
-the plugin!
+Then reload your tmux configuration:
 
-[`copyrat.tmux`]: https://raw.githubusercontent.com/graelo/tmux-copyrat/main/copyrat.tmux
-[tmux]: https://tmux.github.io
-[TPM]: https://github.com/tmux-plugins/tpm
+1. Ask TPM to install the plugin: press <kbd>prefix</kbd> + <kbd>I</kbd>
+2. The plugin will automatically download the appropriate binary for your
+   system on first use
+3. Later on, ask TPM to update the plugin: press <kbd>prefix</kbd> +
+   <kbd>U</kbd>. See section [Updating](#updating) below.
+
+## Method 2: Manual Installation
+
+### Clone the Repository
+
+```bash
+# Clone the repository
+git clone https://github.com/graelo/tmux-copyrat ~/.tmux/plugins/tmux-copyrat
+```
+
+### Add to tmux Configuration
+
+Add this line to your `~/.tmux.conf`:
+
+```tmux
+run-shell ~/.tmux/plugins/tmux-copyrat/tmux-copyrat.tmux
+```
+
+### Reload Configuration
+
+```bash
+tmux source-file ~/.tmux.conf
+```
+
+The plugin will automatically download the appropriate binary for your system
+on first use.
+
+## Method 3: Custom Key Bindings
+
+For advanced users who prefer to manage their own key bindings, you can:
+
+1. Download the binary using Method 2 (or manually download from [GitHub
+   releases](https://github.com/graelo/tmux-copyrat/releases))
+2. Skip sourcing the `tmux-copyrat.tmux` file
+3. Create custom key bindings in your `~/.tmux.conf`
+
+**Important**: When creating custom bindings, avoid using `run-shell` as tmux
+*launches these processes without attaching them to a pty. Refer to the
+*[`tmux-copyrat.tmux`](https://raw.githubusercontent.com/graelo/tmux-copyrat/main/tmux-copyrat.tmux)
+*file for proper syntax examples.
+
+## Customization
+
+**Important**: If using TPM, never modify the plugin files directly in
+`~/.tmux/plugins/tmux-copyrat/`!
+
+When using TPM, any changes you make to plugin files will be lost when you
+update the plugin. Instead, customize the plugin by adding options to your
+`~/.tmux.conf`:
+
+```tmux
+# Example customizations in ~/.tmux.conf
+set -g @copyrat-keyswitch "c"           # Use 'c' instead of 't'
+set -g @copyrat-window-name "[search]"  # Custom window name
+set -g @copyrat-keytable "search"       # Custom keytable name
+```
+
+See [CONFIGURATION.md](CONFIGURATION.md) for all available options and examples.
+
+## Updating
+
+The plugin only downloads the binary if it doesn't exist. To get the latest version:
+
+```bash
+# Navigate to plugin directory
+cd ~/.tmux/plugins/tmux-copyrat
+
+# Force download latest binary
+./install-binary.sh --force
+```
+
+## Verification
+
+After installation, you should be able to use the default key bindings:
+
+- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> - highlight hashes
+- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd> - highlight URLs
+- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>d</kbd> - highlight dates
+- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>i</kbd> - highlight IP addresses
+
+See [CONFIGURATION.md](CONFIGURATION.md) for customization options.

@@ -12,11 +12,15 @@
 //! same functionality. For this Rust implementation, I got inspired by
 //! [tmux-thumbs], and I even borrowed some parts of his regex tests.
 //!
-//! Version requirement: _rustc 1.74+_
+//! Version requirement: _rustc 1.85+_
 //!
 //! ## Demo
 //!
-//! Upcoming
+//! Pressing <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> shows the following
+//! hints on all hashes. Typing the hint letters will automatically copy the
+//! hash in the tmux clipboard (or system clipboard if you prefer)
+//!
+//! ![[tmux-copyrat-hashes.png](images/tmux-copyrat-hashes.png)](images/tmux-copyrat-hashes.png)
 //!
 //! ## Usage
 //!
