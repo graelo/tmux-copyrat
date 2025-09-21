@@ -1,14 +1,14 @@
 name: Release
 on:
   push:
-   tags:
-     - 'v*'
+    tags:
+      - 'v*'
 
 jobs:
   prepare-artifacts:
     name: Prepare release artifacts
     # if: github.ref == 'refs/heads/main'
-    runs-on: '${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
@@ -52,7 +52,7 @@ jobs:
              ~/.cargo/registry/cache/
              ~/.cargo/git/db/
              target/
-          key: '${{ runner.os }}-${{ matrix.target }}-cargo-${{ matrix.rust }}-hash-${{ hashFiles(''**/Cargo.lock'') }}'
+          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ matrix.rust }}-hash-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build Release
         run: cargo build --release
@@ -151,7 +151,7 @@ jobs:
           echo "tag-name=${GITHUB_REF#refs/tags/}" >> ${GITHUB_OUTPUT}
 
       - uses: mislav/bump-homebrew-formula-action@v3
-        if: "!contains(github.ref, '-')" # skip prereleases
+        if: ${{ !contains(github.ref, '-') }} # skip prereleases
         with:
           formula-name: tmux-copyrat
           homebrew-tap: graelo/homebrew-tap
