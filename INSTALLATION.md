@@ -53,11 +53,32 @@ For advanced users who prefer to manage their own key bindings, you can:
 2. Skip sourcing the `tmux-copyrat.tmux` file
 3. Create custom key bindings in your `~/.tmux.conf`
 
-**Important**: When creating custom bindings, avoid using `run-shell` as tmux launches these processes without attaching them to a pty. Refer to the [`tmux-copyrat.tmux`](https://raw.githubusercontent.com/graelo/tmux-copyrat/main/tmux-copyrat.tmux) file for proper syntax examples.
+**Important**: When creating custom bindings, avoid using `run-shell` as tmux
+*launches these processes without attaching them to a pty. Refer to the
+*[`tmux-copyrat.tmux`](https://raw.githubusercontent.com/graelo/tmux-copyrat/main/tmux-copyrat.tmux)
+*file for proper syntax examples.
+
+## Customization
+
+**Important**: If using TPM, never modify the plugin files directly in
+*`~/.tmux/plugins/tmux-copyrat/`!
+
+When using TPM, any changes you make to plugin files will be lost when you
+update the plugin. Instead, customize the plugin by adding options to your
+`~/.tmux.conf`:
+
+```tmux
+# Example customizations in ~/.tmux.conf
+set -g @copyrat-keyswitch "c"           # Use 'c' instead of 't'
+set -g @copyrat-window-name "[search]"  # Custom window name
+set -g @copyrat-keytable "search"       # Custom keytable name
+```
+
+See [CONFIGURATION.md](CONFIGURATION.md) for all available options and examples.
 
 ## Updating
 
-The plugin only downloads the binary if it doesn't exist. To get the latest version binary manually, run:
+The plugin only downloads the binary if it doesn't exist. To get the latest version:
 
 ```bash
 # Navigate to plugin directory

@@ -3,14 +3,18 @@
 # This scripts provides a default configuration for tmux-copyrat options and
 # key bindings. It is run only once at tmux launch.
 #
-# Each option and binding can be overridden in your `tmux.conf` by defining
-# options like
+# IMPORTANT: DO NOT MODIFY THIS FILE DIRECTLY!
+# If you're using TPM, your changes will be lost when the plugin is updated.
+#
+# Instead, customize the plugin by adding options to your ~/.tmux.conf:
 #
 #   set -g @copyrat-keytable "foobar"
 #   set -g @copyrat-keyswitch "z"
 #   set -g @copyrat-span-bg "magenta"
+#   set -g @copyrat-window-name "[search]"
+#   set -g @copyrat-clipboard-exe "pbcopy"
 #
-# and bindings like
+# and custom bindings like:
 #
 #   bind-key -T foobar h new-window -d -n "[copyrat]" '/path/to/tmux-copyrat --window-name "[copyrat]" --pattern-name urls'
 #                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

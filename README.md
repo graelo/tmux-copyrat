@@ -38,6 +38,10 @@ hash in the tmux clipboard (or system clipboard if you prefer)
 First install and optionally customize the plugin (see both [INSTALLATION.md]
 and [CONFIGURATION.md] pages) and restart tmux.
 
+**Note**: When customizing, add options to your `~/.tmux.conf` rather than
+*modifying plugin files directly - this ensures your customizations survive
+*plugin updates.
+
 Press one of the pre-defined tmux key-bindings (see table below) in order to
 highlight spans of text matching a specific pattern. To yank some text span in
 the tmux buffer, press the corresponding _hint_, or press <kbd>Esc</kbd> to
