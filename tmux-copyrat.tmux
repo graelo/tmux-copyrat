@@ -39,12 +39,12 @@ CURRENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 ensure_binary_available() {
     local installer_script="${CURRENT_DIR}/install-binary.sh"
     local binary_path="${CURRENT_DIR}/tmux-copyrat"
-    
+
     # If binary already exists and is executable, we're good
     if [[ -x "$binary_path" ]]; then
         return 0
     fi
-    
+
     # If installer script exists, run it quietly
     if [[ -x "$installer_script" ]]; then
         if "$installer_script" --quiet; then
@@ -59,14 +59,17 @@ ensure_binary_available() {
     fi
 }
 
-# Try to ensure binary is available (install if needed)
-ensure_binary_available
+# Set BINARY variable - prefer system PATH, fall back to local binary
+BINARY=$(which tmux-copyrat 2>/dev/null || which copyrat 2>/dev/null || echo "")
 
-# Set BINARY variable - prefer local downloaded binary, fall back to system PATH
-if [[ -x "${CURRENT_DIR}/tmux-copyrat" ]]; then
-    BINARY="${CURRENT_DIR}/tmux-copyrat"
-else
-    BINARY=$(which tmux-copyrat 2>/dev/null || which copyrat 2>/dev/null || echo "")
+# If not found in PATH, try to ensure local binary is available (install if needed)
+if [[ -z "$BINARY" || ! -x "$BINARY" ]]; then
+    ensure_binary_available
+
+    # After ensuring local binary, check if local binary exists
+    if [[ -x "${CURRENT_DIR}/tmux-copyrat" ]]; then
+        BINARY="${CURRENT_DIR}/tmux-copyrat"
+    fi
 fi
 
 # Check if we have a usable binary
@@ -81,13 +84,12 @@ fi
 #
 # Top-level options
 #
-
 setup_option () {
     opt_name=$1
     default_value=$2
-    current_value=$(tmux show-option -gqv @copyrat-${opt_name})
-    value=${current_value:-$default_value}
-    tmux set-option -g @copyrat-${opt_name} ${value}
+    current_value=$(tmux show-option -gqv @copyrat-"${opt_name}")
+    value="${current_value:-"$default_value"}"
+    tmux set-option -g "@copyrat-${opt_name}" "${value}"
 }
 
 
@@ -109,7 +111,7 @@ setup_option "keyswitch" "t"
 
 keyswitch=$(tmux show-option -gv @copyrat-keyswitch)
 keytable=$(tmux show-option -gv @copyrat-keytable)
-tmux bind-key ${keyswitch} switch-client -T ${keytable}
+tmux bind-key "${keyswitch}" switch-client -T "${keytable}"
 
 
 #
@@ -122,7 +124,7 @@ tmux bind-key ${keyswitch} switch-client -T ${keytable}
 # bright-cyan, bright-white
 
 # Base text colors (the normal text foreground/background)
-setup_option "text-fg" "bright-cyan"
+# setup_option "text-fg" "bright-cyan"
 setup_option "text-bg" "none"
 
 # Span colors (the matched text background/foreground)
@@ -199,36 +201,69 @@ build_common_options() {
     opts+=" --alphabet ${alphabet}"
     opts+=" --capture-region ${capture_region}"
     opts+=" --hint-alignment ${hint_alignment}"
-    
+
     if [[ "$reverse" == "true" ]]; then
         opts+=" --reverse"
     fi
-    
+
     if [[ "$unique_hint" == "true" ]]; then
         opts+=" --unique-hint"
     fi
-    
+
     if [[ "$focus_wrap_around" == "true" ]]; then
         opts+=" --focus-wrap-around"
     fi
-    
+
     if [[ -n "$hint_style" ]]; then
         opts+=" --hint-style ${hint_style}"
         if [[ "$hint_style" == "surround" && -n "$hint_surroundings" ]]; then
             opts+=" --hint-surroundings ${hint_surroundings}"
         fi
     fi
-    
+
     echo "$opts"
 }
 
 setup_pattern_binding () {
     key=$1
     pattern_arg="$2"
+
+    # Handle new user syntax: "pattern-name xxx" or "custom-pattern xxx"
+    local value
+    if echo "$pattern_arg" | grep -q "^pattern-name "; then
+        value=$(echo "$pattern_arg" | sed -E 's/^pattern-name //')
+        pattern_arg="--pattern-name $value"
+    elif echo "$pattern_arg" | grep -q "^custom-pattern "; then
+        value=$(echo "$pattern_arg" | sed -E 's/^custom-pattern //')
+        pattern_arg="--custom-pattern $value"
+    fi
+
     common_opts=$(build_common_options)
     # The default window name `[copyrat]` has to be single quoted because it is
     # interpreted by the shell when launched by tmux.
-    tmux bind-key -T ${keytable} ${key} new-window -d -n ${window_name} "${BINARY} run --window-name '"${window_name}"' --clipboard-exe ${clipboard_exe} ${common_opts} ${pattern_arg}"
+    tmux bind-key -T "${keytable}" "${key}" new-window -d -n "${window_name}" "${BINARY} run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} ${common_opts} ${pattern_arg}"
+}
+
+# Process user-defined bindings from @copyrat-bind-* options
+setup_user_bindings() {
+    # Get all @copyrat-bind-* options
+    local bind_options
+    bind_options=$(tmux show-options -g 2>/dev/null | grep "^@copyrat-bind-" | cut -d' ' -f1)
+
+    for option in $bind_options; do
+        local key
+        local pattern
+        key=$(echo "$option" | sed -E 's/@copyrat-bind-//')
+        pattern=$(tmux show-option -gv "$option" 2>/dev/null)
+
+        if [[ -n "$pattern" ]]; then
+            # Create/override binding
+            setup_pattern_binding "$key" "$pattern"
+        else
+            # Remove binding (unbind key) - suppress error if binding doesn't exist
+            tmux unbind-key -T "${keytable}" "$key" 2>/dev/null || true
+        fi
+    done
 }
 
 # prefix + t + a searches for command-line arguments
@@ -266,5 +301,8 @@ setup_pattern_binding "6" "--pattern-name ipv6"
 # prefix + t + Space searches for all known patterns (noisy and potentially slower)
 setup_pattern_binding "space" "--all-patterns"
 
+# Process user-defined bindings (must come after defaults to allow overrides)
+setup_user_bindings
+
 # prefix + t + / prompts for a pattern and search for it
-tmux bind-key -T ${keytable} "/" command-prompt -p "search:" "new-window -d -n '${window_name}' \"${BINARY}\" run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} $(build_common_options) --custom-pattern %%"
+tmux bind-key -T "${keytable}" "/" command-prompt -p "search:" "new-window -d -n '${window_name}' '${BINARY}' run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} $(build_common_options) --custom-pattern %%"
