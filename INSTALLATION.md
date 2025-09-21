@@ -49,7 +49,8 @@ The plugin will automatically download the appropriate binary for your system on
 
 For advanced users who prefer to manage their own key bindings, you can:
 
-1. Download the binary using Method 2 (or manually download from [GitHub releases](https://github.com/graelo/tmux-copyrat/releases))
+1. Download the binary using Method 2 (or manually download from [GitHub
+   releases](https://github.com/graelo/tmux-copyrat/releases))
 2. Skip sourcing the `tmux-copyrat.tmux` file
 3. Create custom key bindings in your `~/.tmux.conf`
 
@@ -61,7 +62,7 @@ For advanced users who prefer to manage their own key bindings, you can:
 ## Customization
 
 **Important**: If using TPM, never modify the plugin files directly in
-*`~/.tmux/plugins/tmux-copyrat/`!
+`~/.tmux/plugins/tmux-copyrat/`!
 
 When using TPM, any changes you make to plugin files will be lost when you
 update the plugin. Instead, customize the plugin by adding options to your
