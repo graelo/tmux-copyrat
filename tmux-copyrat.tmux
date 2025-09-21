@@ -28,9 +28,52 @@
 # You can also entirely ignore this file (not even source it) and define all
 # options and bindings in your `tmux.conf`.
 
-BINARY=$(which tmux-copyrat)
-# CURRENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
-# BINARY=${CURRENT_DIR}/tmux-copyrat
+# Get the current directory where this script is located
+CURRENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
+
+# Function to ensure binary is available
+ensure_binary_available() {
+    local installer_script="${CURRENT_DIR}/install-binary.sh"
+    local binary_path="${CURRENT_DIR}/tmux-copyrat"
+    
+    # If binary already exists and is executable, we're good
+    if [[ -x "$binary_path" ]]; then
+        return 0
+    fi
+    
+    # If installer script exists, run it quietly
+    if [[ -x "$installer_script" ]]; then
+        if "$installer_script" --quiet; then
+            return 0
+        else
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] tmux-copyrat: Warning: Failed to install binary automatically" >&2
+            return 1
+        fi
+    else
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] tmux-copyrat: Warning: Installer script not found" >&2
+        return 1
+    fi
+}
+
+# Try to ensure binary is available (install if needed)
+ensure_binary_available
+
+# Set BINARY variable - prefer local downloaded binary, fall back to system PATH
+if [[ -x "${CURRENT_DIR}/tmux-copyrat" ]]; then
+    BINARY="${CURRENT_DIR}/tmux-copyrat"
+elif [[ -x "${CURRENT_DIR}/copyrat" ]]; then
+    BINARY="${CURRENT_DIR}/copyrat"
+else
+    BINARY=$(which tmux-copyrat 2>/dev/null || which copyrat 2>/dev/null || echo "")
+fi
+
+# Check if we have a usable binary
+if [[ -z "$BINARY" || ! -x "$BINARY" ]]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] tmux-copyrat: Error: tmux-copyrat binary not found." >&2
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] tmux-copyrat: Please install manually or ensure it's in your PATH." >&2
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] tmux-copyrat: Visit https://github.com/graelo/tmux-copyrat/releases for manual download." >&2
+    exit 1
+fi
 
 
 #

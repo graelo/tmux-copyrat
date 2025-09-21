@@ -18,7 +18,7 @@ set -g @plugin 'graelo/tmux-copyrat'
 Then reload your tmux configuration:
 
 1. Press <kbd>prefix</kbd> + <kbd>I</kbd> to install the plugin
-2. The `tmux-copyrat.tmux` script will automatically detect your system and download the appropriate binary from GitHub releases
+2. The plugin will automatically download the appropriate binary for your system on first use
 
 ## Method 2: Manual Installation
 
@@ -43,7 +43,7 @@ run-shell ~/.tmux/plugins/tmux-copyrat/tmux-copyrat.tmux
 tmux source-file ~/.tmux.conf
 ```
 
-The `tmux-copyrat.tmux` script will automatically detect your system (macOS/Linux) and architecture, then download the appropriate binary from GitHub releases on first run.
+The plugin will automatically download the appropriate binary for your system on first use.
 
 ## Method 3: Custom Key Bindings
 
@@ -54,6 +54,18 @@ For advanced users who prefer to manage their own key bindings, you can:
 3. Create custom key bindings in your `~/.tmux.conf`
 
 **Important**: When creating custom bindings, avoid using `run-shell` as tmux launches these processes without attaching them to a pty. Refer to the [`tmux-copyrat.tmux`](https://raw.githubusercontent.com/graelo/tmux-copyrat/main/tmux-copyrat.tmux) file for proper syntax examples.
+
+## Updating
+
+The plugin only downloads the binary if it doesn't exist. To get the latest version binary manually, run:
+
+```bash
+# Navigate to plugin directory
+cd ~/.tmux/plugins/tmux-copyrat
+
+# Force download latest binary
+./install-binary.sh --force
+```
 
 ## Verification
 
