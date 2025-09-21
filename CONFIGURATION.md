@@ -1,417 +1,197 @@
 # Configuration
 
-You can customize tmux-copyrat's behavior by adding options to your `~/.tmux.conf` file. 
+Customize tmux-copyrat by adding options to your `~/.tmux.conf` file.
 
-**Important**: Never modify the plugin files directly in `~/.tmux/plugins/tmux-copyrat/` - your changes will be lost when the plugin is updated via TPM.
+**Important**: Never modify plugin files directly in
+`~/.tmux/plugins/tmux-copyrat/` - changes will be lost on updates.
 
-**Note**: For changes to take effect, you'll need to reload your tmux configuration with `tmux source-file ~/.tmux.conf`.
+**Note**: Reload your configuration with `tmux source-file ~/.tmux.conf` to
+apply changes.
 
-## Available Options
+## Configuration Options
 
-### Plugin Configuration
+### Plugin Settings
 
-- [@copyrat-keyswitch](#copyrat-keyswitch) - Key to enter copyrat mode
-- [@copyrat-keytable](#copyrat-keytable) - Keytable name for bindings
-- [@copyrat-window-name](#copyrat-window-name) - Window name for copyrat
-- [@copyrat-clipboard-exe](#copyrat-clipboard-exe) - Clipboard command
+- `@copyrat-keyswitch` - Key to enter copyrat mode (default: `t`)
+- `@copyrat-keytable` - Keytable name (default: `cpyrt`)
+- `@copyrat-window-name` - Window name (default: `[copyrat]`)
+- `@copyrat-clipboard-exe` - Clipboard command (auto-detected)
 
-### Color Options
+### Colors
 
-- [@copyrat-text-fg](#copyrat-text-fg) - Foreground color of base (unmatched) text
-- [@copyrat-text-bg](#copyrat-text-bg) - Background color of base (unmatched) text
-- [@copyrat-span-fg](#copyrat-span-fg) - Foreground color of matched text
-- [@copyrat-span-bg](#copyrat-span-bg) - Background color of matched text
-- [@copyrat-focused-fg](#copyrat-focused-fg) - Foreground color of focused match
-- [@copyrat-focused-bg](#copyrat-focused-bg) - Background color of focused match
-- [@copyrat-hint-fg](#copyrat-hint-fg) - Foreground color of hint text
-- [@copyrat-hint-bg](#copyrat-hint-bg) - Background color of hint text
+- `@copyrat-text-fg/bg` - Base text colors
+- `@copyrat-span-fg/bg` - Matched text colors
+- `@copyrat-focused-fg/bg` - Selected match colors
+- `@copyrat-hint-fg/bg` - Hint colors
 
-### Behavior Options
+### Behavior
 
-- [@copyrat-alphabet](#copyrat-alphabet) - Character set for hints
-- [@copyrat-reverse](#copyrat-reverse) - Direction of hint assignment
-- [@copyrat-unique-hint](#copyrat-unique-hint) - Consistent hints for identical text
-- [@copyrat-focus-wrap-around](#copyrat-focus-wrap-around) - Focus wrapping behavior
-- [@copyrat-hint-alignment](#copyrat-hint-alignment) - Hint alignment relative to text
-- [@copyrat-hint-style](#copyrat-hint-style) - Visual style of hints
-- [@copyrat-hint-surroundings](#copyrat-hint-surroundings) - Characters for surround style
-- [@copyrat-capture-region](#copyrat-capture-region) - Text capture area
+- `@copyrat-alphabet` - Hint character set (default: `dvorak`)
+- `@copyrat-reverse` - Hint direction (default: `true`)
+- `@copyrat-unique-hint` - Same hints for identical text (default: `true`)
+- `@copyrat-focus-wrap-around` - Focus wrapping (default: `false`)
+- `@copyrat-hint-alignment` - Hint position: `leading/center/trailing`
+- `@copyrat-hint-style` - Styling: `bold/italic/underline/surround`
+- `@copyrat-hint-surroundings` - Surround characters (default: `{}`)
+- `@copyrat-capture-region` - Search area: `visible-area/entire-history`
 
-### Custom Patterns and Bindings
+### Custom Bindings
 
-- [@copyrat-bind-{key}](#copyrat-bind-key) - Configure custom key bindings
-- [Custom bindings](#custom-bindings) - Advanced manual key binding setup
+- `@copyrat-bind-{key}` - Override or add pattern bindings
 
-## Plugin Configuration Options
+## Basic Configuration
 
-### @copyrat-keyswitch
-
-**Default**: `t`
-
-The key used after the tmux prefix to enter copyrat mode. All copyrat bindings start with `prefix + keyswitch`.
+### Key Binding Setup
 
 ```tmux
-# Use 'c' instead of 't' as the keyswitch
+# Change the main key from 't' to 'c'
 set -g @copyrat-keyswitch "c"
 
-# Now bindings become: prefix + c + h (for hashes), prefix + c + u (for URLs), etc.
-```
-
-### @copyrat-keytable
-
-**Default**: `cpyrt`
-
-The tmux keytable name used for copyrat bindings. This creates a separate key namespace.
-
-```tmux
-# Use a custom keytable name
+# Use custom keytable name
 set -g @copyrat-keytable "search"
-```
 
-### @copyrat-window-name
-
-**Default**: `[copyrat]`
-
-The name of the tmux window that copyrat creates when highlighting patterns.
-
-```tmux
-# Use a custom window name
+# Custom window name
 set -g @copyrat-window-name "[search]"
 ```
 
-### @copyrat-clipboard-exe
+### Clipboard Integration
 
-**Default**: Auto-detected based on your system
-- macOS: `pbcopy`
-- Wayland: `wl-copy`  
-- X11: `xclip -selection clipboard`
+Auto-detected by system:
 
-The command used to copy text to the system clipboard.
+- **macOS**: `pbcopy`
+- **Wayland**: `wl-copy`
+- **X11**: `xclip -selection clipboard`
 
 ```tmux
-# Use a custom clipboard command
+# Override with custom command
 set -g @copyrat-clipboard-exe "xsel --clipboard --input"
 ```
 
-## Color Configuration Options
+## Color Configuration
 
-### @copyrat-text-fg
-
-**Default**: `bright-cyan`
-
-Foreground color of the base (unmatched) text.
+Colors support standard names (`black`, `red`, `blue`, etc.), bright variants
+(`bright-red`, `bright-blue`), or `none` for transparency.
 
 ```tmux
-set -g @copyrat-text-fg "white"
+# Base text (unmatched areas)
+set -g @copyrat-text-fg "bright-cyan"    # Default
+set -g @copyrat-text-bg "none"           # Default
+
+# Matched patterns
+set -g @copyrat-span-fg "blue"           # Default
+set -g @copyrat-span-bg "none"           # Default
+
+# Currently selected match
+set -g @copyrat-focused-fg "magenta"     # Default
+set -g @copyrat-focused-bg "none"        # Default
+
+# Hint characters
+set -g @copyrat-hint-fg "yellow"         # Default
+set -g @copyrat-hint-bg "none"           # Default
 ```
 
-### @copyrat-text-bg
+## Behavior Configuration
 
-**Default**: `none`
-
-Background color of the base (unmatched) text.
+### Hint Generation
 
 ```tmux
-set -g @copyrat-text-bg "black"
-```
-
-### @copyrat-span-fg
-
-**Default**: `blue`
-
-Foreground color of the matched text spans.
-
-```tmux
-set -g @copyrat-span-fg "white"
-```
-
-### @copyrat-span-bg
-
-**Default**: `none`
-
-Background color of the matched text spans.
-
-```tmux
-set -g @copyrat-span-bg "blue"
-```
-
-### @copyrat-focused-fg
-
-**Default**: `magenta`
-
-Foreground color of the currently focused (selected) match.
-
-```tmux
-set -g @copyrat-focused-fg "white"
-```
-
-### @copyrat-focused-bg
-
-**Default**: `none`
-
-Background color of the currently focused (selected) match.
-
-```tmux
-set -g @copyrat-focused-bg "red"
-```
-
-### @copyrat-hint-fg
-
-**Default**: `yellow`
-
-Foreground color of the hint characters.
-
-```tmux
-set -g @copyrat-hint-fg "yellow"
-```
-
-### @copyrat-hint-bg
-
-**Default**: `none`
-
-Background color of the hint characters.
-
-```tmux
-set -g @copyrat-hint-bg "black"
-```
-
-## Behavior Configuration Options
-
-### @copyrat-alphabet
-
-**Default**: `dvorak`
-
-The character set used for generating hints. Available options:
-- `qwerty`, `azerty`, `qwertz`, `dvorak`, `colemak`
-- Add modifiers: `-homerow`, `-left-hand`, `-right-hand`
-
-```tmux
-# Use QWERTY keyboard layout
-set -g @copyrat-alphabet "qwerty"
-
-# Use only home row keys from QWERTY
+# Keyboard layouts: qwerty, azerty, qwertz, dvorak, colemak
+# Modifiers: -homerow, -left-hand, -right-hand
 set -g @copyrat-alphabet "qwerty-homerow"
 
-# Use only left-hand keys from Dvorak
-set -g @copyrat-alphabet "dvorak-left-hand"
-```
-
-### @copyrat-reverse
-
-**Default**: `true`
-
-Whether to assign hints starting from the bottom of the screen (`true`) or from the top (`false`).
-
-```tmux
-# Assign hints from top to bottom
+# Hint assignment direction (true = bottom-up, false = top-down)
 set -g @copyrat-reverse "false"
-```
 
-### @copyrat-unique-hint
+# Keep same hints for identical text
+set -g @copyrat-unique-hint "true"
 
-**Default**: `true`
-
-Whether to keep the same hint for identical text spans.
-
-```tmux
-# Give different hints to identical spans
-set -g @copyrat-unique-hint "false"
-```
-
-### @copyrat-focus-wrap-around
-
-**Default**: `false`
-
-Whether focus should wrap around when reaching the first/last match.
-
-```tmux
-# Enable focus wrap-around
+# Wrap focus at first/last match
 set -g @copyrat-focus-wrap-around "true"
 ```
 
-### @copyrat-hint-alignment
-
-**Default**: `leading`
-
-How hints are aligned relative to their text spans:
-- `leading` - At the beginning of the span
-- `center` - In the middle of the span  
-- `trailing` - At the end of the span
+### Hint Appearance
 
 ```tmux
-# Center hints within their spans
+# Position: leading, center, trailing
 set -g @copyrat-hint-alignment "center"
-```
 
-### @copyrat-hint-style
-
-**Default**: `` (none)
-
-Visual styling applied to hints:
-- `` (empty) - No additional styling
-- `bold` - Bold text
-- `italic` - Italic text
-- `underline` - Underlined text
-- `surround` - Surrounded by characters (see @copyrat-hint-surroundings)
-
-```tmux
-# Make hints bold
+# Style: bold, italic, underline, surround, or empty for none
 set -g @copyrat-hint-style "bold"
 
-# Surround hints with brackets
-set -g @copyrat-hint-style "surround"
+# Characters for surround style (exactly 2 chars)
 set -g @copyrat-hint-surroundings "[]"
 ```
 
-### @copyrat-hint-surroundings
-
-**Default**: `{}`
-
-Characters used when `@copyrat-hint-style` is set to `surround`. Must be exactly 2 characters: opening and closing.
+### Search Area
 
 ```tmux
-# Use brackets instead of braces
-set -g @copyrat-hint-surroundings "[]"
-
-# Use parentheses
-set -g @copyrat-hint-surroundings "()"
-```
-
-### @copyrat-capture-region
-
-**Default**: `visible-area`
-
-Which part of the terminal to search for patterns:
-- `visible-area` - Only the currently visible screen
-- `entire-history` - The entire scrollback history
-
-```tmux
-# Search through entire scrollback history
+# visible-area or entire-history
 set -g @copyrat-capture-region "entire-history"
 ```
 
-## @copyrat-bind-{key}
+## Custom Key Bindings
 
-**Default**: None (uses built-in default bindings)
+Override defaults or add new patterns using `@copyrat-bind-{key}` options.
 
-Configure custom key bindings or override defaults using `@copyrat-bind-{key}` options. This provides an easy way to:
-- Override existing default key bindings
-- Add new custom pattern bindings
-- Remove/disable unwanted default bindings
+### Syntax
 
-### Syntax Options
+- `pattern-name {name}` - Use built-in pattern
+- `custom-pattern {regex}` - Use custom regex
+- `""` (empty) - Disable binding
 
-- `pattern-name {name}` - Use a built-in pattern by name
-- `custom-pattern {regex}` - Use a custom regular expression pattern
-- `""` (empty value) - Remove/disable the binding for this key
+### Available Patterns
+
+Command line: `command-line-args`, `digits`, `path`
+Web: `url`, `email`, `markdown-url`
+Network: `ipv4`, `ipv6`
+Code: `sha`, `docker`, `uuid`, `hexcolor`, `pointer-address`
+Other: `datetime`, `version`
 
 ### Examples
 
 ```tmux
-# Override existing bindings
-set -g @copyrat-bind-u "pattern-name email"     # 'u' searches emails instead of URLs
-set -g @copyrat-bind-6 "pattern-name ipv4"     # '6' searches IPv4 instead of IPv6
+# Override defaults
+set -g @copyrat-bind-u "pattern-name email"    # u = emails not URLs
+set -g @copyrat-bind-6 "pattern-name ipv4"     # 6 = IPv4 not IPv6
 
-# Add new custom bindings
-set -g @copyrat-bind-M "custom-pattern '[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}'"  # MAC addresses
-set -g @copyrat-bind-K "pattern-name sha"      # 'K' for SHA hashes
+# Add custom patterns
+set -g @copyrat-bind-M "custom-pattern \
+'[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}'"
 
-# Remove default bindings (empty value disables the binding)
-set -g @copyrat-bind-D ""                      # Disable 'D' (docker) binding
+# Remove bindings
+set -g @copyrat-bind-D ""                      # Disable D
 ```
 
-### Available Pattern Names
+## Advanced Custom Bindings
 
-These are the built-in patterns you can use with `pattern-name`:
-
-- `command-line-args` - Command-line arguments  
-- `hexcolor` - Hex color codes (#aa00f5)
-- `datetime` - Dates and datetimes
-- `docker` - Docker/Podman IDs
-- `email` - Email addresses
-- `digits` - Strings of 4+ digits
-- `sha` - SHA-1/2 hashes (short and long)
-- `markdown-url` - Markdown URLs `[text](url)`
-- `path` - File paths (absolute and relative)
-- `pointer-address` - Hex numbers and pointer addresses
-- `url` - URLs
-- `uuid` - UUIDs
-- `version` - Version numbers
-- `ipv4` - IPv4 addresses
-- `ipv6` - IPv6 addresses
-
-### Complete Example
+For patterns or options not supported by `@copyrat-bind-*`, create manual
+bindings. Most users won't need this section.
 
 ```tmux
-# Plugin configuration
-set -g @copyrat-keyswitch "c"
-set -g @copyrat-keytable "copy"
-
-# Custom key bindings
-set -g @copyrat-bind-m "pattern-name email"     # 'm' for email (instead of 'e')
-set -g @copyrat-bind-M "custom-pattern '[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}'"  # 'M' for MAC addresses
-set -g @copyrat-bind-D ""                       # Remove docker binding
-set -g @copyrat-bind-S "pattern-name sha"       # 'S' for SHA hashes (in addition to 'h')
-```
-
-With this configuration:
-- `prefix + c + m` searches for emails
-- `prefix + c + M` searches for MAC addresses  
-- `prefix + c + D` is disabled (no binding)
-- `prefix + c + S` searches for SHA hashes (same as 'h')
-- All other default bindings work normally
-- All bindings automatically use your other `@copyrat-*` configuration options
-
-### Backward Compatibility
-
-This feature is fully backward compatible:
-- All existing default bindings continue to work unchanged
-- Existing user configurations require no changes
-- The new `@copyrat-bind-*` options are purely additive
-- User-defined bindings take precedence over defaults
-
-## Custom Bindings
-
-All default key bindings automatically use your configured options from `@copyrat-*` settings. If you want to create additional bindings with custom patterns, you can add them to your `~/.tmux.conf`.
-
-The plugin's existing bindings will respect all your configuration options, so in most cases you won't need custom bindings unless you want:
-- Additional pattern types not covered by the defaults
-- Bindings with different option combinations than your global settings
-
-### Adding Custom Patterns
-
-```tmux
-# Get your configured settings
+# Get configured settings
 keytable=$(tmux show-option -gv @copyrat-keytable)
 window_name=$(tmux show-option -gv @copyrat-window-name)
 
-# Add a custom binding for MAC addresses
-bind-key -T $keytable M new-window -d -n "$window_name" 'tmux-copyrat run --window-name "'"$window_name"'" --custom-pattern "[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}"'
+# Manual binding with custom options
+bind-key -T $keytable H \
+    new-window -d -n "$window_name" \
+    'tmux-copyrat run --window-name "'"$window_name"'" \
+    --alphabet qwerty --hint-style bold --span-bg red \
+    --pattern-name sha'
 ```
 
-### Advanced: Custom Bindings with Different Options
-
-If you need bindings that behave differently from your global configuration:
-
-```tmux
-# Custom binding that uses different colors and behavior
-bind-key -T cpyrt H new-window -d -n '[copyrat]' 'tmux-copyrat run --window-name "[copyrat]" --clipboard-exe pbcopy --alphabet qwerty --hint-style bold --span-bg red --pattern-name sha'
-```
-
-**Note**: The plugin automatically includes all your `@copyrat-*` options in the default bindings. Custom bindings bypass this automatic inclusion, so you'll need to specify options manually.
+**Note**: Manual bindings bypass automatic `@copyrat-*` option inclusion.
 
 ## Complete Example
 
-Here's a complete configuration example for your `~/.tmux.conf`:
-
 ```tmux
-# Plugin configuration
+# Basic setup
 set -g @copyrat-keyswitch "c"
 set -g @copyrat-keytable "copy"
 set -g @copyrat-window-name "[copy]"
 set -g @copyrat-clipboard-exe "xsel --clipboard --input"
 
-# Color customization - dark theme
+# Colors (dark theme)
 set -g @copyrat-span-fg "white"
 set -g @copyrat-span-bg "blue"
 set -g @copyrat-focused-fg "black"
@@ -419,29 +199,25 @@ set -g @copyrat-focused-bg "cyan"
 set -g @copyrat-hint-fg "yellow"
 set -g @copyrat-hint-bg "black"
 
-# Behavior customization
+# Behavior
 set -g @copyrat-alphabet "qwerty-homerow"
 set -g @copyrat-reverse "false"
-set -g @copyrat-unique-hint "true"
 set -g @copyrat-focus-wrap-around "true"
 set -g @copyrat-hint-alignment "center"
 set -g @copyrat-hint-style "bold"
 set -g @copyrat-capture-region "entire-history"
 
-# Custom binding for MAC addresses
-keytable=$(tmux show-option -gv @copyrat-keytable)
-window_name=$(tmux show-option -gv @copyrat-window-name)
-bind-key -T $keytable M new-window -d -n "$window_name" 'tmux-copyrat run --window-name "'"$window_name"'" --custom-pattern "[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}"'
+# Custom bindings
+set -g @copyrat-bind-m "pattern-name email"
+set -g @copyrat-bind-M "custom-pattern \
+'[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}'"
+set -g @copyrat-bind-D ""  # Disable docker binding
 ```
 
-With this configuration:
-- Press `prefix + c + h` to highlight hashes (using all your custom settings)
-- Press `prefix + c + u` to highlight URLs (using all your custom settings)
-- Press `prefix + c + M` to highlight MAC addresses (custom pattern)
-- All copyrat windows will be named `[copy]`
-- Text will be copied using `xsel`
-- Uses QWERTY home row keys for hints
-- Assigns hints from top to bottom
-- Searches entire scrollback history
-- Uses custom colors and bold hint styling
+Result:
 
+- `prefix + c + h` → hashes
+- `prefix + c + u` → URLs
+- `prefix + c + m` → emails
+- `prefix + c + M` → MAC addresses
+- All use your custom colors and behavior settings
