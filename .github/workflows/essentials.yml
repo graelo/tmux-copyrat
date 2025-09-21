@@ -67,7 +67,7 @@ jobs:
 
       - name: Quality - cargo audit check
         run: |
-          curl -sSfL https://github.com/rustsec/rustsec/releases/download/cargo-audit%2Fv0.17.3/cargo-audit-x86_64-unknown-linux-musl-v0.17.3.tgz | tar zx --no-anchored cargo-audit --strip-components=1
+          curl -sSfL https://github.com/rustsec/rustsec/releases/download/cargo-audit%2Fv0.21.2/cargo-audit-x86_64-unknown-linux-musl-v0.21.2.tgz | tar zx --no-anchored cargo-audit --strip-components=1
           chmod +x cargo-audit
           mv cargo-audit ~/.cargo/bin/
           rm -rf ~/.cargo/advisory-db/
