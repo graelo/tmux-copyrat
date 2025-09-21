@@ -67,6 +67,8 @@ more options are described in [CONFIGURATION.md].
 tmux-copyrat can match one or more pre-defined (named) patterns, but you can
 add your own too (see [CONFIGURATION.md]).
 
+**Key binding customization**: You can override any default binding, add new custom patterns, or remove unwanted bindings using `@copyrat-bind-{key}` options in your `~/.tmux.conf`. See [CONFIGURATION.md] for details.
+
 The default configuration provided in the [`copyrat.tmux`](copyrat.tmux) plugin
 file provides the following key-bindings. Because they all start with
 <kbd>prefix</kbd> + <kbd>t</kbd>, the table below only lists the keyboard key

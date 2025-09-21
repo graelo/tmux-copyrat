@@ -37,9 +37,10 @@ You can customize tmux-copyrat's behavior by adding options to your `~/.tmux.con
 - [@copyrat-hint-surroundings](#copyrat-hint-surroundings) - Characters for surround style
 - [@copyrat-capture-region](#copyrat-capture-region) - Text capture area
 
-### Custom Patterns
+### Custom Patterns and Bindings
 
-- [Custom bindings](#custom-bindings) - Add your own key bindings and patterns
+- [@copyrat-bind-{key}](#copyrat-bind-key) - Configure custom key bindings
+- [Custom bindings](#custom-bindings) - Advanced manual key binding setup
 
 ## Plugin Configuration Options
 
@@ -289,6 +290,86 @@ Which part of the terminal to search for patterns:
 set -g @copyrat-capture-region "entire-history"
 ```
 
+## @copyrat-bind-{key}
+
+**Default**: None (uses built-in default bindings)
+
+Configure custom key bindings or override defaults using `@copyrat-bind-{key}` options. This provides an easy way to:
+- Override existing default key bindings
+- Add new custom pattern bindings
+- Remove/disable unwanted default bindings
+
+### Syntax Options
+
+- `pattern-name {name}` - Use a built-in pattern by name
+- `custom-pattern {regex}` - Use a custom regular expression pattern
+- `""` (empty value) - Remove/disable the binding for this key
+
+### Examples
+
+```tmux
+# Override existing bindings
+set -g @copyrat-bind-u "pattern-name email"     # 'u' searches emails instead of URLs
+set -g @copyrat-bind-6 "pattern-name ipv4"     # '6' searches IPv4 instead of IPv6
+
+# Add new custom bindings
+set -g @copyrat-bind-M "custom-pattern '[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}'"  # MAC addresses
+set -g @copyrat-bind-K "pattern-name sha"      # 'K' for SHA hashes
+
+# Remove default bindings (empty value disables the binding)
+set -g @copyrat-bind-D ""                      # Disable 'D' (docker) binding
+```
+
+### Available Pattern Names
+
+These are the built-in patterns you can use with `pattern-name`:
+
+- `command-line-args` - Command-line arguments  
+- `hexcolor` - Hex color codes (#aa00f5)
+- `datetime` - Dates and datetimes
+- `docker` - Docker/Podman IDs
+- `email` - Email addresses
+- `digits` - Strings of 4+ digits
+- `sha` - SHA-1/2 hashes (short and long)
+- `markdown-url` - Markdown URLs `[text](url)`
+- `path` - File paths (absolute and relative)
+- `pointer-address` - Hex numbers and pointer addresses
+- `url` - URLs
+- `uuid` - UUIDs
+- `version` - Version numbers
+- `ipv4` - IPv4 addresses
+- `ipv6` - IPv6 addresses
+
+### Complete Example
+
+```tmux
+# Plugin configuration
+set -g @copyrat-keyswitch "c"
+set -g @copyrat-keytable "copy"
+
+# Custom key bindings
+set -g @copyrat-bind-m "pattern-name email"     # 'm' for email (instead of 'e')
+set -g @copyrat-bind-M "custom-pattern '[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}'"  # 'M' for MAC addresses
+set -g @copyrat-bind-D ""                       # Remove docker binding
+set -g @copyrat-bind-S "pattern-name sha"       # 'S' for SHA hashes (in addition to 'h')
+```
+
+With this configuration:
+- `prefix + c + m` searches for emails
+- `prefix + c + M` searches for MAC addresses  
+- `prefix + c + D` is disabled (no binding)
+- `prefix + c + S` searches for SHA hashes (same as 'h')
+- All other default bindings work normally
+- All bindings automatically use your other `@copyrat-*` configuration options
+
+### Backward Compatibility
+
+This feature is fully backward compatible:
+- All existing default bindings continue to work unchanged
+- Existing user configurations require no changes
+- The new `@copyrat-bind-*` options are purely additive
+- User-defined bindings take precedence over defaults
+
 ## Custom Bindings
 
 All default key bindings automatically use your configured options from `@copyrat-*` settings. If you want to create additional bindings with custom patterns, you can add them to your `~/.tmux.conf`.
@@ -318,26 +399,6 @@ bind-key -T cpyrt H new-window -d -n '[copyrat]' 'tmux-copyrat run --window-name
 ```
 
 **Note**: The plugin automatically includes all your `@copyrat-*` options in the default bindings. Custom bindings bypass this automatic inclusion, so you'll need to specify options manually.
-
-## Available Pattern Names
-
-These are the built-in patterns you can use with `--pattern-name`:
-
-- `command-line-args` - Command-line arguments  
-- `hexcolor` - Hex color codes (#aa00f5)
-- `datetime` - Dates and datetimes
-- `docker` - Docker/Podman IDs
-- `email` - Email addresses
-- `digits` - Strings of 4+ digits
-- `sha` - SHA-1/2 hashes (short and long)
-- `markdown-url` - Markdown URLs `[text](url)`
-- `path` - File paths (absolute and relative)
-- `pointer-address` - Hex numbers and pointer addresses
-- `url` - URLs
-- `uuid` - UUIDs
-- `version` - Version numbers
-- `ipv4` - IPv4 addresses
-- `ipv6` - IPv6 addresses
 
 ## Complete Example
 
