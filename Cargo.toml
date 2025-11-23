@@ -1,6 +1,6 @@
 [package]
 name = "copyrat"
-version = "0.6.0"
+version = "0.6.1"
 edition = "2021"
 description = "A tmux plugin for copy-pasting within tmux panes."
 readme = "README.md"
