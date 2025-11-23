@@ -29,11 +29,11 @@ jobs:
         continue-on-error: false
         with:
           path: |
-             ~/.cargo/bin/
-             ~/.cargo/registry/index/
-             ~/.cargo/registry/cache/
-             ~/.cargo/git/db/
-             target/
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
           key: ${{ runner.os }}-cargo-${{ matrix.rust }}-hash-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Quality - cargo fmt
@@ -96,7 +96,7 @@ jobs:
 
   test-other-platforms:
     name: Tests on
-    runs-on: '${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
@@ -124,11 +124,11 @@ jobs:
         continue-on-error: false
         with:
           path: |
-             ~/.cargo/bin/
-             ~/.cargo/registry/index/
-             ~/.cargo/registry/cache/
-             ~/.cargo/git/db/
-             target/
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-stable-${{ hashFiles('**/Cargo.lock') }}
 
       # - name: Quality - cargo fmt
