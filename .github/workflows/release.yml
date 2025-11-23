@@ -27,6 +27,11 @@ jobs:
             rust: stable
             suffix: ""
             archive_ext: tar.xz
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            rust: stable
+            suffix: ""
+            archive_ext: tar.xz
           # - os: windows-latest
           #   target: x86_64-pc-windows-msvc
           #   rust: stable
@@ -70,7 +75,7 @@ jobs:
           Compress-Archive ${{ github.event.repository.name }}${{ matrix.suffix }} ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }}
 
       - name: Compress to tar.xz (Linux)
-        if: ${{ matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm' }}
         run: |
           cp target/release/${{ github.event.repository.name }} .
           tar Jcf ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }} ${{ github.event.repository.name }}
@@ -122,6 +127,9 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-x86_64-unknown-linux-gnu.tar.xz
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.event.repository.name }}-aarch64-unknown-linux-gnu.tar.xz
       - uses: actions/download-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-aarch64-apple-darwin.zip
