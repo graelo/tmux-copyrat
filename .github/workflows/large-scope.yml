@@ -29,11 +29,11 @@ jobs:
         continue-on-error: false
         with:
           path: |
-             ~/.cargo/bin/
-             ~/.cargo/registry/index/
-             ~/.cargo/registry/cache/
-             ~/.cargo/git/db/
-             target/
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
           key: ${{ runner.os }}-cargo-${{ matrix.rust }}-hash-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Quality - cargo fmt
@@ -42,48 +42,7 @@ jobs:
 
       - name: Quality - cargo clippy
         run: |
-          cargo clippy -- -D warnings
-
-      # - name: Quality - convco check
-      #   run: |
-      #     git show-ref
-      #     curl -sSfLO https://github.com/convco/convco/releases/latest/download/convco-ubuntu.zip
-      #     unzip convco-ubuntu.zip
-      #     chmod +x convco
-      #     ./convco check
-      #     rm convco
-
-      # - name: Quality - cargo deny check
-      #   run: |
-      #     curl -sSfL https://github.com/EmbarkStudios/cargo-deny/releases/download/0.12.2/cargo-deny-0.12.2-x86_64-unknown-linux-musl.tar.gz | tar zx --no-anchored cargo-deny --strip-components=1
-      #     chmod +x cargo-deny
-      #     mv cargo-deny ~/.cargo/bin/
-      #     cargo deny check
-
-      # - name: Quality - cargo audit check
-      #   run: |
-      #     curl -sSfL https://github.com/rustsec/rustsec/releases/download/cargo-audit%2Fv0.17.3/cargo-audit-x86_64-unknown-linux-musl-v0.17.3.tgz | tar zx --no-anchored cargo-audit --strip-components=1
-      #     chmod +x cargo-audit
-      #     mv cargo-audit ~/.cargo/bin/
-      #     rm -rf ~/.cargo/advisory-db/
-      #     cargo audit --ignore RUSTSEC-2020-0071 # time-rs, but not used by chrono, see https://github.com/chronotope/chrono/issues/602
-
-      # - name: Quality - cargo outdated
-      #   timeout-minutes: 20
-      #   run: |
-      #     cargo install --locked cargo-outdated || true
-      #     rm -rf ~/.cargo/advisory-db
-      #     cargo outdated --exit-code 1
-
-      # - name: Quality - cargo udeps (needs nightly)
-      #   run: |
-      #     cargo install --locked cargo-udeps || true
-      #     cargo udeps
-
-      # - name: Quality - cargo pants
-      #   run: |
-      #     cargo install --locked cargo-pants || true
-      #     cargo pants
+          cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Build (dev)
         run: cargo build --all-features
@@ -96,12 +55,16 @@ jobs:
 
   test-other-platforms:
     name: Tests on
-    runs-on: '${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: macos-13
             target: x86_64-apple-darwin
+            type: unix
+            toolchain: stable
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
             type: unix
             toolchain: stable
           - os: macos-latest
@@ -124,61 +87,12 @@ jobs:
         continue-on-error: false
         with:
           path: |
-             ~/.cargo/bin/
-             ~/.cargo/registry/index/
-             ~/.cargo/registry/cache/
-             ~/.cargo/git/db/
-             target/
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-stable-${{ hashFiles('**/Cargo.lock') }}
-
-      # - name: Quality - cargo fmt
-      #   run: |
-      #     cargo fmt --all -- --check
-
-      # - name: Quality - cargo clippy
-      #   run: |
-      #     cargo clippy -- -D warnings
-
-      # - name: Quality - convco check
-      #   run: |
-      #     git show-ref
-      #     curl -sSfLO https://github.com/convco/convco/releases/latest/download/convco-ubuntu.zip
-      #     unzip convco-ubuntu.zip
-      #     chmod +x convco
-      #     ./convco check
-      #     rm convco
-
-      # - name: Quality - cargo deny check
-      #   run: |
-      #     curl -sSfL https://github.com/EmbarkStudios/cargo-deny/releases/download/0.12.2/cargo-deny-0.12.2-x86_64-unknown-linux-musl.tar.gz | tar zx --no-anchored cargo-deny --strip-components=1
-      #     chmod +x cargo-deny
-      #     mv cargo-deny ~/.cargo/bin/
-      #     cargo deny check
-
-      # - name: Quality - cargo audit check
-      #   run: |
-      #     curl -sSfL https://github.com/rustsec/rustsec/releases/download/cargo-audit%2Fv0.17.3/cargo-audit-x86_64-unknown-linux-musl-v0.17.3.tgz | tar zx --no-anchored cargo-audit --strip-components=1
-      #     chmod +x cargo-audit
-      #     mv cargo-audit ~/.cargo/bin/
-      #     rm -rf ~/.cargo/advisory-db/
-      #     cargo audit --ignore RUSTSEC-2020-0071 # time-rs, but not used by chrono, see https://github.com/chronotope/chrono/issues/602
-
-      # - name: Quality - cargo outdated
-      #   timeout-minutes: 20
-      #   run: |
-      #     cargo install --locked cargo-outdated || true
-      #     rm -rf ~/.cargo/advisory-db
-      #     cargo outdated --exit-code 1
-
-      # - name: Quality - cargo udeps (needs nightly)
-      #   run: |
-      #     cargo install --locked cargo-udeps || true
-      #     cargo udeps
-
-      # - name: Quality - cargo pants
-      #   run: |
-      #     cargo install --locked cargo-pants || true
-      #     cargo pants
 
       - name: Build (dev)
         run: cargo build --all-features
