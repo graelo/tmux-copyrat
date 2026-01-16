@@ -4,6 +4,7 @@ use std::io;
 use std::io::Write;
 
 use termion::{self, color, cursor, event, screen::IntoAlternateScreen, style};
+use unicode_width::UnicodeWidthChar;
 
 use super::colors::UiColors;
 use super::Selection;
@@ -85,10 +86,10 @@ impl<'a> ViewController<'a> {
     /// Returns the adjusted position of a given `Span` within the buffer
     /// line.
     ///
-    /// This adjustment is necessary if multibyte characters occur before the
-    /// span (in the "prefix"). If this is the case then their compouding
-    /// takes less space on screen when printed: for instance ´ + e = é.
-    /// Consequently the span position has to be adjusted to the left.
+    /// This adjustment is necessary because the span's x coordinate is a byte
+    /// offset, but we need the display column. The display column accounts for:
+    /// - Tab expansion to tab stops (multiples of 8 columns)
+    /// - Unicode character widths (combining chars, wide CJK chars, etc.)
     ///
     /// This computation must happen before mapping the span position to the
     /// wrapped screen space.
@@ -96,8 +97,7 @@ impl<'a> ViewController<'a> {
         let pos_x = {
             let line = &self.model.lines[span.y as usize];
             let prefix = &line[0..span.x as usize];
-            let adjust = prefix.len() - prefix.chars().count();
-            (span.x as usize) - adjust
+            display_width(prefix, DEFAULT_TAB_WIDTH)
         };
         let pos_y = span.y as usize;
 
@@ -608,6 +608,28 @@ impl<'a> ViewController<'a> {
     // }}}
 }
 
+/// Default tab width in terminal columns.
+const DEFAULT_TAB_WIDTH: usize = 8;
+
+/// Compute the display width of a string, accounting for tab expansion and Unicode
+/// character widths.
+///
+/// Tabs expand to the next tab stop (multiples of `tab_width`). Unicode characters
+/// use their proper display width (e.g., CJK characters are 2 columns, combining
+/// characters are 0 columns).
+fn display_width(s: &str, tab_width: usize) -> usize {
+    let mut col = 0;
+    for ch in s.chars() {
+        if ch == '\t' {
+            // Expand tab to next tab stop
+            col = ((col / tab_width) + 1) * tab_width;
+        } else {
+            col += ch.width().unwrap_or(0);
+        }
+    }
+    col
+}
+
 /// Compute each line's actual y position and size if displayed in a terminal of width
 /// `term_width`.
 fn compute_wrapped_lines(lines: &[&str], term_width: u16) -> Vec<WrappedLine> {
@@ -617,7 +639,7 @@ fn compute_wrapped_lines(lines: &[&str], term_width: u16) -> Vec<WrappedLine> {
             // Save the value to return (yield is in unstable).
             let value = *position;
 
-            let line_width = line.trim_end().chars().count() as isize;
+            let line_width = display_width(line.trim_end(), DEFAULT_TAB_WIDTH) as isize;
 
             // Amount of extra y space taken by this line.
             // If the line has n chars, on a term of width n, this does not
@@ -1112,5 +1134,36 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         assert_eq!(2, ui.model.spans.len());
 
         assert_eq!(writer, expected.as_bytes());
+    }
+
+    #[test]
+    fn test_display_width_without_tabs() {
+        // Regular ASCII text
+        assert_eq!(display_width("hello", 8), 5);
+        assert_eq!(display_width("", 8), 0);
+        assert_eq!(display_width("abc", 8), 3);
+    }
+
+    #[test]
+    fn test_display_width_with_tabs() {
+        // Tab at position 0 expands to 8 columns
+        assert_eq!(display_width("\t", 8), 8);
+        // Tab at position 1 expands to column 8 (7 more columns)
+        assert_eq!(display_width("a\t", 8), 8);
+        // Tab at position 7 expands to column 8 (1 more column)
+        assert_eq!(display_width("1234567\t", 8), 8);
+        // Tab at position 8 expands to column 16
+        assert_eq!(display_width("12345678\t", 8), 16);
+        // Multiple tabs
+        assert_eq!(display_width("\t\t", 8), 16);
+        // Tab followed by text
+        assert_eq!(display_width("\tfile.txt", 8), 16); // 8 + 8
+    }
+
+    #[test]
+    fn test_display_width_git_status_style() {
+        // Simulates git status output with leading tab
+        assert_eq!(display_width("\tTODO.md", 8), 15); // 8 (tab) + 7 (TODO.md)
+        assert_eq!(display_width("\tsrc/textbuf/toto.rs", 8), 27); // 8 + 19
     }
 }
