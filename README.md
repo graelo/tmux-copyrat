@@ -9,8 +9,8 @@
 
 <!-- cargo-sync-readme start -->
 
-A tmux-plugin for copy-pasting spans of text from the [tmux] pane's history
-into a clipboard.
+A tmux-plugin for copy-pasting spans of text from the [tmux] pane's history into
+a clipboard.
 
 **Use case**: you're in tmux and your pane history has some dates you want to
 copy. You press the key binding to highlight dates (see below for
@@ -59,28 +59,33 @@ You can also use the <kbd>n</kbd> and <kbd>N</kbd> (or <kbd>Up</kbd> and
 <kbd>Y</kbd> to yank it into the system clipboard.
 
 By default, span highlighting starts from the bottom of the terminal, but you
-can reverse that behavior with the `--reverse` option. The
-`--focus-wrap-around` option makes navigation go back to the first span. Many
-more options are described in [CONFIGURATION.md].
+can reverse that behavior with the `--reverse` option. The `--focus-wrap-around`
+option makes navigation go back to the first span. Many more options are
+described in [CONFIGURATION.md].
 
 ### Matched patterns and default key-bindings
 
-tmux-copyrat can match one or more pre-defined (named) patterns, but you can
-add your own too (see [CONFIGURATION.md]).
+tmux-copyrat can match one or more pre-defined (named) patterns, but you can add
+your own too (see [CONFIGURATION.md]).
 
-**Key binding customization**: You can override any default binding, add new custom patterns, or remove unwanted bindings using `@copyrat-bind-{key}` options in your `~/.tmux.conf`. See [CONFIGURATION.md] for details.
+**Key binding customization**: You can override any default binding, add new
+custom patterns, or remove unwanted bindings using `@copyrat-bind-{key}` options
+in your `~/.tmux.conf`. See [CONFIGURATION.md] for details.
 
 The default configuration provides two keyswitches:
-- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>key</kbd> - searches the **visible pane area**
-- <kbd>prefix</kbd> + <kbd>T</kbd> + <kbd>key</kbd> - searches the **entire scrollback history**
+
+- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>key</kbd> - searches the **visible
+  pane area**
+- <kbd>prefix</kbd> + <kbd>T</kbd> + <kbd>key</kbd> - searches the **entire
+  scrollback history**
 
 The table below lists the available pattern keys. For instance, for URLs, the
 key is <kbd>u</kbd>, so you would type <kbd>prefix</kbd> + <kbd>t</kbd> +
-<kbd>u</kbd> for visible area, or <kbd>prefix</kbd> + <kbd>T</kbd> + <kbd>u</kbd>
-for entire history.
+<kbd>u</kbd> for visible area, or <kbd>prefix</kbd> + <kbd>T</kbd> +
+<kbd>u</kbd> for entire history.
 
 | key binding      | searches for                           | pattern name      |
-| ---              | ---                                    | ---               |
+| ---------------- | -------------------------------------- | ----------------- |
 | <kbd>c</kbd>     | Hex color codes                        | `hexcolor`        |
 | <kbd>d</kbd>     | Dates or datetimes                     | `datetime`        |
 | <kbd>D</kbd>     | Docker/Podman IDs                      | `docker`          |
@@ -111,8 +116,8 @@ grateful if you report incompatibilities as you find them.
 ## The `copyrat` standalone executable
 
 Although the central binary of this crate is `tmux-copyrat`, the crate also
-ships with the `copyrat` executable which provides the same functionality,
-minus any tmux dependency or integration and instead reads from stdin.
+ships with the `copyrat` executable which provides the same functionality, minus
+any tmux dependency or integration and instead reads from stdin.
 
 You can use `copyrat` to search a span of text that you provide to stdin, à la
 [FZF] but more focused and less interactive.
@@ -130,7 +135,8 @@ lorem
 The error was `Error no such file`
 ```
 
-Let's imagine you want a quick way to always search for SHA-1/2, datetimes, strings within backticks, you would define once the following alias
+Let's imagine you want a quick way to always search for SHA-1/2, datetimes,
+strings within backticks, you would define once the following alias
 
 ```zsh
 alias pick='copyrat -r --unique-hint -s bold -x sha -x datetime -x quoted-backtick | pbcopy'
@@ -146,13 +152,13 @@ You will see the following in your terminal
 
 ![[copyrat-output.png](images/copyrat-output.png)](images/copyrat-output.png)
 
-You may have noticed that all identical spans share the same _hint_, this is
-due to the `-unique-hint` option (`-u`). The hints are in bold text, due to the
+You may have noticed that all identical spans share the same _hint_, this is due
+to the `-unique-hint` option (`-u`). The hints are in bold text, due to the
 `--hint-style bold` option (`-s`). Hints start from the bottom, due to the
 `--reverse` option (`-r`). A custom pattern was provided for matching any
-"loca", due to the `--custom-regex-pattern` option (`-X`). The sha, datetime
-and content inside backticks were highlighted due to the `--named-pattern`
-option (`-x`).
+"loca", due to the `--custom-regex-pattern` option (`-X`). The sha, datetime and
+content inside backticks were highlighted due to the `--named-pattern` option
+(`-x`).
 
 ## Run code-coverage
 
@@ -169,8 +175,8 @@ Install nightly
 rustup toolchain install nightly
 ```
 
-The following make invocation will switch to nigthly run the tests using
-Cargo, and output coverage HTML report in `./coverage/`
+The following make invocation will switch to nigthly run the tests using Cargo,
+and output coverage HTML report in `./coverage/`
 
 ```sh
 make coverage
@@ -180,15 +186,13 @@ The coverage report is located in `./coverage/index.html`
 
 ## License
 
-This project is licensed under the [MIT license]
-
-at your option.
+This project is licensed under the [MIT license].
 
 ### Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in the work by you, as defined in the MIT license, shall
-be licensed as MIT, without any additional terms or conditions.
+for inclusion in the work by you, as defined in the MIT license, shall be
+licensed as MIT, without any additional terms or conditions.
 
 [tmux]: https://tmux.github.io
 [tmux-copyrat]: https://github.com/tmux-plugins/tmux-copycat
@@ -197,6 +201,5 @@ be licensed as MIT, without any additional terms or conditions.
 [tmux-thumbs]: https://crates.io/crates/tmux-thumbs
 [FZF]: https://github.com/junegunn/fzf
 [MIT license]: http://opensource.org/licenses/MIT
-
 
 <!-- cargo-sync-readme end -->

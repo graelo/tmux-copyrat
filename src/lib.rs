@@ -1,5 +1,5 @@
-//! A tmux-plugin for copy-pasting spans of text from the [tmux] pane's history
-//! into a clipboard.
+//! A tmux-plugin for copy-pasting spans of text from the [tmux] pane's history into
+//! a clipboard.
 //!
 //! **Use case**: you're in tmux and your pane history has some dates you want to
 //! copy. You press the key binding to highlight dates (see below for
@@ -16,9 +16,10 @@
 //!
 //! ## Demo
 //!
-//! Pressing <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> shows the following
-//! hints on all hashes. Typing the hint letters will automatically copy the
-//! hash in the tmux clipboard (or system clipboard if you prefer)
+//! Pressing <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> (visible area) or
+//! <kbd>prefix</kbd> + <kbd>T</kbd> + <kbd>h</kbd> (entire history) shows hints on
+//! all hashes. Typing the hint letters will automatically copy the hash in the tmux
+//! clipboard (or system clipboard if you prefer)
 //!
 //! ![[tmux-copyrat-hashes.png](images/tmux-copyrat-hashes.png)](images/tmux-copyrat-hashes.png)
 //!
@@ -26,6 +27,10 @@
 //!
 //! First install and optionally customize the plugin (see both [INSTALLATION.md]
 //! and [CONFIGURATION.md] pages) and restart tmux.
+//!
+//! **Note**: When customizing, add options to your `~/.tmux.conf` rather than
+//! *modifying plugin files directly - this ensures your customizations survive
+//! *plugin updates.
 //!
 //! Press one of the pre-defined tmux key-bindings (see table below) in order to
 //! highlight spans of text matching a specific pattern. To yank some text span in
@@ -43,23 +48,33 @@
 //! <kbd>Y</kbd> to yank it into the system clipboard.
 //!
 //! By default, span highlighting starts from the bottom of the terminal, but you
-//! can reverse that behavior with the `--reverse` option. The
-//! `--focus-wrap-around` option makes navigation go back to the first span. Many
-//! more options are described in [CONFIGURATION.md].
+//! can reverse that behavior with the `--reverse` option. The `--focus-wrap-around`
+//! option makes navigation go back to the first span. Many more options are
+//! described in [CONFIGURATION.md].
 //!
 //! ### Matched patterns and default key-bindings
 //!
-//! tmux-copyrat can match one or more pre-defined (named) patterns, but you can
-//! add your own too (see [CONFIGURATION.md]).
+//! tmux-copyrat can match one or more pre-defined (named) patterns, but you can add
+//! your own too (see [CONFIGURATION.md]).
 //!
-//! The default configuration provided in the [`copyrat.tmux`](copyrat.tmux) plugin
-//! file provides the following key-bindings. Because they all start with
-//! <kbd>prefix</kbd> + <kbd>t</kbd>, the table below only lists the keyboard key
-//! that comes after. For instance, for URLs, the key is <kbd>u</kbd>, but you
-//! should type <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd>.
+//! **Key binding customization**: You can override any default binding, add new
+//! custom patterns, or remove unwanted bindings using `@copyrat-bind-{key}` options
+//! in your `~/.tmux.conf`. See [CONFIGURATION.md] for details.
+//!
+//! The default configuration provides two keyswitches:
+//!
+//! - <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>key</kbd> - searches the **visible
+//!   pane area**
+//! - <kbd>prefix</kbd> + <kbd>T</kbd> + <kbd>key</kbd> - searches the **entire
+//!   scrollback history**
+//!
+//! The table below lists the available pattern keys. For instance, for URLs, the
+//! key is <kbd>u</kbd>, so you would type <kbd>prefix</kbd> + <kbd>t</kbd> +
+//! <kbd>u</kbd> for visible area, or <kbd>prefix</kbd> + <kbd>T</kbd> +
+//! <kbd>u</kbd> for entire history.
 //!
 //! | key binding      | searches for                           | pattern name      |
-//! | ---              | ---                                    | ---               |
+//! | ---------------- | -------------------------------------- | ----------------- |
 //! | <kbd>c</kbd>     | Hex color codes                        | `hexcolor`        |
 //! | <kbd>d</kbd>     | Dates or datetimes                     | `datetime`        |
 //! | <kbd>D</kbd>     | Docker/Podman IDs                      | `docker`          |
@@ -90,8 +105,8 @@
 //! ## The `copyrat` standalone executable
 //!
 //! Although the central binary of this crate is `tmux-copyrat`, the crate also
-//! ships with the `copyrat` executable which provides the same functionality,
-//! minus any tmux dependency or integration and instead reads from stdin.
+//! ships with the `copyrat` executable which provides the same functionality, minus
+//! any tmux dependency or integration and instead reads from stdin.
 //!
 //! You can use `copyrat` to search a span of text that you provide to stdin, à la
 //! [FZF] but more focused and less interactive.
@@ -109,7 +124,8 @@
 //! The error was `Error no such file`
 //! ```
 //!
-//! Let's imagine you want a quick way to always search for SHA-1/2, datetimes, strings within backticks, you would define once the following alias
+//! Let's imagine you want a quick way to always search for SHA-1/2, datetimes,
+//! strings within backticks, you would define once the following alias
 //!
 //! ```zsh
 //! alias pick='copyrat -r --unique-hint -s bold -x sha -x datetime -x quoted-backtick | pbcopy'
@@ -125,13 +141,13 @@
 //!
 //! ![[copyrat-output.png](images/copyrat-output.png)](images/copyrat-output.png)
 //!
-//! You may have noticed that all identical spans share the same _hint_, this is
-//! due to the `-unique-hint` option (`-u`). The hints are in bold text, due to the
+//! You may have noticed that all identical spans share the same _hint_, this is due
+//! to the `-unique-hint` option (`-u`). The hints are in bold text, due to the
 //! `--hint-style bold` option (`-s`). Hints start from the bottom, due to the
 //! `--reverse` option (`-r`). A custom pattern was provided for matching any
-//! "loca", due to the `--custom-regex-pattern` option (`-X`). The sha, datetime
-//! and content inside backticks were highlighted due to the `--named-pattern`
-//! option (`-x`).
+//! "loca", due to the `--custom-regex-pattern` option (`-X`). The sha, datetime and
+//! content inside backticks were highlighted due to the `--named-pattern` option
+//! (`-x`).
 //!
 //! ## Run code-coverage
 //!
@@ -148,8 +164,8 @@
 //! rustup toolchain install nightly
 //! ```
 //!
-//! The following make invocation will switch to nigthly run the tests using
-//! Cargo, and output coverage HTML report in `./coverage/`
+//! The following make invocation will switch to nigthly run the tests using Cargo,
+//! and output coverage HTML report in `./coverage/`
 //!
 //! ```sh
 //! make coverage
@@ -159,15 +175,13 @@
 //!
 //! ## License
 //!
-//! This project is licensed under the [MIT license]
-//!
-//! at your option.
+//! This project is licensed under the [MIT license].
 //!
 //! ### Contribution
 //!
 //! Unless you explicitly state otherwise, any contribution intentionally submitted
-//! for inclusion in the work by you, as defined in the MIT license, shall
-//! be licensed as MIT, without any additional terms or conditions.
+//! for inclusion in the work by you, as defined in the MIT license, shall be
+//! licensed as MIT, without any additional terms or conditions.
 //!
 //! [tmux]: https://tmux.github.io
 //! [tmux-copyrat]: https://github.com/tmux-plugins/tmux-copycat
@@ -176,7 +190,6 @@
 //! [tmux-thumbs]: https://crates.io/crates/tmux-thumbs
 //! [FZF]: https://github.com/junegunn/fzf
 //! [MIT license]: http://opensource.org/licenses/MIT
-//!
 
 pub mod config;
 pub mod error;
