@@ -119,9 +119,8 @@ impl ConfigExt {
                     }
                     "@copyrat-default-output" => {
                         let case_insensitive = true;
-                        inner.default_output =
-                            OutputDestination::from_str(value, case_insensitive)
-                                .map_err(Error::ExpectedEnumVariant)?
+                        inner.default_output = OutputDestination::from_str(value, case_insensitive)
+                            .map_err(Error::ExpectedEnumVariant)?
                     }
 
                     // Ignore unknown options.

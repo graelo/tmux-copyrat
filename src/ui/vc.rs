@@ -139,8 +139,7 @@ impl<'a> ViewController<'a> {
             0
         };
 
-        let (term_width, term_height) =
-            termion::terminal_size().unwrap_or((80u16, 30u16));
+        let (term_width, term_height) = termion::terminal_size().unwrap_or((80u16, 30u16));
         let wrapped_lines = compute_wrapped_lines(model.lines, term_width);
 
         // Compute total content height from wrapped lines
@@ -579,7 +578,9 @@ impl<'a> ViewController<'a> {
             return; // No scrolling needed, no indicator
         }
 
-        let max_top = self.total_content_height.saturating_sub(self.viewport.height);
+        let max_top = self
+            .total_content_height
+            .saturating_sub(self.viewport.height);
         let indicator = format!("[{}/{}]", self.viewport.top_row + 1, max_top + 1);
 
         // Render in bottom-right corner with dim styling
@@ -743,7 +744,10 @@ impl<'a> ViewController<'a> {
                 }
                 event::Key::PageDown | event::Key::Ctrl('f') => {
                     let scroll_amount = self.viewport.height / 2;
-                    if self.viewport.scroll_down(scroll_amount, self.total_content_height) {
+                    if self
+                        .viewport
+                        .scroll_down(scroll_amount, self.total_content_height)
+                    {
                         self.full_render(writer);
                     }
                 }
