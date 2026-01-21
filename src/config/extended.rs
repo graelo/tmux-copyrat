@@ -73,11 +73,9 @@ impl ConfigExt {
 
             for (name, value) in &tmux_options {
                 match name.as_ref() {
-                    "@copyrat-capture-region" => {
-                        let case_insensitive = true;
-                        self.capture_region = CaptureRegion::from_str(value, case_insensitive)
-                            .map_err(Error::ExpectedEnumVariant)?
-                    }
+                    // Note: @copyrat-capture-region is intentionally not read here.
+                    // The capture region is determined by which keyswitch is used
+                    // (prefix+t for visible-area, prefix+T for entire-history).
                     "@copyrat-alphabet" => {
                         inner.alphabet = alphabet::parse_alphabet(value)?;
                     }
