@@ -10,6 +10,7 @@
 #
 #   set -g @copyrat-keytable "foobar"
 #   set -g @copyrat-keyswitch "z"
+#   set -g @copyrat-keyswitch-history "Z"
 #   set -g @copyrat-span-bg "magenta"
 #   set -g @copyrat-window-name "[search]"
 #   set -g @copyrat-clipboard-exe "pbcopy"
@@ -105,13 +106,22 @@ window_name=$(tmux show-option -gqv @copyrat-window-name)
 # (see below), prefix + t + <your-shortcut>
 setup_option "keytable" "cpyrt"
 
-# Sets the key to access the keytable: prefix + <key> + <your-shortcut>
-# providing a default if @copyrat-keyswitch is not defined.
+# Sets the key to access the keytable (visible area): prefix + <key> + <your-shortcut>
+# Default: t (searches visible pane content)
 setup_option "keyswitch" "t"
 
+# Sets the key to access the history keytable (entire pane history):
+# prefix + <key> + <your-shortcut>
+# Default: T (searches entire scrollback history)
+setup_option "keyswitch-history" "T"
+
 keyswitch=$(tmux show-option -gv @copyrat-keyswitch)
+keyswitch_history=$(tmux show-option -gv @copyrat-keyswitch-history)
 keytable=$(tmux show-option -gv @copyrat-keytable)
+keytable_history="${keytable}-history"
+
 tmux bind-key "${keyswitch}" switch-client -T "${keytable}"
+tmux bind-key "${keyswitch_history}" switch-client -T "${keytable_history}"
 
 
 #
@@ -166,8 +176,6 @@ setup_option "hint-style" ""
 # Characters surrounding hints when using 'surround' style
 setup_option "hint-surroundings" "{}"
 
-# Capture region: visible-area or entire-history
-setup_option "capture-region" "visible-area"
 
 
 #
@@ -193,7 +201,6 @@ focus_wrap_around=$(tmux show-option -gv @copyrat-focus-wrap-around)
 hint_alignment=$(tmux show-option -gv @copyrat-hint-alignment)
 hint_style=$(tmux show-option -gv @copyrat-hint-style)
 hint_surroundings=$(tmux show-option -gv @copyrat-hint-surroundings)
-capture_region=$(tmux show-option -gv @copyrat-capture-region)
 
 # Get color options
 text_bg=$(tmux show-option -gv @copyrat-text-bg)
@@ -205,7 +212,9 @@ hint_fg=$(tmux show-option -gv @copyrat-hint-fg)
 hint_bg=$(tmux show-option -gv @copyrat-hint-bg)
 
 # Build common options string from configuration
+# $1: capture_region (visible-area or entire-history)
 build_common_options() {
+    local capture_region="$1"
     local opts=""
     opts+=" --alphabet ${alphabet}"
     opts+=" --capture-region ${capture_region}"
@@ -242,9 +251,16 @@ build_common_options() {
     echo "$opts"
 }
 
+# Setup a pattern binding for a specific keytable
+# $1: keytable name
+# $2: capture_region (visible-area or entire-history)
+# $3: key to bind
+# $4: pattern argument
 setup_pattern_binding () {
-    key=$1
-    pattern_arg="$2"
+    local target_keytable="$1"
+    local capture_region="$2"
+    local key="$3"
+    local pattern_arg="$4"
 
     # Handle new user syntax: "pattern-name xxx" or "custom-pattern xxx"
     local value
@@ -256,10 +272,20 @@ setup_pattern_binding () {
         pattern_arg="--custom-pattern $value"
     fi
 
-    common_opts=$(build_common_options)
+    common_opts=$(build_common_options "$capture_region")
     # The default window name `[copyrat]` has to be single quoted because it is
     # interpreted by the shell when launched by tmux.
-    tmux bind-key -T "${keytable}" "${key}" new-window -d -n "${window_name}" "${BINARY} run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} ${common_opts} ${pattern_arg}"
+    tmux bind-key -T "${target_keytable}" "${key}" new-window -d -n "${window_name}" "${BINARY} run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} ${common_opts} ${pattern_arg}"
+}
+
+# Setup pattern bindings for both keytables (visible-area and entire-history)
+# $1: key to bind
+# $2: pattern argument
+setup_pattern_bindings () {
+    local key="$1"
+    local pattern_arg="$2"
+    setup_pattern_binding "$keytable" "visible-area" "$key" "$pattern_arg"
+    setup_pattern_binding "$keytable_history" "entire-history" "$key" "$pattern_arg"
 }
 
 # Process user-defined bindings from @copyrat-bind-* options
@@ -275,52 +301,56 @@ setup_user_bindings() {
         pattern=$(tmux show-option -gv "$option" 2>/dev/null)
 
         if [[ -n "$pattern" ]]; then
-            # Create/override binding
-            setup_pattern_binding "$key" "$pattern"
+            # Create/override binding for both keytables
+            setup_pattern_bindings "$key" "$pattern"
         else
-            # Remove binding (unbind key) - suppress error if binding doesn't exist
+            # Remove binding (unbind key) from both keytables
             tmux unbind-key -T "${keytable}" "$key" 2>/dev/null || true
+            tmux unbind-key -T "${keytable_history}" "$key" 2>/dev/null || true
         fi
     done
 }
 
-# prefix + t + a searches for command-line arguments
-setup_pattern_binding "a" "--pattern-name command-line-args"
-# prefix + t + c searches for hex colors #aa00f5
-setup_pattern_binding "c" "--pattern-name hexcolor"
-# prefix + t + d searches for dates or datetimes
-setup_pattern_binding "d" "--pattern-name datetime"
-# prefix + t + D searches for docker shas
-setup_pattern_binding "D" "--pattern-name docker"
-# prefix + t + e searches for email addresses (see https://www.regular-expressions.info/email.html)
-setup_pattern_binding "e" "--pattern-name email"
-# prefix + t + G searches for any string of 4+ digits
-setup_pattern_binding "G" "--pattern-name digits"
-# prefix + t + h searches for SHA1/2 short or long hashes
-setup_pattern_binding "h" "--pattern-name sha"
-# prefix + t + m searches for Markdown URLs [...](matched.url)
-setup_pattern_binding "m" "--pattern-name markdown-url"
-# prefix + t + p searches for absolute & relative paths
-setup_pattern_binding "p" "--pattern-name path"
-# prefix + t + P searches for hex numbers: 0xbedead
-setup_pattern_binding "P" "--pattern-name pointer-address"
-# prefix + t + q searches for strings inside single|double|backticks
-setup_pattern_binding "q" "-x quoted-single -x quoted-double -x quoted-backtick"
-# prefix + t + u searches for URLs
-setup_pattern_binding "u" "--pattern-name url"
-# prefix + t + U searches for UUIDs
-setup_pattern_binding "U" "--pattern-name uuid"
-# prefix + t + v searches for version numbers
-setup_pattern_binding "v" "--pattern-name version"
-# prefix + t + 4 searches for IPV4
-setup_pattern_binding "4" "--pattern-name ipv4"
-# prefix + t + 6 searches for IPV6
-setup_pattern_binding "6" "--pattern-name ipv6"
-# prefix + t + Space searches for all known patterns (noisy and potentially slower)
-setup_pattern_binding "space" "--all-patterns"
+# prefix + t/T + a searches for command-line arguments
+setup_pattern_bindings "a" "--pattern-name command-line-args"
+# prefix + t/T + c searches for hex colors #aa00f5
+setup_pattern_bindings "c" "--pattern-name hexcolor"
+# prefix + t/T + d searches for dates or datetimes
+setup_pattern_bindings "d" "--pattern-name datetime"
+# prefix + t/T + D searches for docker shas
+setup_pattern_bindings "D" "--pattern-name docker"
+# prefix + t/T + e searches for email addresses (see https://www.regular-expressions.info/email.html)
+setup_pattern_bindings "e" "--pattern-name email"
+# prefix + t/T + G searches for any string of 4+ digits
+setup_pattern_bindings "G" "--pattern-name digits"
+# prefix + t/T + h searches for SHA1/2 short or long hashes
+setup_pattern_bindings "h" "--pattern-name sha"
+# prefix + t/T + m searches for Markdown URLs [...](matched.url)
+setup_pattern_bindings "m" "--pattern-name markdown-url"
+# prefix + t/T + p searches for absolute & relative paths
+setup_pattern_bindings "p" "--pattern-name path"
+# prefix + t/T + P searches for hex numbers: 0xbedead
+setup_pattern_bindings "P" "--pattern-name pointer-address"
+# prefix + t/T + q searches for strings inside single|double|backticks
+setup_pattern_bindings "q" "-x quoted-single -x quoted-double -x quoted-backtick"
+# prefix + t/T + u searches for URLs
+setup_pattern_bindings "u" "--pattern-name url"
+# prefix + t/T + U searches for UUIDs
+setup_pattern_bindings "U" "--pattern-name uuid"
+# prefix + t/T + v searches for version numbers
+setup_pattern_bindings "v" "--pattern-name version"
+# prefix + t/T + 4 searches for IPV4
+setup_pattern_bindings "4" "--pattern-name ipv4"
+# prefix + t/T + 6 searches for IPV6
+setup_pattern_bindings "6" "--pattern-name ipv6"
+# prefix + t/T + Space searches for all known patterns (noisy and potentially slower)
+setup_pattern_bindings "space" "--all-patterns"
 
 # Process user-defined bindings (must come after defaults to allow overrides)
 setup_user_bindings
 
-# prefix + t + / prompts for a pattern and search for it
-tmux bind-key -T "${keytable}" "/" command-prompt -p "search:" "new-window -d -n '${window_name}' '${BINARY}' run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} $(build_common_options) --custom-pattern %%"
+# prefix + t + / prompts for a pattern and search for it (visible area)
+tmux bind-key -T "${keytable}" "/" command-prompt -p "search:" "new-window -d -n '${window_name}' '${BINARY}' run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} $(build_common_options visible-area) --custom-pattern %%"
+
+# prefix + T + / prompts for a pattern and search for it (entire history)
+tmux bind-key -T "${keytable_history}" "/" command-prompt -p "search (history):" "new-window -d -n '${window_name}' '${BINARY}' run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} $(build_common_options entire-history) --custom-pattern %%"
