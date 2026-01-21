@@ -176,6 +176,9 @@ setup_option "hint-style" ""
 # Characters surrounding hints when using 'surround' style
 setup_option "hint-surroundings" "{}"
 
+# Default output destination: tmux (buffer) or clipboard
+setup_option "default-output" "tmux"
+
 
 
 #
@@ -201,6 +204,7 @@ focus_wrap_around=$(tmux show-option -gv @copyrat-focus-wrap-around)
 hint_alignment=$(tmux show-option -gv @copyrat-hint-alignment)
 hint_style=$(tmux show-option -gv @copyrat-hint-style)
 hint_surroundings=$(tmux show-option -gv @copyrat-hint-surroundings)
+default_output=$(tmux show-option -gv @copyrat-default-output)
 
 # Get color options
 text_bg=$(tmux show-option -gv @copyrat-text-bg)
@@ -247,6 +251,9 @@ build_common_options() {
     opts+=" --focused-bg ${focused_bg}"
     opts+=" --hint-fg ${hint_fg}"
     opts+=" --hint-bg ${hint_bg}"
+
+    # Output destination
+    opts+=" --default-output ${default_output}"
 
     echo "$opts"
 }

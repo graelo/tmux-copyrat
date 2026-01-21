@@ -3,6 +3,7 @@ use std::fmt::Display;
 use clap::{ArgAction, Parser, ValueEnum};
 
 use crate::{
+    config::extended::OutputDestination,
     textbuf::{alphabet, regexes},
     ui, Error, Result,
 };
@@ -79,6 +80,12 @@ pub struct Config {
         value_parser(try_parse_chars)
     )]
     pub hint_surroundings: HintSurroundingsArg,
+
+    /// Default output destination for copied text.
+    ///
+    /// Can be toggled at runtime with the space key.
+    #[arg(value_enum, long, rename_all = "kebab-case", default_value = "tmux")]
+    pub default_output: OutputDestination,
 }
 
 /// Type introduced due to parsing limitation,

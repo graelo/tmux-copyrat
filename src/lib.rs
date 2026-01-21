@@ -207,13 +207,11 @@ pub fn run(lines: &[&str], opt: &config::basic::Config) -> Option<ui::Selection>
         return None;
     }
 
-    let default_output_destination = config::extended::OutputDestination::Tmux;
-
     let selection: Option<ui::Selection> = {
         let mut ui = ui::ViewController::new(
             &model,
             opt.focus_wrap_around,
-            default_output_destination,
+            &opt.default_output,
             &opt.colors,
             &opt.hint_alignment,
             opt.hint_style(),

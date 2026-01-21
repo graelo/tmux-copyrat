@@ -34,6 +34,7 @@ apply changes.
 - `@copyrat-hint-alignment` - Hint position: `leading/center/trailing`
 - `@copyrat-hint-style` - Styling: `bold/italic/underline/surround`
 - `@copyrat-hint-surroundings` - Surround characters (default: `{}`)
+- `@copyrat-default-output` - Default output: `tmux` or `clipboard` (default: `tmux`)
 
 ### Custom Bindings
 
@@ -133,6 +134,18 @@ The search area is determined by which keyswitch you use:
 - `prefix + t + <key>` - searches the visible pane area
 - `prefix + T + <key>` - searches the entire scrollback history
 
+### Output Destination
+
+By default, selections are copied to the tmux buffer. You can change this to
+copy to the system clipboard instead:
+
+```tmux
+# tmux (buffer) or clipboard
+set -g @copyrat-default-output "clipboard"
+```
+
+The output destination can be toggled at runtime with the `space` key.
+
 ## Custom Key Bindings
 
 Override defaults or add new patterns using `@copyrat-bind-{key}` options.
@@ -210,6 +223,7 @@ set -g @copyrat-reverse "false"
 set -g @copyrat-focus-wrap-around "true"
 set -g @copyrat-hint-alignment "center"
 set -g @copyrat-hint-style "bold"
+set -g @copyrat-default-output "clipboard"
 
 # Custom bindings
 set -g @copyrat-bind-m "pattern-name email"

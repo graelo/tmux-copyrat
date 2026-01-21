@@ -128,7 +128,7 @@ impl<'a> ViewController<'a> {
     pub fn new(
         model: &'a textbuf::Model<'a>,
         focus_wrap_around: bool,
-        default_output_destination: OutputDestination,
+        default_output_destination: &OutputDestination,
         rendering_colors: &'a UiColors,
         hint_alignment: &'a HintAlignment,
         hint_style: Option<HintStyle>,
@@ -169,7 +169,7 @@ impl<'a> ViewController<'a> {
             viewport,
             focus_index,
             focus_wrap_around,
-            default_output_destination,
+            default_output_destination: default_output_destination.clone(),
             rendering_colors,
             hint_alignment,
             hint_style,
@@ -1316,7 +1316,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let ui = ViewController::new(
             &model,
             wrap_around,
-            default_output_destination,
+            &default_output_destination,
             &rendering_colors,
             &hint_alignment,
             hint_style,

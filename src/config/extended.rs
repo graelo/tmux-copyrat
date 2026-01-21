@@ -117,6 +117,12 @@ impl ConfigExt {
                     "@copyrat-hint-surroundings" => {
                         inner.hint_surroundings = basic::try_parse_chars(value)?;
                     }
+                    "@copyrat-default-output" => {
+                        let case_insensitive = true;
+                        inner.default_output =
+                            OutputDestination::from_str(value, case_insensitive)
+                                .map_err(Error::ExpectedEnumVariant)?
+                    }
 
                     // Ignore unknown options.
                     _ => (),
@@ -144,7 +150,7 @@ pub enum CaptureRegion {
 
 /// Describes the type of buffer the selected should be copied to: either a
 /// tmux buffer or the system clipboard.
-#[derive(Clone)]
+#[derive(Clone, Debug, ValueEnum)]
 pub enum OutputDestination {
     /// The selection will be copied to the tmux buffer.
     Tmux,
