@@ -734,14 +734,14 @@ impl<'a> ViewController<'a> {
                     self.handle_focus_change(old_index, focused_index, writer);
                 }
 
-                // Manual scrolling with PageUp/PageDown
-                event::Key::PageUp => {
+                // Manual scrolling with PageUp/PageDown or Ctrl-B/Ctrl-F
+                event::Key::PageUp | event::Key::Ctrl('b') => {
                     let scroll_amount = self.viewport.height / 2;
                     if self.viewport.scroll_up(scroll_amount) {
                         self.full_render(writer);
                     }
                 }
-                event::Key::PageDown => {
+                event::Key::PageDown | event::Key::Ctrl('f') => {
                     let scroll_amount = self.viewport.height / 2;
                     if self.viewport.scroll_down(scroll_amount, self.total_content_height) {
                         self.full_render(writer);

@@ -89,7 +89,7 @@ setup_option () {
     opt_name=$1
     default_value=$2
     current_value=$(tmux show-option -gqv @copyrat-"${opt_name}")
-    value="${current_value:-"$default_value"}"
+    value="${current_value:-$default_value}"
     tmux set-option -g "@copyrat-${opt_name}" "${value}"
 }
 
