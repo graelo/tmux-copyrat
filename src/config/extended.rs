@@ -72,6 +72,7 @@ impl ConfigExt {
             let inner = &mut self.basic_config;
 
             for (name, value) in &tmux_options {
+                log::debug!("Processing tmux option: {name} = {value}");
                 match name.as_ref() {
                     // Note: @copyrat-capture-region is intentionally not read here.
                     // The capture region is determined by which keyswitch is used

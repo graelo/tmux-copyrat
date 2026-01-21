@@ -17,6 +17,7 @@ exclude = ["/.github"]
 
 [dependencies]
 thiserror = "2"
+log = "0.4"
 
 termion = "4"
 regex = "1.6"
