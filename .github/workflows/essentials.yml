@@ -69,7 +69,7 @@ jobs:
 
       - name: Quality - cargo audit check
         run: |
-          VERSION=$(curl -s https://api.github.com/repos/rustsec/rustsec/releases/latest | jq -r '.tag_name')
+          VERSION=$(curl -s https://api.github.com/repos/rustsec/rustsec/releases | jq -r '[.[] | select(.tag_name | startswith("cargo-audit/"))][0].tag_name')
           curl -sSfL "https://github.com/rustsec/rustsec/releases/download/${VERSION}/cargo-audit-x86_64-unknown-linux-musl-${VERSION#cargo-audit/}.tgz" | \
             tar zx --no-anchored cargo-audit --strip-components=1
           chmod +x cargo-audit

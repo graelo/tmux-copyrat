@@ -12,7 +12,8 @@ apply changes.
 
 ### Plugin Settings
 
-- `@copyrat-keyswitch` - Key to enter copyrat mode (default: `t`)
+- `@copyrat-keyswitch` - Key to search visible area (default: `t`)
+- `@copyrat-keyswitch-history` - Key to search entire history (default: `T`)
 - `@copyrat-keytable` - Keytable name (default: `cpyrt`)
 - `@copyrat-window-name` - Window name (default: `[copyrat]`)
 - `@copyrat-clipboard-exe` - Clipboard command (auto-detected)
@@ -33,7 +34,7 @@ apply changes.
 - `@copyrat-hint-alignment` - Hint position: `leading/center/trailing`
 - `@copyrat-hint-style` - Styling: `bold/italic/underline/surround`
 - `@copyrat-hint-surroundings` - Surround characters (default: `{}`)
-- `@copyrat-capture-region` - Search area: `visible-area/entire-history`
+- `@copyrat-default-output` - Default output: `tmux` or `clipboard` (default: `tmux`)
 
 ### Custom Bindings
 
@@ -43,9 +44,14 @@ apply changes.
 
 ### Key Binding Setup
 
+Two keyswitches are available:
+- `@copyrat-keyswitch` (default: `t`) - searches the **visible pane area**
+- `@copyrat-keyswitch-history` (default: `T`) - searches the **entire scrollback history**
+
 ```tmux
-# Change the main key from 't' to 'c'
+# Change the main keys from 't'/'T' to 'c'/'C'
 set -g @copyrat-keyswitch "c"
+set -g @copyrat-keyswitch-history "C"
 
 # Use custom keytable name
 set -g @copyrat-keytable "search"
@@ -124,10 +130,21 @@ set -g @copyrat-hint-surroundings "[]"
 
 ### Search Area
 
+The search area is determined by which keyswitch you use:
+- `prefix + t + <key>` - searches the visible pane area
+- `prefix + T + <key>` - searches the entire scrollback history
+
+### Output Destination
+
+By default, selections are copied to the tmux buffer. You can change this to
+copy to the system clipboard instead:
+
 ```tmux
-# visible-area or entire-history
-set -g @copyrat-capture-region "entire-history"
+# tmux (buffer) or clipboard
+set -g @copyrat-default-output "clipboard"
 ```
+
+The output destination can be toggled at runtime with the `space` key.
 
 ## Custom Key Bindings
 
@@ -187,6 +204,7 @@ bind-key -T $keytable H \
 ```tmux
 # Basic setup
 set -g @copyrat-keyswitch "c"
+set -g @copyrat-keyswitch-history "C"
 set -g @copyrat-keytable "copy"
 set -g @copyrat-window-name "[copy]"
 set -g @copyrat-clipboard-exe "xsel --clipboard --input"
@@ -205,7 +223,7 @@ set -g @copyrat-reverse "false"
 set -g @copyrat-focus-wrap-around "true"
 set -g @copyrat-hint-alignment "center"
 set -g @copyrat-hint-style "bold"
-set -g @copyrat-capture-region "entire-history"
+set -g @copyrat-default-output "clipboard"
 
 # Custom bindings
 set -g @copyrat-bind-m "pattern-name email"
@@ -216,7 +234,8 @@ set -g @copyrat-bind-D ""  # Disable docker binding
 
 Result:
 
-- `prefix + c + h` → hashes
+- `prefix + c + h` → hashes (visible area)
+- `prefix + C + h` → hashes (entire history)
 - `prefix + c + u` → URLs
 - `prefix + c + m` → emails
 - `prefix + c + M` → MAC addresses

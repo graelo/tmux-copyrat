@@ -72,12 +72,11 @@ impl ConfigExt {
             let inner = &mut self.basic_config;
 
             for (name, value) in &tmux_options {
+                log::debug!("Processing tmux option: {name} = {value}");
                 match name.as_ref() {
-                    "@copyrat-capture-region" => {
-                        let case_insensitive = true;
-                        self.capture_region = CaptureRegion::from_str(value, case_insensitive)
-                            .map_err(Error::ExpectedEnumVariant)?
-                    }
+                    // Note: @copyrat-capture-region is intentionally not read here.
+                    // The capture region is determined by which keyswitch is used
+                    // (prefix+t for visible-area, prefix+T for entire-history).
                     "@copyrat-alphabet" => {
                         inner.alphabet = alphabet::parse_alphabet(value)?;
                     }
@@ -119,6 +118,11 @@ impl ConfigExt {
                     "@copyrat-hint-surroundings" => {
                         inner.hint_surroundings = basic::try_parse_chars(value)?;
                     }
+                    "@copyrat-default-output" => {
+                        let case_insensitive = true;
+                        inner.default_output = OutputDestination::from_str(value, case_insensitive)
+                            .map_err(Error::ExpectedEnumVariant)?
+                    }
 
                     // Ignore unknown options.
                     _ => (),
@@ -146,7 +150,7 @@ pub enum CaptureRegion {
 
 /// Describes the type of buffer the selected should be copied to: either a
 /// tmux buffer or the system clipboard.
-#[derive(Clone)]
+#[derive(Clone, Debug, ValueEnum)]
 pub enum OutputDestination {
     /// The selection will be copied to the tmux buffer.
     Tmux,
@@ -155,7 +159,7 @@ pub enum OutputDestination {
 }
 
 impl OutputDestination {
-    /// Toggle between the variants of `OutputDestination`.
+    /// Toggle between Tmux buffer and system Clipboard destinations.
     pub fn toggle(&mut self) {
         match *self {
             Self::Tmux => *self = Self::Clipboard,
@@ -170,5 +174,25 @@ impl fmt::Display for OutputDestination {
             Self::Tmux => write!(f, "tmux buffer"),
             Self::Clipboard => write!(f, "clipboard"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_output_destination_toggle() {
+        let mut dest = OutputDestination::Tmux;
+        dest.toggle();
+        assert!(matches!(dest, OutputDestination::Clipboard));
+        dest.toggle();
+        assert!(matches!(dest, OutputDestination::Tmux));
+    }
+
+    #[test]
+    fn test_output_destination_display() {
+        assert_eq!(OutputDestination::Tmux.to_string(), "tmux buffer");
+        assert_eq!(OutputDestination::Clipboard.to_string(), "clipboard");
     }
 }

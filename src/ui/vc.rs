@@ -35,10 +35,87 @@ struct WrappedLine {
     pos_y: usize,
 }
 
+/// Manages the visible portion of content when total content exceeds terminal height.
+///
+/// The viewport tracks which rows of the wrapped content are currently visible
+/// and provides methods for scrolling and coordinate translation.
+struct Viewport {
+    /// First visible row in wrapped content space (0-indexed).
+    top_row: usize,
+    /// Terminal height (number of visible rows).
+    height: usize,
+}
+
+impl Viewport {
+    /// Create a new viewport with the given terminal height.
+    fn new(height: usize) -> Self {
+        Viewport { top_row: 0, height }
+    }
+
+    /// Check if a content row is within the visible viewport.
+    fn is_visible(&self, content_row: usize) -> bool {
+        content_row >= self.top_row && content_row < self.top_row + self.height
+    }
+
+    /// Convert a content row to screen Y coordinate (1-indexed for termion).
+    /// Returns None if the row is not visible.
+    fn screen_y(&self, content_row: usize) -> Option<u16> {
+        if self.is_visible(content_row) {
+            Some((content_row - self.top_row + 1) as u16)
+        } else {
+            None
+        }
+    }
+
+    /// Scroll the viewport to make a content row visible.
+    /// Returns true if scrolling occurred.
+    fn ensure_visible(&mut self, content_row: usize) -> bool {
+        if content_row < self.top_row {
+            // Row is above viewport, scroll up
+            self.top_row = content_row;
+            true
+        } else if content_row >= self.top_row + self.height {
+            // Row is below viewport, scroll down
+            self.top_row = content_row - self.height + 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Scroll up by the given number of lines.
+    ///
+    /// Returns `true` if scrolling occurred, `false` if already at top.
+    fn scroll_up(&mut self, lines: usize) -> bool {
+        if self.top_row > 0 {
+            self.top_row = self.top_row.saturating_sub(lines);
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Scroll down by the given number of lines.
+    ///
+    /// Returns `true` if scrolling occurred, `false` if already at bottom.
+    fn scroll_down(&mut self, lines: usize, max_content_height: usize) -> bool {
+        let max_top = max_content_height.saturating_sub(self.height);
+        if self.top_row < max_top {
+            self.top_row = cmp::min(self.top_row + lines, max_top);
+            true
+        } else {
+            false
+        }
+    }
+}
+
 pub struct ViewController<'a> {
     model: &'a textbuf::Model<'a>,
     term_width: u16,
+    term_height: u16,
     wrapped_lines: Vec<WrappedLine>,
+    total_content_height: usize,
+    viewport: Viewport,
     focus_index: usize,
     focus_wrap_around: bool,
     default_output_destination: OutputDestination,
@@ -53,31 +130,59 @@ impl<'a> ViewController<'a> {
     pub fn new(
         model: &'a textbuf::Model<'a>,
         focus_wrap_around: bool,
-        default_output_destination: OutputDestination,
+        default_output_destination: &OutputDestination,
         rendering_colors: &'a UiColors,
         hint_alignment: &'a HintAlignment,
         hint_style: Option<HintStyle>,
     ) -> ViewController<'a> {
         let focus_index = if model.reverse {
-            model.spans.len() - 1
+            model.spans.len().saturating_sub(1)
         } else {
             0
         };
 
-        let (term_width, _) = termion::terminal_size().unwrap_or((80u16, 30u16)); // .expect("Cannot read the terminal size.");
+        let (term_width, term_height) = termion::terminal_size().unwrap_or((80u16, 30u16));
         let wrapped_lines = compute_wrapped_lines(model.lines, term_width);
 
-        ViewController {
+        // Compute total content height from wrapped lines
+        let total_content_height = if wrapped_lines.is_empty() {
+            0
+        } else {
+            // Last line's pos_y + 1 (for that line itself)
+            // We need to account for the last line's wrapping too
+            let last_idx = wrapped_lines.len() - 1;
+            let last_line = model.lines.get(last_idx).unwrap_or(&"");
+            let last_line_width = display_width(last_line.trim_end(), DEFAULT_TAB_WIDTH);
+            let last_line_extra =
+                cmp::max(0, last_line_width as isize - 1) as usize / term_width as usize;
+            wrapped_lines[last_idx].pos_y + 1 + last_line_extra
+        };
+
+        let viewport = Viewport::new(term_height as usize);
+
+        // Auto-scroll to the initially focused span
+        let mut vc = ViewController {
             model,
             term_width,
+            term_height,
             wrapped_lines,
+            total_content_height,
+            viewport,
             focus_index,
             focus_wrap_around,
-            default_output_destination,
+            default_output_destination: default_output_destination.clone(),
             rendering_colors,
             hint_alignment,
             hint_style,
+        };
+
+        // Scroll to make the initially focused span visible
+        if !model.spans.is_empty() {
+            let content_row = vc.span_content_row(&model.spans[focus_index]);
+            vc.viewport.ensure_visible(content_row);
         }
+
+        vc
     }
 
     // }}}
@@ -122,6 +227,13 @@ impl<'a> ViewController<'a> {
         (new_pos_x, new_pos_y)
     }
 
+    /// Returns the content row (in wrapped space) where a span is located.
+    fn span_content_row(&self, span: &textbuf::Span<'a>) -> usize {
+        let (pos_x, pos_y) = self.adjusted_span_position(span);
+        let (_, content_row) = self.map_coords_to_wrapped_space(pos_x, pos_y);
+        content_row
+    }
+
     // }}}
     // Focus management {{{1
 
@@ -159,21 +271,45 @@ impl<'a> ViewController<'a> {
         (old_index, new_index)
     }
 
+    /// Handle focus change with scrolling. Returns true if a full render is needed.
+    fn handle_focus_change(
+        &mut self,
+        old_index: usize,
+        new_index: usize,
+        writer: &mut dyn io::Write,
+    ) {
+        // Check if the new focused span is visible
+        let content_row = self.span_content_row(&self.model.spans[new_index]);
+        let scrolled = self.viewport.ensure_visible(content_row);
+
+        if scrolled {
+            // Viewport changed, need full render
+            self.full_render(writer);
+        } else {
+            // Viewport didn't change, efficient diff render
+            self.diff_render(writer, old_index, new_index);
+        }
+    }
+
     // }}}
     // Rendering {{{1
 
-    /// Render entire model lines on provided writer.
+    /// Render entire model lines on provided writer, respecting viewport bounds.
     ///
     /// This renders the basic content on which spans and hints can be rendered.
     ///
     /// # Notes
     /// - All trailing whitespaces are trimmed, empty lines are skipped.
+    /// - Only content within the viewport is rendered.
+    /// - Long lines that wrap are handled correctly across viewport boundaries.
     /// - This writes directly on the writer, avoiding extra allocation.
     fn render_base_text(
         stdout: &mut dyn io::Write,
         lines: &[&str],
         wrapped_lines: &[WrappedLine],
         colors: &UiColors,
+        viewport: &Viewport,
+        term_width: u16,
     ) {
         write!(
             stdout,
@@ -183,19 +319,77 @@ impl<'a> ViewController<'a> {
         )
         .unwrap();
 
+        let line_width = term_width as usize;
+
         for (line_index, line) in lines.iter().enumerate() {
             let trimmed_line = line.trim_end();
 
-            if !trimmed_line.is_empty() {
-                let pos_y: usize = wrapped_lines[line_index].pos_y;
+            if trimmed_line.is_empty() {
+                continue;
+            }
 
-                write!(
-                    stdout,
-                    "{goto}{text}",
-                    goto = cursor::Goto(1, pos_y as u16 + 1),
-                    text = &trimmed_line,
-                )
-                .unwrap();
+            let base_content_row = wrapped_lines[line_index].pos_y;
+            let line_display_width = display_width(trimmed_line, DEFAULT_TAB_WIDTH);
+            let num_wrapped_rows = if line_display_width == 0 {
+                1
+            } else {
+                line_display_width.div_ceil(line_width)
+            };
+
+            // Check if any part of this line is visible
+            let line_end_row = base_content_row + num_wrapped_rows - 1;
+            if line_end_row < viewport.top_row
+                || base_content_row >= viewport.top_row + viewport.height
+            {
+                continue; // Line is entirely outside viewport
+            }
+
+            // For each sub-row of this potentially wrapped line
+            for sub_row in 0..num_wrapped_rows {
+                let content_row = base_content_row + sub_row;
+                if let Some(screen_y) = viewport.screen_y(content_row) {
+                    // Calculate which portion of the line to render for this sub-row
+                    // We need to find the character offset for this sub-row
+                    let start_col = sub_row * line_width;
+                    let end_col = start_col + line_width;
+
+                    // Extract the substring for this sub-row by iterating through display widths
+                    let mut col = 0;
+                    let mut char_start: Option<usize> = None;
+                    let mut char_end = trimmed_line.len();
+
+                    for (byte_idx, ch) in trimmed_line.char_indices() {
+                        // Set char_start when we reach or pass start_col
+                        if char_start.is_none() && col >= start_col {
+                            char_start = Some(byte_idx);
+                        }
+
+                        let ch_width = if ch == '\t' {
+                            ((col / DEFAULT_TAB_WIDTH) + 1) * DEFAULT_TAB_WIDTH - col
+                        } else {
+                            ch.width().unwrap_or(0)
+                        };
+                        col += ch_width;
+
+                        // Set char_end when we pass end_col
+                        if col > end_col {
+                            char_end = byte_idx;
+                            break;
+                        }
+                    }
+
+                    let char_start = char_start.unwrap_or(0);
+                    let sub_text = &trimmed_line[char_start..char_end];
+                    if !sub_text.is_empty() {
+                        write!(
+                            stdout,
+                            "{goto}{text}",
+                            goto = cursor::Goto(1, screen_y),
+                            text = sub_text,
+                        )
+                        .unwrap();
+                    }
+                }
             }
         }
 
@@ -212,6 +406,9 @@ impl<'a> ViewController<'a> {
     ///
     /// If a Mach is "focused", it is then rendered with the `focused_*g` colors.
     ///
+    /// # Arguments
+    /// - `pos` is (x_in_content_space, screen_y) where screen_y is 1-indexed
+    ///
     /// # Note
     ///
     /// This writes directly on the writer, avoiding extra allocation.
@@ -219,7 +416,7 @@ impl<'a> ViewController<'a> {
         stdout: &mut dyn io::Write,
         text: &str,
         focused: bool,
-        pos: (usize, usize),
+        pos: (usize, u16),
         colors: &UiColors,
     ) {
         // To help identify it, the span thas has focus is rendered with a dedicated color.
@@ -233,7 +430,7 @@ impl<'a> ViewController<'a> {
         write!(
             stdout,
             "{goto}{bg_color}{fg_color}{text}{fg_reset}{bg_reset}",
-            goto = cursor::Goto(pos.0 as u16 + 1, pos.1 as u16 + 1),
+            goto = cursor::Goto(pos.0 as u16 + 1, pos.1),
             fg_color = color::Fg(*fg_color),
             bg_color = color::Bg(*bg_color),
             fg_reset = color::Fg(color::Reset),
@@ -251,13 +448,16 @@ impl<'a> ViewController<'a> {
     /// - surrounding the hint's text with some delimiters, see
     ///   `HintStyle::Delimited`.
     ///
+    /// # Arguments
+    /// - `pos` is (x_in_content_space, screen_y) where screen_y is 1-indexed
+    ///
     /// # Note
     ///
     /// This writes directly on the writer, avoiding extra allocation.
     fn render_span_hint(
         stdout: &mut dyn io::Write,
         hint_text: &str,
-        pos: (usize, usize),
+        pos: (usize, u16),
         colors: &UiColors,
         hint_style: &Option<HintStyle>,
     ) {
@@ -265,7 +465,7 @@ impl<'a> ViewController<'a> {
         let bg_color = color::Bg(colors.hint_bg);
         let fg_reset = color::Fg(color::Reset);
         let bg_reset = color::Bg(color::Reset);
-        let goto = cursor::Goto(pos.0 as u16 + 1, pos.1 as u16 + 1);
+        let goto = cursor::Goto(pos.0 as u16 + 1, pos.1);
 
         match hint_style {
             None => {
@@ -333,18 +533,24 @@ impl<'a> ViewController<'a> {
     }
 
     /// Convenience function that renders both the text span and its hint,
-    /// if focused.
+    /// if focused. Only renders if the span is visible in the viewport.
     fn render_span(&self, stdout: &mut dyn io::Write, span: &textbuf::Span<'a>, focused: bool) {
         let text = span.text;
 
         let (pos_x, pos_y) = self.adjusted_span_position(span);
-        let (pos_x, pos_y) = self.map_coords_to_wrapped_space(pos_x, pos_y);
+        let (pos_x, content_row) = self.map_coords_to_wrapped_space(pos_x, pos_y);
+
+        // Check if span is visible in viewport
+        let screen_y = match self.viewport.screen_y(content_row) {
+            Some(y) => y,
+            None => return, // Span not visible, skip rendering
+        };
 
         ViewController::render_span_text(
             stdout,
             text,
             focused,
-            (pos_x, pos_y),
+            (pos_x, screen_y),
             self.rendering_colors,
         );
 
@@ -360,17 +566,42 @@ impl<'a> ViewController<'a> {
             ViewController::render_span_hint(
                 stdout,
                 &span.hint,
-                (pos_x + offset, pos_y),
+                (pos_x + offset, screen_y),
                 self.rendering_colors,
                 &self.hint_style,
             );
         }
     }
 
-    /// Full nender the Ui on the provided writer.
+    /// Render scroll position indicator in bottom-right corner.
+    /// Only shown when content exceeds viewport height.
+    fn render_scroll_indicator(&self, stdout: &mut dyn io::Write) {
+        if self.total_content_height <= self.viewport.height {
+            return; // No scrolling needed, no indicator
+        }
+
+        let max_top = self
+            .total_content_height
+            .saturating_sub(self.viewport.height);
+        let indicator = format!("[{}/{}]", self.viewport.top_row + 1, max_top + 1);
+
+        // Render in bottom-right corner with dim styling
+        let x_pos = self.term_width.saturating_sub(indicator.len() as u16);
+        write!(
+            stdout,
+            "{goto}{dim}{text}{reset}",
+            goto = cursor::Goto(x_pos, self.term_height),
+            dim = style::Faint,
+            text = indicator,
+            reset = style::Reset,
+        )
+        .unwrap();
+    }
+
+    /// Full render the Ui on the provided writer.
     ///
     /// This renders in 3 phases:
-    /// - all lines are rendered verbatim
+    /// - all lines are rendered verbatim (within viewport)
     /// - each Span's `text` is rendered as an overlay on top of it
     /// - each Span's `hint` text is rendered as a final overlay
     ///
@@ -383,18 +614,27 @@ impl<'a> ViewController<'a> {
     /// Multibyte characters are taken into account, so that the Span's `text`
     /// and `hint` are rendered in their proper position.
     fn full_render(&self, stdout: &mut dyn io::Write) {
-        // 1. Trim all lines and render non-empty ones.
+        // Clear screen before rendering
+        write!(stdout, "{}", termion::clear::All).unwrap();
+
+        // 1. Trim all lines and render non-empty ones within viewport.
         ViewController::render_base_text(
             stdout,
             self.model.lines,
             &self.wrapped_lines,
             self.rendering_colors,
+            &self.viewport,
+            self.term_width,
         );
 
+        // 2. Render spans (only visible ones)
         for (index, span) in self.model.spans.iter().enumerate() {
             let focused = index == self.focus_index;
             self.render_span(stdout, span, focused);
         }
+
+        // 3. Render scroll indicator if content exceeds viewport
+        self.render_scroll_indicator(stdout);
 
         stdout.flush().unwrap();
     }
@@ -463,22 +703,22 @@ impl<'a> ViewController<'a> {
                     break;
                 }
 
-                // Move focus to next/prev span.
+                // Move focus to next/prev span with viewport scrolling.
                 event::Key::Up => {
                     let (old_index, focused_index) = self.prev_focus_index();
-                    self.diff_render(writer, old_index, focused_index);
+                    self.handle_focus_change(old_index, focused_index, writer);
                 }
                 event::Key::Down => {
                     let (old_index, focused_index) = self.next_focus_index();
-                    self.diff_render(writer, old_index, focused_index);
+                    self.handle_focus_change(old_index, focused_index, writer);
                 }
                 event::Key::Left => {
                     let (old_index, focused_index) = self.prev_focus_index();
-                    self.diff_render(writer, old_index, focused_index);
+                    self.handle_focus_change(old_index, focused_index, writer);
                 }
                 event::Key::Right => {
                     let (old_index, focused_index) = self.next_focus_index();
-                    self.diff_render(writer, old_index, focused_index);
+                    self.handle_focus_change(old_index, focused_index, writer);
                 }
                 event::Key::Char(_ch @ 'n') => {
                     let (old_index, focused_index) = if self.model.reverse {
@@ -486,7 +726,7 @@ impl<'a> ViewController<'a> {
                     } else {
                         self.next_focus_index()
                     };
-                    self.diff_render(writer, old_index, focused_index);
+                    self.handle_focus_change(old_index, focused_index, writer);
                 }
                 event::Key::Char(_ch @ 'N') => {
                     let (old_index, focused_index) = if self.model.reverse {
@@ -494,7 +734,24 @@ impl<'a> ViewController<'a> {
                     } else {
                         self.prev_focus_index()
                     };
-                    self.diff_render(writer, old_index, focused_index);
+                    self.handle_focus_change(old_index, focused_index, writer);
+                }
+
+                // Manual scrolling with PageUp/PageDown or Ctrl-B/Ctrl-F
+                event::Key::PageUp | event::Key::Ctrl('b') => {
+                    let scroll_amount = self.viewport.height / 2;
+                    if self.viewport.scroll_up(scroll_amount) {
+                        self.full_render(writer);
+                    }
+                }
+                event::Key::PageDown | event::Key::Ctrl('f') => {
+                    let scroll_amount = self.viewport.height / 2;
+                    if self
+                        .viewport
+                        .scroll_down(scroll_amount, self.total_content_height)
+                    {
+                        self.full_render(writer);
+                    }
                 }
 
                 // Yank/copy
@@ -700,8 +957,19 @@ path: /usr/local/bin/cargo";
             hint_bg: colors::CYAN,
         };
 
+        // Viewport large enough to see all content
+        let viewport = Viewport::new(10);
+        let term_width = 80u16;
+
         let mut writer = vec![];
-        ViewController::render_base_text(&mut writer, &lines, &wrapped_lines, &colors);
+        ViewController::render_base_text(
+            &mut writer,
+            &lines,
+            &wrapped_lines,
+            &colors,
+            &viewport,
+            term_width,
+        );
 
         let goto1 = cursor::Goto(1, 1);
         let goto2 = cursor::Goto(1, 2);
@@ -726,7 +994,8 @@ path: /usr/local/bin/cargo";
         let mut writer = vec![];
         let text = "https://en.wikipedia.org/wiki/Barcelona";
         let focused = true;
-        let position: (usize, usize) = (3, 1);
+        // Position is (x_in_content_space, screen_y) where screen_y is 1-indexed
+        let position: (usize, u16) = (3, 2);
         let colors = UiColors {
             text_fg: colors::BLACK,
             text_bg: colors::WHITE,
@@ -760,7 +1029,8 @@ path: /usr/local/bin/cargo";
         let mut writer = vec![];
         let text = "https://en.wikipedia.org/wiki/Barcelona";
         let focused = false;
-        let position: (usize, usize) = (3, 1);
+        // Position is (x_in_content_space, screen_y) where screen_y is 1-indexed
+        let position: (usize, u16) = (3, 2);
         let colors = UiColors {
             text_fg: colors::BLACK,
             text_bg: colors::WHITE,
@@ -793,7 +1063,8 @@ path: /usr/local/bin/cargo";
     fn test_render_unstyled_span_hint() {
         let mut writer = vec![];
         let hint_text = "eo";
-        let position: (usize, usize) = (3, 1);
+        // Position is (x_in_content_space, screen_y) where screen_y is 1-indexed
+        let position: (usize, u16) = (3, 2);
         let colors = UiColors {
             text_fg: colors::BLACK,
             text_bg: colors::WHITE,
@@ -835,7 +1106,8 @@ path: /usr/local/bin/cargo";
     fn test_render_underlined_span_hint() {
         let mut writer = vec![];
         let hint_text = "eo";
-        let position: (usize, usize) = (3, 1);
+        // Position is (x_in_content_space, screen_y) where screen_y is 1-indexed
+        let position: (usize, u16) = (3, 2);
         let colors = UiColors {
             text_fg: colors::BLACK,
             text_bg: colors::WHITE,
@@ -879,7 +1151,8 @@ path: /usr/local/bin/cargo";
     fn test_render_bracketed_span_hint() {
         let mut writer = vec![];
         let hint_text = "eo";
-        let position: (usize, usize) = (3, 1);
+        // Position is (x_in_content_space, screen_y) where screen_y is 1-indexed
+        let position: (usize, u16) = (3, 2);
         let colors = UiColors {
             text_fg: colors::BLACK,
             text_bg: colors::WHITE,
@@ -943,7 +1216,17 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             unique_hint,
         );
         let term_width: u16 = 80;
+        let term_height: u16 = 30;
         let wrapped_lines = compute_wrapped_lines(model.lines, term_width);
+
+        // Compute total content height
+        let total_content_height = if wrapped_lines.is_empty() {
+            0
+        } else {
+            let last_idx = wrapped_lines.len() - 1;
+            wrapped_lines[last_idx].pos_y + 1
+        };
+
         let rendering_colors = UiColors {
             text_fg: colors::BLACK,
             text_bg: colors::WHITE,
@@ -955,12 +1238,16 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             hint_bg: colors::CYAN,
         };
         let hint_alignment = HintAlignment::Leading;
+        let viewport = Viewport::new(term_height as usize);
 
         // create a Ui without any span
         let ui = ViewController {
             model: &mut model,
             term_width,
+            term_height,
             wrapped_lines,
+            total_content_height,
+            viewport,
             focus_index: 0,
             focus_wrap_around: false,
             default_output_destination: OutputDestination::Tmux,
@@ -976,8 +1263,9 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let goto3 = cursor::Goto(1, 3);
 
         let expected = format!(
-            "{bg}{fg}{goto1}lorem 127.0.0.1 lorem\
+            "{clear}{bg}{fg}{goto1}lorem 127.0.0.1 lorem\
         {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
+            clear = termion::clear::All,
             goto1 = goto1,
             goto3 = goto3,
             fg = color::Fg(rendering_colors.text_fg),
@@ -1034,7 +1322,7 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let ui = ViewController::new(
             &model,
             wrap_around,
-            default_output_destination,
+            &default_output_destination,
             &rendering_colors,
             &hint_alignment,
             hint_style,
@@ -1048,8 +1336,9 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             let goto3 = cursor::Goto(1, 3);
 
             format!(
-                "{bg}{fg}{goto1}lorem 127.0.0.1 lorem\
+                "{clear}{bg}{fg}{goto1}lorem 127.0.0.1 lorem\
         {goto3}Barcelona https://en.wikipedia.org/wiki/Barcelona -{fg_reset}{bg_reset}",
+                clear = termion::clear::All,
                 goto1 = goto1,
                 goto3 = goto3,
                 fg = color::Fg(rendering_colors.text_fg),
