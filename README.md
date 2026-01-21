@@ -27,9 +27,10 @@ Version requirement: _rustc 1.85+_
 
 ## Demo
 
-Pressing <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> shows the following
-hints on all hashes. Typing the hint letters will automatically copy the
-hash in the tmux clipboard (or system clipboard if you prefer)
+Pressing <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> (visible area) or
+<kbd>prefix</kbd> + <kbd>T</kbd> + <kbd>h</kbd> (entire history) shows hints on
+all hashes. Typing the hint letters will automatically copy the hash in the tmux
+clipboard (or system clipboard if you prefer)
 
 ![[tmux-copyrat-hashes.png](images/tmux-copyrat-hashes.png)](images/tmux-copyrat-hashes.png)
 
@@ -69,11 +70,14 @@ add your own too (see [CONFIGURATION.md]).
 
 **Key binding customization**: You can override any default binding, add new custom patterns, or remove unwanted bindings using `@copyrat-bind-{key}` options in your `~/.tmux.conf`. See [CONFIGURATION.md] for details.
 
-The default configuration provided in the [`copyrat.tmux`](copyrat.tmux) plugin
-file provides the following key-bindings. Because they all start with
-<kbd>prefix</kbd> + <kbd>t</kbd>, the table below only lists the keyboard key
-that comes after. For instance, for URLs, the key is <kbd>u</kbd>, but you
-should type <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd>.
+The default configuration provides two keyswitches:
+- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>key</kbd> - searches the **visible pane area**
+- <kbd>prefix</kbd> + <kbd>T</kbd> + <kbd>key</kbd> - searches the **entire scrollback history**
+
+The table below lists the available pattern keys. For instance, for URLs, the
+key is <kbd>u</kbd>, so you would type <kbd>prefix</kbd> + <kbd>t</kbd> +
+<kbd>u</kbd> for visible area, or <kbd>prefix</kbd> + <kbd>T</kbd> + <kbd>u</kbd>
+for entire history.
 
 | key binding      | searches for                           | pattern name      |
 | ---              | ---                                    | ---               |
