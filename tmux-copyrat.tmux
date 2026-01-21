@@ -60,7 +60,7 @@ ensure_binary_available() {
 }
 
 # Set BINARY variable - prefer system PATH, fall back to local binary
-BINARY=$(which tmux-copyrat 2>/dev/null || which copyrat 2>/dev/null || echo "")
+BINARY=$(which tmux-copyrat 2>/dev/null || echo "")
 
 # If not found in PATH, try to ensure local binary is available (install if needed)
 if [[ -z "$BINARY" || ! -x "$BINARY" ]]; then
