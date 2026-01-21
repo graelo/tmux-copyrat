@@ -175,3 +175,23 @@ impl fmt::Display for OutputDestination {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_output_destination_toggle() {
+        let mut dest = OutputDestination::Tmux;
+        dest.toggle();
+        assert!(matches!(dest, OutputDestination::Clipboard));
+        dest.toggle();
+        assert!(matches!(dest, OutputDestination::Tmux));
+    }
+
+    #[test]
+    fn test_output_destination_display() {
+        assert_eq!(OutputDestination::Tmux.to_string(), "tmux buffer");
+        assert_eq!(OutputDestination::Clipboard.to_string(), "clipboard");
+    }
+}
