@@ -84,7 +84,8 @@ impl Viewport {
     }
 
     /// Scroll up by the given number of lines.
-    /// Returns true if scrolling occurred.
+    ///
+    /// Returns `true` if scrolling occurred, `false` if already at top.
     fn scroll_up(&mut self, lines: usize) -> bool {
         if self.top_row > 0 {
             self.top_row = self.top_row.saturating_sub(lines);
@@ -95,7 +96,8 @@ impl Viewport {
     }
 
     /// Scroll down by the given number of lines.
-    /// Returns true if scrolling occurred.
+    ///
+    /// Returns `true` if scrolling occurred, `false` if already at bottom.
     fn scroll_down(&mut self, lines: usize, max_content_height: usize) -> bool {
         let max_top = max_content_height.saturating_sub(self.height);
         if self.top_row < max_top {

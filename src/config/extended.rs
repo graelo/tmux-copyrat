@@ -158,7 +158,7 @@ pub enum OutputDestination {
 }
 
 impl OutputDestination {
-    /// Toggle between the variants of `OutputDestination`.
+    /// Toggle between Tmux buffer and system Clipboard destinations.
     pub fn toggle(&mut self) {
         match *self {
             Self::Tmux => *self = Self::Clipboard,
