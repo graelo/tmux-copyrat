@@ -166,7 +166,7 @@ setup_option "hint-style" ""
 # Characters surrounding hints when using 'surround' style
 setup_option "hint-surroundings" "{}"
 
-# Capture region: visible-area (entire-history not yet supported)
+# Capture region: visible-area or entire-history
 setup_option "capture-region" "visible-area"
 
 
@@ -195,6 +195,15 @@ hint_style=$(tmux show-option -gv @copyrat-hint-style)
 hint_surroundings=$(tmux show-option -gv @copyrat-hint-surroundings)
 capture_region=$(tmux show-option -gv @copyrat-capture-region)
 
+# Get color options
+text_bg=$(tmux show-option -gv @copyrat-text-bg)
+span_fg=$(tmux show-option -gv @copyrat-span-fg)
+span_bg=$(tmux show-option -gv @copyrat-span-bg)
+focused_fg=$(tmux show-option -gv @copyrat-focused-fg)
+focused_bg=$(tmux show-option -gv @copyrat-focused-bg)
+hint_fg=$(tmux show-option -gv @copyrat-hint-fg)
+hint_bg=$(tmux show-option -gv @copyrat-hint-bg)
+
 # Build common options string from configuration
 build_common_options() {
     local opts=""
@@ -220,6 +229,15 @@ build_common_options() {
             opts+=" --hint-surroundings ${hint_surroundings}"
         fi
     fi
+
+    # Color options
+    opts+=" --text-bg ${text_bg}"
+    opts+=" --span-fg ${span_fg}"
+    opts+=" --span-bg ${span_bg}"
+    opts+=" --focused-fg ${focused_fg}"
+    opts+=" --focused-bg ${focused_bg}"
+    opts+=" --hint-fg ${hint_fg}"
+    opts+=" --hint-bg ${hint_bg}"
 
     echo "$opts"
 }
