@@ -52,6 +52,25 @@
 //! option makes navigation go back to the first span. Many more options are
 //! described in [CONFIGURATION.md].
 //!
+//! ### Multi-select mode
+//!
+//! When enabled with `--multi-select` (or the `@copyrat-multi-select` tmux
+//! option), you can select multiple spans before confirming:
+//!
+//! - Type a complete hint to toggle that span's selection on/off
+//! - Press <kbd>Tab</kbd> to toggle the currently focused span
+//! - Navigate with <kbd>n</kbd>/<kbd>N</kbd> or arrow keys as usual
+//! - Press <kbd>Enter</kbd> or <kbd>y</kbd> to confirm and copy all selected
+//!   texts joined by the separator (default: space, configurable via
+//!   `--separator`)
+//! - Press <kbd>Y</kbd> to copy to the system clipboard instead
+//! - Press <kbd>Esc</kbd> to cancel
+//!
+//! Selected spans are shown in a distinct color (`selected-fg`/`selected-bg`)
+//! with hints still visible so you can toggle them off. If no spans are
+//! selected when confirming, the focused span is copied (same as single-select).
+//! Mistyped keys are silently ignored instead of exiting.
+//!
 //! ### Matched patterns and default key-bindings
 //!
 //! tmux-copyrat can match one or more pre-defined (named) patterns, but you can add
@@ -228,6 +247,10 @@ pub fn run(lines: &[&str], opt: &config::basic::Config) -> Option<ui::Selection>
             &opt.colors,
             &opt.hint_alignment,
             opt.hint_style(),
+            ui::MultiSelectConfig {
+                enabled: opt.multi_select,
+                separator: opt.separator.clone(),
+            },
         );
 
         ui.present()

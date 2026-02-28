@@ -26,4 +26,5 @@ mod vc;
 pub use hint_alignment::HintAlignment;
 pub use hint_style::HintStyle;
 pub use selection::Selection;
+pub use vc::MultiSelectConfig;
 pub use vc::ViewController;

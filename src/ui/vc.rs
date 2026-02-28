@@ -1,5 +1,6 @@
 use std::char;
 use std::cmp;
+use std::collections::BTreeSet;
 use std::io;
 use std::io::Write;
 
@@ -109,6 +110,12 @@ impl Viewport {
     }
 }
 
+/// Configuration for multi-select mode.
+pub struct MultiSelectConfig {
+    pub enabled: bool,
+    pub separator: String,
+}
+
 pub struct ViewController<'a> {
     model: &'a textbuf::Model<'a>,
     term_width: u16,
@@ -122,6 +129,9 @@ pub struct ViewController<'a> {
     rendering_colors: &'a UiColors,
     hint_alignment: &'a HintAlignment,
     hint_style: Option<HintStyle>,
+    multi_select: MultiSelectConfig,
+    /// BTreeSet preserves index order, ensuring joined output matches document order.
+    selected_indices: BTreeSet<usize>,
 }
 
 impl<'a> ViewController<'a> {
@@ -134,6 +144,7 @@ impl<'a> ViewController<'a> {
         rendering_colors: &'a UiColors,
         hint_alignment: &'a HintAlignment,
         hint_style: Option<HintStyle>,
+        multi_select: MultiSelectConfig,
     ) -> ViewController<'a> {
         let focus_index = if model.reverse {
             model.spans.len().saturating_sub(1)
@@ -174,6 +185,8 @@ impl<'a> ViewController<'a> {
             rendering_colors,
             hint_alignment,
             hint_style,
+            multi_select,
+            selected_indices: BTreeSet::new(),
         };
 
         // Scroll to make the initially focused span visible
@@ -415,15 +428,14 @@ impl<'a> ViewController<'a> {
     fn render_span_text(
         stdout: &mut dyn io::Write,
         text: &str,
-        focused: bool,
+        state: SpanState,
         pos: (usize, u16),
         colors: &UiColors,
     ) {
-        // To help identify it, the span thas has focus is rendered with a dedicated color.
-        let (fg_color, bg_color) = if focused {
-            (&colors.focused_fg, &colors.focused_bg)
-        } else {
-            (&colors.span_fg, &colors.span_bg)
+        let (fg_color, bg_color) = match state {
+            SpanState::Focused => (&colors.focused_fg, &colors.focused_bg),
+            SpanState::Selected => (&colors.selected_fg, &colors.selected_bg),
+            SpanState::Normal => (&colors.span_fg, &colors.span_bg),
         };
 
         // Render just the Span's text on top of existing content.
@@ -532,9 +544,10 @@ impl<'a> ViewController<'a> {
         }
     }
 
-    /// Convenience function that renders both the text span and its hint,
-    /// if focused. Only renders if the span is visible in the viewport.
-    fn render_span(&self, stdout: &mut dyn io::Write, span: &textbuf::Span<'a>, focused: bool) {
+    /// Convenience function that renders both the text span and its hint.
+    /// Hints are shown for `Normal` and `Selected` states (so user can toggle),
+    /// but hidden for `Focused`. Only renders if the span is visible in the viewport.
+    fn render_span(&self, stdout: &mut dyn io::Write, span: &textbuf::Span<'a>, state: SpanState) {
         let text = span.text;
 
         let (pos_x, pos_y) = self.adjusted_span_position(span);
@@ -549,12 +562,12 @@ impl<'a> ViewController<'a> {
         ViewController::render_span_text(
             stdout,
             text,
-            focused,
+            state,
             (pos_x, screen_y),
             self.rendering_colors,
         );
 
-        if !focused {
+        if state != SpanState::Focused {
             // If not focused, render the hint (e.g. "eo") as an overlay on
             // top of the rendered text span, aligned at its leading or the
             // trailing edge.
@@ -629,8 +642,14 @@ impl<'a> ViewController<'a> {
 
         // 2. Render spans (only visible ones)
         for (index, span) in self.model.spans.iter().enumerate() {
-            let focused = index == self.focus_index;
-            self.render_span(stdout, span, focused);
+            let state = if index == self.focus_index {
+                SpanState::Focused
+            } else if self.selected_indices.contains(&index) {
+                SpanState::Selected
+            } else {
+                SpanState::Normal
+            };
+            self.render_span(stdout, span, state);
         }
 
         // 3. Render scroll indicator if content exceeds viewport
@@ -647,17 +666,63 @@ impl<'a> ViewController<'a> {
         old_focus_index: usize,
         new_focus_index: usize,
     ) {
-        // Render the previously focused span as non-focused
+        // Render the previously focused span: revert to Selected or Normal
         let span = self.model.spans.get(old_focus_index).unwrap();
-        let focused = false;
-        self.render_span(stdout, span, focused);
+        let old_state = if self.selected_indices.contains(&old_focus_index) {
+            SpanState::Selected
+        } else {
+            SpanState::Normal
+        };
+        self.render_span(stdout, span, old_state);
 
-        // Render the previously focused span as non-focused
+        // Render the newly focused span
         let span = self.model.spans.get(new_focus_index).unwrap();
-        let focused = true;
-        self.render_span(stdout, span, focused);
+        self.render_span(stdout, span, SpanState::Focused);
 
         stdout.flush().unwrap();
+    }
+
+    /// Re-render a single span after its selection state has changed.
+    fn toggle_render(&self, stdout: &mut dyn io::Write, span_index: usize) {
+        let span = self.model.spans.get(span_index).unwrap();
+        let state = if span_index == self.focus_index {
+            SpanState::Focused
+        } else if self.selected_indices.contains(&span_index) {
+            SpanState::Selected
+        } else {
+            SpanState::Normal
+        };
+        self.render_span(stdout, span, state);
+        stdout.flush().unwrap();
+    }
+
+    /// Toggle the selection state of a span and re-render it.
+    fn toggle_selection(&mut self, stdout: &mut dyn io::Write, idx: usize) {
+        if self.selected_indices.contains(&idx) {
+            self.selected_indices.remove(&idx);
+        } else {
+            self.selected_indices.insert(idx);
+        }
+        self.toggle_render(stdout, idx);
+    }
+
+    /// Build a `Selection` event, joining all toggled spans in multi-select
+    /// mode or returning the focused span in single-select mode.
+    fn build_selection(&self, uppercased: bool, output_destination: OutputDestination) -> Event {
+        let text = if self.multi_select.enabled && !self.selected_indices.is_empty() {
+            self.selected_indices
+                .iter()
+                .map(|&i| self.model.spans[i].text)
+                .collect::<Vec<_>>()
+                .join(&self.multi_select.separator)
+        } else {
+            self.model.spans[self.focus_index].text.to_string()
+        };
+        Event::Select(Selection {
+            text,
+            uppercased,
+            output_destination,
+        })
     }
 
     // }}}
@@ -720,7 +785,7 @@ impl<'a> ViewController<'a> {
                     let (old_index, focused_index) = self.next_focus_index();
                     self.handle_focus_change(old_index, focused_index, writer);
                 }
-                event::Key::Char(_ch @ 'n') => {
+                event::Key::Char('n') => {
                     let (old_index, focused_index) = if self.model.reverse {
                         self.prev_focus_index()
                     } else {
@@ -728,7 +793,7 @@ impl<'a> ViewController<'a> {
                     };
                     self.handle_focus_change(old_index, focused_index, writer);
                 }
-                event::Key::Char(_ch @ 'N') => {
+                event::Key::Char('N') => {
                     let (old_index, focused_index) = if self.model.reverse {
                         self.next_focus_index()
                     } else {
@@ -754,25 +819,21 @@ impl<'a> ViewController<'a> {
                     }
                 }
 
-                // Yank/copy
-                event::Key::Char(_ch @ 'y') | event::Key::Char(_ch @ '\n') => {
-                    let text = self.model.spans.get(self.focus_index).unwrap().text;
-                    return Event::Select(Selection {
-                        text: text.to_string(),
-                        uppercased: false,
-                        output_destination,
-                    });
-                }
-                event::Key::Char(_ch @ 'Y') => {
-                    let text = self.model.spans.get(self.focus_index).unwrap().text;
-                    return Event::Select(Selection {
-                        text: text.to_string(),
-                        uppercased: true,
-                        output_destination,
-                    });
+                // Tab: toggle focused span selection (multi-select mode)
+                event::Key::Char('\t') if self.multi_select.enabled => {
+                    let idx = self.focus_index;
+                    self.toggle_selection(writer, idx);
                 }
 
-                event::Key::Char(_ch @ ' ') => {
+                // Yank/copy
+                event::Key::Char('y') | event::Key::Char('\n') => {
+                    return self.build_selection(false, output_destination);
+                }
+                event::Key::Char('Y') => {
+                    return self.build_selection(true, output_destination);
+                }
+
+                event::Key::Char(' ') => {
                     output_destination.toggle();
                     let message = format!("output destination: `{output_destination}`");
                     duct::cmd!("tmux", "display-message", &message)
@@ -800,16 +861,31 @@ impl<'a> ViewController<'a> {
                         .get_node(&typed_hint.chars().collect::<Vec<char>>());
 
                     if node.is_none() {
+                        if self.multi_select.enabled {
+                            // In multi-select, don't exit on mistype
+                            typed_hint.clear();
+                            uppercased = false;
+                            continue;
+                        }
                         // A key outside the alphabet was entered.
                         return Event::Exit;
                     }
 
                     let node = node.unwrap();
                     if node.is_leaf() {
-                        // The last key of a hint was entered.
                         let span_index = node.value().expect(
                             "By construction, the Lookup Trie should have a value for each leaf.",
                         );
+
+                        if self.multi_select.enabled {
+                            // Toggle span selection instead of immediate return
+                            self.toggle_selection(writer, *span_index);
+                            typed_hint.clear();
+                            uppercased = false;
+                            continue;
+                        }
+
+                        // Single-select: immediate return
                         let span = self.model.spans.get(*span_index).expect("By construction, the value in a leaf should correspond to an existing hint.");
                         let text = span.text.to_string();
                         return Event::Select(Selection {
@@ -915,6 +991,17 @@ fn compute_wrapped_lines(lines: &[&str], term_width: u16) -> Vec<WrappedLine> {
         .collect()
 }
 
+/// Visual state of a span for rendering purposes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SpanState {
+    /// Default appearance: span_fg/span_bg colors, hints shown.
+    Normal,
+    /// Selected in multi-select mode: selected_fg/selected_bg colors, hints shown.
+    Selected,
+    /// Currently focused span: focused_fg/focused_bg colors, hints hidden.
+    Focused,
+}
+
 /// Returned value after the `Ui` has finished listening to events.
 enum Event {
     /// Exit with no selected spans,
@@ -953,6 +1040,8 @@ path: /usr/local/bin/cargo";
             focused_bg: colors::BLUE,
             span_fg: colors::GREEN,
             span_bg: colors::MAGENTA,
+            selected_fg: colors::GREEN,
+            selected_bg: colors::RESET,
             hint_fg: colors::YELLOW,
             hint_bg: colors::CYAN,
         };
@@ -993,7 +1082,7 @@ path: /usr/local/bin/cargo";
     fn test_render_focused_span_text() {
         let mut writer = vec![];
         let text = "https://en.wikipedia.org/wiki/Barcelona";
-        let focused = true;
+        let state = SpanState::Focused;
         // Position is (x_in_content_space, screen_y) where screen_y is 1-indexed
         let position: (usize, u16) = (3, 2);
         let colors = UiColors {
@@ -1003,11 +1092,13 @@ path: /usr/local/bin/cargo";
             focused_bg: colors::BLUE,
             span_fg: colors::GREEN,
             span_bg: colors::MAGENTA,
+            selected_fg: colors::GREEN,
+            selected_bg: colors::RESET,
             hint_fg: colors::YELLOW,
             hint_bg: colors::CYAN,
         };
 
-        ViewController::render_span_text(&mut writer, text, focused, position, &colors);
+        ViewController::render_span_text(&mut writer, text, state, position, &colors);
 
         assert_eq!(
             writer,
@@ -1028,7 +1119,7 @@ path: /usr/local/bin/cargo";
     fn test_render_span_text() {
         let mut writer = vec![];
         let text = "https://en.wikipedia.org/wiki/Barcelona";
-        let focused = false;
+        let state = SpanState::Normal;
         // Position is (x_in_content_space, screen_y) where screen_y is 1-indexed
         let position: (usize, u16) = (3, 2);
         let colors = UiColors {
@@ -1038,11 +1129,13 @@ path: /usr/local/bin/cargo";
             focused_bg: colors::BLUE,
             span_fg: colors::GREEN,
             span_bg: colors::MAGENTA,
+            selected_fg: colors::GREEN,
+            selected_bg: colors::RESET,
             hint_fg: colors::YELLOW,
             hint_bg: colors::CYAN,
         };
 
-        ViewController::render_span_text(&mut writer, text, focused, position, &colors);
+        ViewController::render_span_text(&mut writer, text, state, position, &colors);
 
         assert_eq!(
             writer,
@@ -1051,6 +1144,43 @@ path: /usr/local/bin/cargo";
                 goto = cursor::Goto(4, 2),
                 fg = color::Fg(colors.span_fg),
                 bg = color::Bg(colors.span_bg),
+                fg_reset = color::Fg(color::Reset),
+                bg_reset = color::Bg(color::Reset),
+                text = &text,
+            )
+            .as_bytes()
+        );
+    }
+
+    #[test]
+    fn test_render_selected_span_text() {
+        let mut writer = vec![];
+        let text = "https://en.wikipedia.org/wiki/Barcelona";
+        let state = SpanState::Selected;
+        // Position is (x_in_content_space, screen_y) where screen_y is 1-indexed
+        let position: (usize, u16) = (3, 2);
+        let colors = UiColors {
+            text_fg: colors::BLACK,
+            text_bg: colors::WHITE,
+            focused_fg: colors::RED,
+            focused_bg: colors::BLUE,
+            span_fg: colors::GREEN,
+            span_bg: colors::MAGENTA,
+            selected_fg: colors::GREEN,
+            selected_bg: colors::RESET,
+            hint_fg: colors::YELLOW,
+            hint_bg: colors::CYAN,
+        };
+
+        ViewController::render_span_text(&mut writer, text, state, position, &colors);
+
+        assert_eq!(
+            writer,
+            format!(
+                "{goto}{bg}{fg}{text}{fg_reset}{bg_reset}",
+                goto = cursor::Goto(4, 2),
+                fg = color::Fg(colors.selected_fg),
+                bg = color::Bg(colors.selected_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
                 text = &text,
@@ -1072,6 +1202,8 @@ path: /usr/local/bin/cargo";
             focused_bg: colors::BLUE,
             span_fg: colors::GREEN,
             span_bg: colors::MAGENTA,
+            selected_fg: colors::GREEN,
+            selected_bg: colors::RESET,
             hint_fg: colors::YELLOW,
             hint_bg: colors::CYAN,
         };
@@ -1115,6 +1247,8 @@ path: /usr/local/bin/cargo";
             focused_bg: colors::BLUE,
             span_fg: colors::GREEN,
             span_bg: colors::MAGENTA,
+            selected_fg: colors::GREEN,
+            selected_bg: colors::RESET,
             hint_fg: colors::YELLOW,
             hint_bg: colors::CYAN,
         };
@@ -1160,6 +1294,8 @@ path: /usr/local/bin/cargo";
             focused_bg: colors::BLUE,
             span_fg: colors::GREEN,
             span_bg: colors::MAGENTA,
+            selected_fg: colors::GREEN,
+            selected_bg: colors::RESET,
             hint_fg: colors::YELLOW,
             hint_bg: colors::CYAN,
         };
@@ -1234,6 +1370,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             focused_bg: colors::BLUE,
             span_fg: colors::GREEN,
             span_bg: colors::MAGENTA,
+            selected_fg: colors::GREEN,
+            selected_bg: colors::RESET,
             hint_fg: colors::YELLOW,
             hint_bg: colors::CYAN,
         };
@@ -1254,6 +1392,11 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             rendering_colors: &rendering_colors,
             hint_alignment: &hint_alignment,
             hint_style: None,
+            multi_select: MultiSelectConfig {
+                enabled: false,
+                separator: " ".to_string(),
+            },
+            selected_indices: BTreeSet::new(),
         };
 
         let mut writer = vec![];
@@ -1313,6 +1456,8 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             focused_bg: colors::BLUE,
             span_fg: colors::GREEN,
             span_bg: colors::MAGENTA,
+            selected_fg: colors::GREEN,
+            selected_bg: colors::RESET,
             hint_fg: colors::YELLOW,
             hint_bg: colors::CYAN,
         };
@@ -1326,6 +1471,10 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
             &rendering_colors,
             &hint_alignment,
             hint_style,
+            MultiSelectConfig {
+                enabled: false,
+                separator: " ".to_string(),
+            },
         );
 
         let mut writer = vec![];

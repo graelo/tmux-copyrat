@@ -137,6 +137,14 @@ pub struct UiColors {
     #[clap(long, default_value = "none", value_parser(parse_color))]
     pub focused_bg: Color,
 
+    /// Foreground color for selected spans (multi-select mode).
+    #[clap(long, default_value = "green", value_parser(parse_color))]
+    pub selected_fg: Color,
+
+    /// Background color for selected spans (multi-select mode).
+    #[clap(long, default_value = "none", value_parser(parse_color))]
+    pub selected_bg: Color,
+
     /// Foreground color for hints.
     #[clap(long, default_value = "yellow", value_parser(parse_color))]
     pub hint_fg: Color,

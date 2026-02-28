@@ -145,6 +145,10 @@ setup_option "span-bg" "none"
 setup_option "focused-fg" "magenta"
 setup_option "focused-bg" "none"
 
+# Selected span colors (multi-select mode)
+setup_option "selected-fg" "green"
+setup_option "selected-bg" "none"
+
 # Hint colors (the hint letters/numbers)
 setup_option "hint-fg" "yellow"
 setup_option "hint-bg" "none"
@@ -179,6 +183,12 @@ setup_option "hint-surroundings" "{}"
 # Default output destination: tmux (buffer) or clipboard
 setup_option "default-output" "tmux"
 
+# Enable multi-select mode: type hints to toggle spans, confirm with Enter
+setup_option "multi-select" "false"
+
+# Separator for joining selected texts in multi-select mode
+setup_option "separator" " "
+
 
 
 #
@@ -205,6 +215,8 @@ hint_alignment=$(tmux show-option -gv @copyrat-hint-alignment)
 hint_style=$(tmux show-option -gv @copyrat-hint-style)
 hint_surroundings=$(tmux show-option -gv @copyrat-hint-surroundings)
 default_output=$(tmux show-option -gv @copyrat-default-output)
+multi_select=$(tmux show-option -gv @copyrat-multi-select)
+separator=$(tmux show-option -gv @copyrat-separator)
 
 # Get color options
 text_bg=$(tmux show-option -gv @copyrat-text-bg)
@@ -212,6 +224,8 @@ span_fg=$(tmux show-option -gv @copyrat-span-fg)
 span_bg=$(tmux show-option -gv @copyrat-span-bg)
 focused_fg=$(tmux show-option -gv @copyrat-focused-fg)
 focused_bg=$(tmux show-option -gv @copyrat-focused-bg)
+selected_fg=$(tmux show-option -gv @copyrat-selected-fg)
+selected_bg=$(tmux show-option -gv @copyrat-selected-bg)
 hint_fg=$(tmux show-option -gv @copyrat-hint-fg)
 hint_bg=$(tmux show-option -gv @copyrat-hint-bg)
 
@@ -249,11 +263,22 @@ build_common_options() {
     opts+=" --span-bg ${span_bg}"
     opts+=" --focused-fg ${focused_fg}"
     opts+=" --focused-bg ${focused_bg}"
+    opts+=" --selected-fg ${selected_fg}"
+    opts+=" --selected-bg ${selected_bg}"
     opts+=" --hint-fg ${hint_fg}"
     opts+=" --hint-bg ${hint_bg}"
 
     # Output destination
     opts+=" --default-output ${default_output}"
+
+    # Multi-select options
+    if [[ "$multi_select" == "true" ]]; then
+        opts+=" --multi-select"
+    fi
+
+    if [[ -n "$separator" ]]; then
+        opts+=" --separator ${separator}"
+    fi
 
     echo "$opts"
 }
