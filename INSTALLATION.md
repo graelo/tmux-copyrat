@@ -16,13 +16,27 @@ If you use [TPM](https://github.com/tmux-plugins/tpm), add this line to your `~/
 set -g @plugin 'graelo/tmux-copyrat'
 ```
 
-Then reload your tmux configuration:
+Then install and activate the plugin:
 
-1. Ask TPM to install the plugin: press <kbd>prefix</kbd> + <kbd>I</kbd>
-2. The plugin will automatically download the appropriate binary for your
-   system on first use
-3. Later on, ask TPM to update the plugin: press <kbd>prefix</kbd> +
-   <kbd>U</kbd>. See section [Updating](#updating) below.
+1. Press <kbd>prefix</kbd> + <kbd>I</kbd> to ask TPM to install the plugin.
+   TPM clones the repository into `~/.tmux/plugins/tmux-copyrat/` (shell
+   scripts, docs, config — but no binary yet).
+2. When tmux sources the plugin (either immediately after step 1 or on the
+   next tmux startup), the `install-binary.sh` script automatically downloads
+   the appropriate pre-built `tmux-copyrat` binary from [GitHub
+   Releases](https://github.com/graelo/tmux-copyrat/releases) into
+   `~/.tmux/plugins/tmux-copyrat/`.
+
+To verify the installation succeeded:
+
+```bash
+# The binary should exist and be executable
+ls -l ~/.tmux/plugins/tmux-copyrat/tmux-copyrat
+```
+
+To update the plugin later, press <kbd>prefix</kbd> + <kbd>U</kbd>. Note that
+TPM updates the repository (scripts, docs) but does not re-download the binary
+unless you force it — see [Updating](#updating) below.
 
 ## Method 2: Manual Installation
 
@@ -96,11 +110,16 @@ cd ~/.tmux/plugins/tmux-copyrat
 
 ## Verification
 
-After installation, you should be able to use the default key bindings:
+After installation, check that the binary is in place:
 
-- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>h</kbd> - highlight hashes
-- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd> - highlight URLs
-- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>d</kbd> - highlight dates
-- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>i</kbd> - highlight IP addresses
+```bash
+~/.tmux/plugins/tmux-copyrat/tmux-copyrat --version
+```
 
-See [CONFIGURATION.md](CONFIGURATION.md) for customization options.
+Then try one of the default key bindings, for example:
+
+- <kbd>prefix</kbd> + <kbd>t</kbd> + <kbd>u</kbd> — highlight URLs in the visible pane
+
+If spans are highlighted and you can type a hint to copy text, the installation
+is working. See the [README](README.md) for the full list of key bindings and
+[CONFIGURATION.md](CONFIGURATION.md) for customization options.
