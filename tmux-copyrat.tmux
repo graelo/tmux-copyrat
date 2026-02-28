@@ -306,7 +306,8 @@ setup_pattern_binding () {
     common_opts=$(build_common_options "$capture_region")
     # The default window name `[copyrat]` has to be single quoted because it is
     # interpreted by the shell when launched by tmux.
-    tmux bind-key -T "${target_keytable}" "${key}" new-window -d -n "${window_name}" "${BINARY} run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} ${common_opts} ${pattern_arg}"
+    # Tip: append  2>>/tmp/tmux-copyrat.log  to capture crash output for debugging.
+    tmux bind-key -T "${target_keytable}" "${key}" new-window -d -n "${window_name}" "${BINARY} run --window-name '${window_name}' --clipboard-exe '${clipboard_exe}' ${common_opts} ${pattern_arg}"
 }
 
 # Setup pattern bindings for both keytables (visible-area and entire-history)
@@ -381,7 +382,7 @@ setup_pattern_bindings "space" "--all-patterns"
 setup_user_bindings
 
 # prefix + t + / prompts for a pattern and search for it (visible area)
-tmux bind-key -T "${keytable}" "/" command-prompt -p "search:" "new-window -d -n '${window_name}' '${BINARY}' run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} $(build_common_options visible-area) --custom-pattern %%"
+tmux bind-key -T "${keytable}" "/" command-prompt -p "search:" "new-window -d -n '${window_name}' '${BINARY}' run --window-name '${window_name}' --clipboard-exe '${clipboard_exe}' $(build_common_options visible-area) --custom-pattern %%"
 
 # prefix + T + / prompts for a pattern and search for it (entire history)
-tmux bind-key -T "${keytable_history}" "/" command-prompt -p "search (history):" "new-window -d -n '${window_name}' '${BINARY}' run --window-name '${window_name}' --clipboard-exe ${clipboard_exe} $(build_common_options entire-history) --custom-pattern %%"
+tmux bind-key -T "${keytable_history}" "/" command-prompt -p "search (history):" "new-window -d -n '${window_name}' '${BINARY}' run --window-name '${window_name}' --clipboard-exe '${clipboard_exe}' $(build_common_options entire-history) --custom-pattern %%"
