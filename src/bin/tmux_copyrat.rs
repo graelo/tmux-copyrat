@@ -69,8 +69,12 @@ fn run(config: ConfigExt) -> Result<()> {
                     duct::cmd!("tmux", "set-buffer", &text).run()?;
                 }
                 OutputDestination::Clipboard => {
+                    let mut parts = config.clipboard_exe.split_whitespace();
+                    let program = parts.next().expect("clipboard-exe must not be empty");
+                    let args: Vec<&str> = parts.collect();
+
                     duct::cmd!("echo", "-n", &text)
-                        .pipe(duct::cmd!(config.clipboard_exe))
+                        .pipe(duct::cmd(program, &args))
                         .read()?;
                 }
             }
