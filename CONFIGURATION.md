@@ -35,9 +35,11 @@ apply changes.
 - `@copyrat-hint-alignment` - Hint position: `leading/center/trailing`
 - `@copyrat-hint-style` - Styling: `bold/italic/underline/surround`
 - `@copyrat-hint-surroundings` - Surround characters (default: `{}`)
-- `@copyrat-default-output` - Default output: `tmux` or `clipboard` (default: `tmux`)
+- `@copyrat-default-output` - Default output: `tmux` or `clipboard` (default:
+  `tmux`)
 - `@copyrat-multi-select` - Enable multi-select mode (default: `false`)
-- `@copyrat-separator` - Separator when joining multi-selected texts (default: ` `)
+- `@copyrat-separator` - Separator when joining multi-selected texts (default: 1
+  space)
 
 ### Custom Bindings
 
@@ -48,8 +50,14 @@ apply changes.
 ### Key Binding Setup
 
 Two keyswitches are available:
+
 - `@copyrat-keyswitch` (default: `t`) - searches the **visible pane area**
-- `@copyrat-keyswitch-history` (default: `T`) - searches the **entire scrollback history**
+- `@copyrat-keyswitch-history` (default: `T`) - searches the **entire scrollback
+  history**
+
+**Tip**: The default `t` key overrides tmux's built-in `prefix + t` (show time).
+If you use that feature, change the keyswitch to a non-conflicting key, for
+example:
 
 ```tmux
 # Change the main keys from 't'/'T' to 'c'/'C'
@@ -135,9 +143,14 @@ set -g @copyrat-hint-style "bold"
 set -g @copyrat-hint-surroundings "[]"
 ```
 
+If you don't want a keyswitch at all, you'll have to create your own bindings,
+as described in
+[BYOB - Bring Your Own Bindings](#byob---bring-your-own-bindings).
+
 ### Search Area
 
 The search area is determined by which keyswitch you use:
+
 - `prefix + t + <key>` - searches the visible pane area
 - `prefix + T + <key>` - searches the entire scrollback history
 
@@ -168,15 +181,15 @@ set -g @copyrat-separator " "
 
 When multi-select is enabled:
 
-| Key | Action |
-| --- | --- |
-| <kbd>hint chars</kbd> | Toggle that span's selection on/off |
-| <kbd>Tab</kbd> | Toggle the currently focused span |
-| <kbd>n</kbd> / <kbd>N</kbd> | Move focus to next/previous span |
+| Key                              | Action                                                                |
+| -------------------------------- | --------------------------------------------------------------------- |
+| <kbd>hint chars</kbd>            | Toggle that span's selection on/off                                   |
+| <kbd>Tab</kbd>                   | Toggle the currently focused span                                     |
+| <kbd>n</kbd> / <kbd>N</kbd>      | Move focus to next/previous span                                      |
 | <kbd>Enter</kbd> or <kbd>y</kbd> | Confirm: copy all selected texts (joined by separator) to tmux buffer |
-| <kbd>Y</kbd> | Confirm: copy all selected texts to system clipboard |
-| <kbd>Space</kbd> | Toggle output destination |
-| <kbd>Esc</kbd> | Cancel and exit |
+| <kbd>Y</kbd>                     | Confirm: copy all selected texts to system clipboard                  |
+| <kbd>Space</kbd>                 | Toggle output destination                                             |
+| <kbd>Esc</kbd>                   | Cancel and exit                                                       |
 
 Selected spans are highlighted with the `selected-fg/bg` colors. Hints remain
 visible on selected spans so you can toggle them off again.
@@ -186,16 +199,17 @@ focused span is copied (same as single-select behavior).
 
 Mistyped keys are silently ignored in multi-select mode instead of exiting.
 
-The `copyrat` standalone binary also supports multi-select via the `--multi-select`
-(`-m`) and `--separator` (`-S`) flags:
+The `copyrat` standalone binary also supports multi-select via the
+`--multi-select` (`-m`) and `--separator` (`-S`) flags:
 
 ```console
 echo "127.0.0.1 and 192.168.1.1 and hello@world.com" | copyrat -A --multi-select
 ```
 
-## Custom Key Bindings
+## Customize Copyrat Key Bindings
 
-Override defaults or add new patterns using `@copyrat-bind-{key}` options.
+This shows how to use the `@copyrat-bind-{key}` options to override defaults or
+add new patterns. Read the next section if you want to bypass these mechanics.
 
 ### Syntax
 
@@ -205,11 +219,30 @@ Override defaults or add new patterns using `@copyrat-bind-{key}` options.
 
 ### Available Patterns
 
-Command line: `command-line-args`, `digits`, `path`
-Web: `url`, `email`, `markdown-url`
-Network: `ipv4`, `ipv6`
-Code: `sha`, `docker`, `uuid`, `hexcolor`, `pointer-address`
-Other: `datetime`, `version`
+| Pattern name        | Description                       | Default key |
+| ------------------- | --------------------------------- | ----------- |
+| `command-line-args` | Command line arguments            | `a`         |
+| `hexcolor`          | Hex color codes (`#aa00f5`)       | `c`         |
+| `datetime`          | Dates or datetimes                | `d`         |
+| `docker`            | Docker/Podman container IDs       | `D`         |
+| `email`             | Email addresses                   | `e`         |
+| `digits`            | Strings of 4+ digits              | `G`         |
+| `sha`               | SHA-1/SHA-2 hashes (short & long) | `h`         |
+| `markdown-url`      | Markdown URLs `[...](url)`        | `m`         |
+| `path`              | Absolute & relative file paths    | `p`         |
+| `pointer-address`   | Hex numbers / pointer addresses   | `P`         |
+| `quoted-single`     | Strings inside single quotes      | `q`\*       |
+| `quoted-double`     | Strings inside double quotes      | `q`\*       |
+| `quoted-backtick`   | Strings inside backticks          | `q`\*       |
+| `url`               | URLs                              | `u`         |
+| `uuid`              | UUIDs                             | `U`         |
+| `version`           | Version numbers                   | `v`         |
+| `ipv4`              | IPv4 addresses                    | `4`         |
+| `ipv6`              | IPv6 addresses                    | `6`         |
+
+\* The `q` key activates all three `quoted-*` patterns together.
+
+The `space` key activates all patterns at once (noisy and potentially slower).
 
 ### Examples
 
@@ -226,25 +259,29 @@ set -g @copyrat-bind-M "custom-pattern \
 set -g @copyrat-bind-D ""                      # Disable D
 ```
 
-## Advanced Custom Bindings
+## BYOB - Bring Your Own Bindings
 
-For patterns or options not supported by `@copyrat-bind-*`, create manual
-bindings. Most users won't need this section.
+You can of course create manual bindings that invoke `tmux-copyrat run`
+directly. This is useful when you want to bypass the keytable for single-key
+access (`prefix + <key>` instead of `prefix + t + <key>`), or when you need
+flags that `@copyrat-bind-*` doesn't expose.
+
+**Simple example** — bind `prefix + u` to search URLs:
 
 ```tmux
-# Get configured settings
-keytable=$(tmux show-option -gv @copyrat-keytable)
-window_name=$(tmux show-option -gv @copyrat-window-name)
-
-# Manual binding with custom options
-bind-key -T $keytable H \
-    new-window -d -n "$window_name" \
-    'tmux-copyrat run --window-name "'"$window_name"'" \
-    --alphabet qwerty --hint-style bold --span-bg red \
-    --pattern-name sha'
+bind-key u new-window -d -n "[copyrat]" \
+    'tmux-copyrat run --window-name "[copyrat]" \
+    --clipboard-exe "pbcopy" \
+    --alphabet dvorak --reverse \
+    --pattern-name url'
 ```
 
-**Note**: Manual bindings bypass automatic `@copyrat-*` option inclusion.
+**Trade-off**: manual bindings don't automatically pick up all `@copyrat-*`
+options (colors, hint style, etc.) — you must pass the flags you need explicitly
+or read them from tmux options as shown above.
+
+**History search**: to search the entire scrollback instead of the visible area,
+change `--capture-region visible-area` to `--capture-region entire-history`.
 
 ## Complete Example
 
