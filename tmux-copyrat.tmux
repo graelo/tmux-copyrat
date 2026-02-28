@@ -274,10 +274,9 @@ build_common_options() {
     # Multi-select options
     if [[ "$multi_select" == "true" ]]; then
         opts+=" --multi-select"
-    fi
-
-    if [[ -n "$separator" ]]; then
-        opts+=" --separator ${separator}"
+        if [[ -n "$separator" ]]; then
+            opts+=" --separator '${separator}'"
+        fi
     fi
 
     echo "$opts"
