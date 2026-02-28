@@ -22,7 +22,8 @@ apply changes.
 
 - `@copyrat-text-fg/bg` - Base text colors
 - `@copyrat-span-fg/bg` - Matched text colors
-- `@copyrat-focused-fg/bg` - Selected match colors
+- `@copyrat-focused-fg/bg` - Focused match colors
+- `@copyrat-selected-fg/bg` - Selected match colors (multi-select mode)
 - `@copyrat-hint-fg/bg` - Hint colors
 
 ### Behavior
@@ -35,6 +36,8 @@ apply changes.
 - `@copyrat-hint-style` - Styling: `bold/italic/underline/surround`
 - `@copyrat-hint-surroundings` - Surround characters (default: `{}`)
 - `@copyrat-default-output` - Default output: `tmux` or `clipboard` (default: `tmux`)
+- `@copyrat-multi-select` - Enable multi-select mode (default: `false`)
+- `@copyrat-separator` - Separator when joining multi-selected texts (default: ` `)
 
 ### Custom Bindings
 
@@ -87,9 +90,13 @@ set -g @copyrat-text-bg "none"           # Default
 set -g @copyrat-span-fg "blue"           # Default
 set -g @copyrat-span-bg "none"           # Default
 
-# Currently selected match
+# Currently focused match
 set -g @copyrat-focused-fg "magenta"     # Default
 set -g @copyrat-focused-bg "none"        # Default
+
+# Selected matches (multi-select mode)
+set -g @copyrat-selected-fg "green"      # Default
+set -g @copyrat-selected-bg "none"       # Default
 
 # Hint characters
 set -g @copyrat-hint-fg "yellow"         # Default
@@ -145,6 +152,46 @@ set -g @copyrat-default-output "clipboard"
 ```
 
 The output destination can be toggled at runtime with the `space` key.
+
+### Multi-Select Mode
+
+By default, typing a complete hint immediately copies the matched text and
+exits. Multi-select mode lets you select multiple spans before confirming.
+
+```tmux
+# Enable multi-select
+set -g @copyrat-multi-select "true"
+
+# Separator used to join selected texts (default: space)
+set -g @copyrat-separator " "
+```
+
+When multi-select is enabled:
+
+| Key | Action |
+| --- | --- |
+| <kbd>hint chars</kbd> | Toggle that span's selection on/off |
+| <kbd>Tab</kbd> | Toggle the currently focused span |
+| <kbd>n</kbd> / <kbd>N</kbd> | Move focus to next/previous span |
+| <kbd>Enter</kbd> or <kbd>y</kbd> | Confirm: copy all selected texts (joined by separator) to tmux buffer |
+| <kbd>Y</kbd> | Confirm: copy all selected texts to system clipboard |
+| <kbd>Space</kbd> | Toggle output destination |
+| <kbd>Esc</kbd> | Cancel and exit |
+
+Selected spans are highlighted with the `selected-fg/bg` colors. Hints remain
+visible on selected spans so you can toggle them off again.
+
+If you press <kbd>Enter</kbd> or <kbd>y</kbd> without selecting any spans, the
+focused span is copied (same as single-select behavior).
+
+Mistyped keys are silently ignored in multi-select mode instead of exiting.
+
+The `copyrat` standalone binary also supports multi-select via the `--multi-select`
+(`-m`) and `--separator` (`-S`) flags:
+
+```console
+echo "127.0.0.1 and 192.168.1.1 and hello@world.com" | copyrat -A --multi-select
+```
 
 ## Custom Key Bindings
 
@@ -214,6 +261,8 @@ set -g @copyrat-span-fg "white"
 set -g @copyrat-span-bg "blue"
 set -g @copyrat-focused-fg "black"
 set -g @copyrat-focused-bg "cyan"
+set -g @copyrat-selected-fg "green"
+set -g @copyrat-selected-bg "none"
 set -g @copyrat-hint-fg "yellow"
 set -g @copyrat-hint-bg "black"
 
@@ -224,6 +273,8 @@ set -g @copyrat-focus-wrap-around "true"
 set -g @copyrat-hint-alignment "center"
 set -g @copyrat-hint-style "bold"
 set -g @copyrat-default-output "clipboard"
+set -g @copyrat-multi-select "true"
+set -g @copyrat-separator "\n"
 
 # Custom bindings
 set -g @copyrat-bind-m "pattern-name email"

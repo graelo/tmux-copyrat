@@ -124,6 +124,19 @@ impl ConfigExt {
                             .map_err(Error::ExpectedEnumVariant)?
                     }
 
+                    "@copyrat-multi-select" => {
+                        inner.multi_select = value.parse::<bool>()?;
+                    }
+                    "@copyrat-separator" => {
+                        inner.separator = value.clone();
+                    }
+                    "@copyrat-selected-fg" => {
+                        inner.colors.selected_fg = ui::colors::parse_color(value)?
+                    }
+                    "@copyrat-selected-bg" => {
+                        inner.colors.selected_bg = ui::colors::parse_color(value)?
+                    }
+
                     // Ignore unknown options.
                     _ => (),
                 }

@@ -86,6 +86,14 @@ pub struct Config {
     /// Can be toggled at runtime with the space key.
     #[arg(value_enum, long, rename_all = "kebab-case", default_value = "tmux")]
     pub default_output: OutputDestination,
+
+    /// Enable multi-select mode: type hints to toggle spans, confirm with Enter.
+    #[arg(short = 'm', long, action = ArgAction::SetTrue)]
+    pub multi_select: bool,
+
+    /// Separator for joining selected texts in multi-select mode.
+    #[arg(short = 'S', long, default_value = " ")]
+    pub separator: String,
 }
 
 /// Type introduced due to parsing limitation,
