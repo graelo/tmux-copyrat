@@ -1,30 +1,17 @@
 [package]
 name = "copyrat"
-version = "0.7.0"
+version = "0.8.0"
 edition = "2021"
 description = "A tmux plugin for copy-pasting within tmux panes."
 readme = "README.md"
-
 license = "MIT"
 authors = ["graelo <graelo@graelo.cc>"]
 repository = "https://github.com/graelo/tmux-copyrat"
 homepage = "https://github.com/graelo/tmux-copyrat"
 documentation = "https://docs.rs/tmux-copyrat"
-
-keywords = ["rust", "tmux", "tmux-plugin", "tmux-copycat"]
+keywords = ["rust", "tmux", "tmux-copycat", "tmux-plugin"]
 categories = ["command-line-utilities"]
 exclude = ["/.github"]
-
-[dependencies]
-thiserror = "2"
-log = "0.4"
-
-termion = "4"
-regex = "1.6"
-clap = { version = "4.0", features = ["derive", "wrap_help"] }
-sequence_trie = "0.3.6"
-duct = "1"
-unicode-width = "0.2"
 
 [[bin]]
 name = "copyrat"
@@ -33,6 +20,16 @@ path = "src/bin/copyrat.rs"
 [[bin]]
 name = "tmux-copyrat"
 path = "src/bin/tmux_copyrat.rs"
+
+[dependencies]
+clap = { version = "4.0", features = ["derive", "wrap_help"] }
+duct = "1"
+log = "0.4"
+regex = "1.6"
+sequence_trie = "0.3.6"
+termion = "4"
+thiserror = "2"
+unicode-width = "0.2"
 
 [profile.release]
 # Enable link-time optimization (LTO). It’s a kind of whole-program or
@@ -45,14 +42,12 @@ path = "src/bin/tmux_copyrat.rs"
 # all crates”, which is called “fat”. To set this, add the lto flag to your
 # profile:
 lto = "fat"
-
+# Rust by default uses stack unwinding (on the most common platforms). That
+# costs performance, so let’s skip stack traces and the ability to catch panics
+# for reduced code size and better cache usage:
+panic = "abort"
 # To speed up compile times, Rust tries to split your crates into small chunks
 # and compile as many in parallel as possible. The downside is that there’s
 # less opportunities for the compiler to optimize code across these chunks. So,
 # let’s tell it to do one chunk per crate:
 codegen-units = 1
-
-# Rust by default uses stack unwinding (on the most common platforms). That
-# costs performance, so let’s skip stack traces and the ability to catch panics
-# for reduced code size and better cache usage:
-panic = "abort"
