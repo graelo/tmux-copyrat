@@ -68,7 +68,7 @@ get_download_url() {
     if [[ "$os" == "darwin" ]]; then
         target_name="${BINARY_NAME}-${arch}-apple-darwin.zip"
     elif [[ "$os" == "linux" ]]; then
-        target_name="${BINARY_NAME}-${arch}-unknown-linux-gnu.tar.xz"
+        target_name="${BINARY_NAME}-${arch}-unknown-linux-musl.tar.xz"
     else
         log_message "Error: Unsupported OS: $os"
         return 1

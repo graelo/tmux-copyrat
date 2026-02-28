@@ -23,12 +23,12 @@ jobs:
             suffix: ''
             archive_ext: zip
           - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
+            target: x86_64-unknown-linux-musl
             rust: stable
             suffix: ''
             archive_ext: tar.xz
           - os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-gnu
+            target: aarch64-unknown-linux-musl
             rust: stable
             suffix: ''
             archive_ext: tar.xz
@@ -42,7 +42,12 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust }}
+          targets: ${{ matrix.target }}
           components: rustfmt, clippy
+
+      - name: Install musl-tools (Linux)
+        if: contains(matrix.target, '-musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
 
       - name: checkout
         uses: actions/checkout@v4
@@ -60,30 +65,30 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ matrix.rust }}-hash-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build Release
-        run: cargo build --release
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Compress to zip (macOS)
         if: ${{ matrix.os == 'macos-latest' || matrix.os == 'macos-15-intel' }}
         run: |
-          cp target/release/${{ github.event.repository.name }} .
+          cp target/${{ matrix.target }}/release/${{ github.event.repository.name }} .
           zip -A ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }} ${{ github.event.repository.name }}
 
       - name: Compress to zip (Windows)
         if: ${{ matrix.os == 'windows-latest' }}
         run: |
-          Copy-Item target/release/${{ github.event.repository.name }}${{ matrix.suffix }} .
+          Copy-Item target/${{ matrix.target }}/release/${{ github.event.repository.name }}${{ matrix.suffix }} .
           Compress-Archive ${{ github.event.repository.name }}${{ matrix.suffix }} ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }}
 
       - name: Compress to tar.xz (Linux)
         if: ${{ matrix.os == 'ubuntu-latest' || matrix.os == 'ubuntu-24.04-arm' }}
         run: |
-          cp target/release/${{ github.event.repository.name }} .
+          cp target/${{ matrix.target }}/release/${{ github.event.repository.name }} .
           tar Jcf ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }} ${{ github.event.repository.name }}
 
       - name: List files
         run: |
           ls -alF .
-          ls -alF target/release/
+          ls -alF target/${{ matrix.target }}/release/
         shell: bash
 
       - name: Upload artifacts
@@ -126,10 +131,10 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ github.event.repository.name }}-x86_64-unknown-linux-gnu.tar.xz
+          name: ${{ github.event.repository.name }}-x86_64-unknown-linux-musl.tar.xz
       - uses: actions/download-artifact@v4
         with:
-          name: ${{ github.event.repository.name }}-aarch64-unknown-linux-gnu.tar.xz
+          name: ${{ github.event.repository.name }}-aarch64-unknown-linux-musl.tar.xz
       - uses: actions/download-artifact@v4
         with:
           name: ${{ github.event.repository.name }}-aarch64-apple-darwin.zip
