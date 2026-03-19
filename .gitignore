@@ -4,4 +4,5 @@
 # Downloaded binary and any potential cache files
 /tmux-copyrat
 /.tmux-copyrat-version
+/.installed-version
 CLAUDE.md
