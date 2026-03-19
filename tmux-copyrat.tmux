@@ -36,17 +36,11 @@
 # Get the current directory where this script is located
 CURRENT_DIR="$( cd "$( dirname "$0" )" && pwd )"
 
-# Function to ensure binary is available
+# Function to ensure binary is available and up to date
 ensure_binary_available() {
     local installer_script="${CURRENT_DIR}/install-binary.sh"
-    local binary_path="${CURRENT_DIR}/tmux-copyrat"
 
-    # If binary already exists and is executable, we're good
-    if [[ -x "$binary_path" ]]; then
-        return 0
-    fi
-
-    # If installer script exists, run it quietly
+    # Always run the installer — it checks version and skips if up to date
     if [[ -x "$installer_script" ]]; then
         if "$installer_script" --quiet; then
             return 0
