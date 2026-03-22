@@ -1,0 +1,160 @@
+.TH COPYRAT 1 "2026-03-22" "copyrat 0.8.4" "User Commands"
+.SH NAME
+copyrat \- highlight and copy pattern-matched text from stdin
+.SH SYNOPSIS
+.I command
+|
+.B copyrat
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B copyrat
+is the standalone counterpart to
+.BR tmux-copyrat (1).
+It reads text from stdin, displays a full-screen hint overlay for
+pattern-matched spans, and writes the selected text to stdout.
+No tmux dependency.
+.SH OPTIONS
+.SS Pattern Selection
+.TP
+.BR \-A ", " \-\-all\-patterns
+Use all available regex patterns.
+.TP
+.BR \-x ", " \-\-pattern\-name " " \fINAME\fR
+Named pattern to match. Repeatable.
+See
+.B PATTERNS
+in
+.BR tmux-copyrat (1).
+.TP
+.BR \-X ", " \-\-custom\-patterns " " \fIREGEX\fR
+Custom regex pattern (must contain a capture group). Repeatable.
+.SS Hint Generation
+.TP
+.BR \-k ", " \-\-alphabet " " \fILAYOUT\fR
+Hint character set.
+Format:
+.IR LAYOUT [\- MODIFIER ]
+where
+.I LAYOUT
+is one of
+.BR qwerty ", " azerty ", " qwertz ", " dvorak ", " colemak
+and optional
+.I MODIFIER
+is one of
+.BR homerow ", " left\-hand ", " right\-hand .
+Default:
+.BR dvorak .
+.TP
+.BR \-r ", " \-\-reverse
+Assign hints starting from the bottom of the screen.
+.TP
+.BR \-u ", " \-\-unique\-hint
+Assign the same hint to identical text spans.
+.TP
+.BR \-w ", " \-\-focus\-wrap\-around
+Wrap focus navigation at first/last span.
+.SS Hint Appearance
+.TP
+.BR \-s ", " \-\-hint\-style " " \fISTYLE\fR
+Hint styling:
+.BR bold ", " italic ", " underline ", or " surround .
+If omitted, only hint colors are used.
+.TP
+.BI \-\-hint\-alignment " ALIGN"
+Hint position relative to span:
+.BR leading " (default), " center ", or " trailing .
+.TP
+.BI \-\-hint\-surroundings " CHARS"
+Two characters used with surround style.
+Default:
+.BR {} .
+.SS Output
+.TP
+.BI \-\-default\-output " DEST"
+Default output destination:
+.BR tmux " (default) or " clipboard .
+Togglable at runtime with
+.BR Space .
+.SS Multi-Select
+.TP
+.BR \-m ", " \-\-multi\-select
+Enable multi-select mode.
+Hints toggle span selection; confirm with
+.B Enter
+or
+.BR y .
+.TP
+.BR \-S ", " \-\-separator " " \fISTR\fR
+Separator for joining multi-selected texts.
+Default: a single space.
+.SS Colors
+All color flags accept a color name or
+.B none
+for the terminal default.
+Color names:
+.BR black ", " red ", " green ", " yellow ", " blue ", " magenta ", "
+.BR cyan ", " white ,
+and bright variants
+.RB ( bright\-red ", " bright\-cyan ", etc.)."
+.TP
+.BI \-\-text\-fg " COLOR\fR, " \-\-text\-bg " COLOR"
+Base text colors.
+Defaults:
+.BR bright\-cyan ", " none .
+.TP
+.BI \-\-span\-fg " COLOR\fR, " \-\-span\-bg " COLOR"
+Matched span colors.
+Defaults:
+.BR blue ", " none .
+.TP
+.BI \-\-focused\-fg " COLOR\fR, " \-\-focused\-bg " COLOR"
+Focused match colors.
+Defaults:
+.BR magenta ", " none .
+.TP
+.BI \-\-selected\-fg " COLOR\fR, " \-\-selected\-bg " COLOR"
+Selected match colors (multi-select mode).
+Defaults:
+.BR green ", " none .
+.TP
+.BI \-\-hint\-fg " COLOR\fR, " \-\-hint\-bg " COLOR"
+Hint character colors.
+Defaults:
+.BR yellow ", " none .
+.SH EXAMPLES
+Search git log for SHAs and datetimes, copy selection to clipboard:
+.PP
+.RS
+.nf
+git log | copyrat -r -u -x sha -x datetime | pbcopy
+.fi
+.RE
+.PP
+Multi-select IPv4 addresses and emails:
+.PP
+.RS
+.nf
+cat server.log | copyrat -A -m
+.fi
+.RE
+.PP
+Use a custom regex to match MAC addresses:
+.PP
+.RS
+.nf
+ip link | copyrat -X '([a-f0-9]{2}(:[a-f0-9]{2}){5})'
+.fi
+.RE
+.SH EXIT STATUS
+.TP
+.B 0
+A span was selected and printed to stdout.
+.TP
+.B 1
+No selection was made (user pressed Esc or no matches found).
+.SH SEE ALSO
+.BR tmux-copyrat (1),
+.BR tmux (1),
+.BR fzf (1)
+.SH AUTHORS
+graelo <https://github.com/graelo/tmux-copyrat>

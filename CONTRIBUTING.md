@@ -28,6 +28,33 @@ make coverage
 
 Report output: `./coverage/index.html`
 
+## Manpages
+
+Manpages live in `man/` as roff source: `tmux-copyrat.1` and `copyrat.1`.
+
+Preview with:
+
+```sh
+mandoc man/tmux-copyrat.1 | less
+mandoc man/copyrat.1 | less
+```
+
+Lint with:
+
+```sh
+mandoc -Tlint man/tmux-copyrat.1
+mandoc -Tlint man/copyrat.1
+```
+
+When to update them:
+
+- Adding, removing, or renaming a CLI flag
+- Changing a default value
+- Adding or removing a named pattern
+- Changing key bindings or runtime controls
+
+The version and date in the `.TH` header should be updated on each release.
+
 ## Submitting Changes
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
