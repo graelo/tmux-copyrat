@@ -1,0 +1,295 @@
+.TH TMUX-COPYRAT 1 "2026-03-22" "tmux-copyrat 0.8.4" "User Commands"
+.SH NAME
+tmux-copyrat \- highlight and copy pattern-matched text from tmux panes
+.SH SYNOPSIS
+.B tmux-copyrat init
+.br
+.B tmux-copyrat run
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+.B tmux-copyrat
+is a tmux plugin that scans the active pane for text matching named patterns
+(URLs, IPs, SHAs, paths, etc.), overlays single or double character hints on
+each match, and copies the selected span to the tmux buffer or system
+clipboard.
+.PP
+The
+.B init
+subcommand prints the tmux plugin script to stdout.
+The
+.B run
+subcommand captures the active pane, displays the hint overlay, and
+handles user selection.
+.PP
+In normal use,
+.B tmux-copyrat
+is invoked by the plugin script via tmux key bindings, not directly by the
+user.
+See the
+.B DEFAULT KEY BINDINGS
+section below.
+.SH OPTIONS
+Options for the
+.B run
+subcommand.
+All options can also be set via
+.BI @copyrat- *
+tmux options (see
+.BR CONFIGURATION ).
+.SS Tmux Integration
+.TP
+.BR \-n ", " \-\-ignore\-tmux\-options
+Don't read
+.BI @copyrat- *
+options from tmux.
+.TP
+.BR \-W ", " \-\-window\-name " " \fINAME\fR
+Name of the temporary tmux window.
+Default:
+.BR [copyrat] .
+.TP
+.BI \-\-capture\-region " REGION"
+Capture region:
+.BR visible\-area " (default) or " entire\-history .
+.TP
+.BI \-\-clipboard\-exe " CMD"
+Clipboard command.
+Default:
+.B pbcopy
+(macOS),
+.B wl\-copy
+(Wayland),
+.B "xclip \-selection clipboard"
+(X11).
+.SS Pattern Selection
+.TP
+.BR \-A ", " \-\-all\-patterns
+Use all available regex patterns.
+.TP
+.BR \-x ", " \-\-pattern\-name " " \fINAME\fR
+Named pattern to match. Repeatable.
+See
+.B PATTERNS
+below.
+.TP
+.BR \-X ", " \-\-custom\-patterns " " \fIREGEX\fR
+Custom regex pattern (must contain a capture group). Repeatable.
+.SS Hint Generation
+.TP
+.BR \-k ", " \-\-alphabet " " \fILAYOUT\fR
+Hint character set.
+Format:
+.IR LAYOUT [\- MODIFIER ]
+where
+.I LAYOUT
+is one of
+.BR qwerty ", " azerty ", " qwertz ", " dvorak ", " colemak
+and optional
+.I MODIFIER
+is one of
+.BR homerow ", " left\-hand ", " right\-hand .
+Default:
+.BR dvorak .
+.TP
+.BR \-r ", " \-\-reverse
+Assign hints starting from the bottom of the screen.
+.TP
+.BR \-u ", " \-\-unique\-hint
+Assign the same hint to identical text spans.
+.TP
+.BR \-w ", " \-\-focus\-wrap\-around
+Wrap focus navigation at first/last span.
+.SS Hint Appearance
+.TP
+.BR \-s ", " \-\-hint\-style " " \fISTYLE\fR
+Hint styling:
+.BR bold ", " italic ", " underline ", or " surround .
+If omitted, only hint colors are used.
+.TP
+.BI \-\-hint\-alignment " ALIGN"
+Hint position relative to span:
+.BR leading " (default), " center ", or " trailing .
+.TP
+.BI \-\-hint\-surroundings " CHARS"
+Two characters used with surround style.
+Default:
+.BR {} .
+.SS Output
+.TP
+.BI \-\-default\-output " DEST"
+Default output destination:
+.BR tmux " (default) or " clipboard .
+Togglable at runtime with
+.BR Space .
+.SS Multi-Select
+.TP
+.BR \-m ", " \-\-multi\-select
+Enable multi-select mode.
+Hints toggle span selection; confirm with
+.B Enter
+or
+.BR y .
+.TP
+.BR \-S ", " \-\-separator " " \fISTR\fR
+Separator for joining multi-selected texts.
+Default: a single space.
+.SS Colors
+All color flags accept a color name or
+.B none
+for the terminal default.
+Color names:
+.BR black ", " red ", " green ", " yellow ", " blue ", " magenta ", "
+.BR cyan ", " white ,
+and bright variants
+.RB ( bright\-red ", " bright\-cyan ", etc.)."
+.TP
+.BI \-\-text\-fg " COLOR\fR, " \-\-text\-bg " COLOR"
+Base text colors.
+Defaults:
+.BR bright\-cyan ", " none .
+.TP
+.BI \-\-span\-fg " COLOR\fR, " \-\-span\-bg " COLOR"
+Matched span colors.
+Defaults:
+.BR blue ", " none .
+.TP
+.BI \-\-focused\-fg " COLOR\fR, " \-\-focused\-bg " COLOR"
+Focused match colors.
+Defaults:
+.BR magenta ", " none .
+.TP
+.BI \-\-selected\-fg " COLOR\fR, " \-\-selected\-bg " COLOR"
+Selected match colors (multi-select mode).
+Defaults:
+.BR green ", " none .
+.TP
+.BI \-\-hint\-fg " COLOR\fR, " \-\-hint\-bg " COLOR"
+Hint character colors.
+Defaults:
+.BR yellow ", " none .
+.SH DEFAULT KEY BINDINGS
+The plugin script creates bindings under two keyswitches
+(configurable via
+.B @copyrat\-keyswitch
+and
+.BR @copyrat\-keyswitch\-history ):
+.PP
+.RS
+.B prefix + t + \fIkey\fR
+\(em search visible area
+.br
+.B prefix + T + \fIkey\fR
+\(em search entire scrollback
+.RE
+.PP
+.TS
+tab(;);
+lb lb
+l l.
+Key;Pattern
+a;command-line args
+c;hex color codes
+d;dates / datetimes
+D;Docker/Podman IDs
+e;email addresses
+G;4+ digit strings
+h;SHA-1/2 hashes
+m;markdown URLs
+p;file paths
+P;pointer addresses
+q;quoted strings (single/double/backtick)
+u;URLs
+U;UUIDs
+v;version numbers
+4;IPv4 addresses
+6;IPv6 addresses
+Space;all patterns
+/;custom regex (prompted)
+.TE
+.SH RUNTIME CONTROLS
+.TS
+tab(;);
+lb lb
+l l.
+Key;Action
+\fIhint chars\fR;copy span and exit
+\fICAPS hint\fR;copy to system clipboard
+n / N;next / previous span
+y;yank focused span (tmux buffer)
+Y;yank focused span (clipboard)
+Space;toggle output destination
+Esc;cancel
+.TE
+.PP
+In multi-select mode, additionally:
+.TS
+tab(;);
+lb lb
+l l.
+Key;Action
+\fIhint chars\fR;toggle span selection
+Tab;toggle focused span
+Enter / y;confirm selection (tmux buffer)
+Y;confirm selection (clipboard)
+.TE
+.SH PATTERNS
+.TS
+tab(;);
+lb lb
+l l.
+Name;Description
+command\-line\-args;command line argument values
+datetime;dates and datetimes
+diff\-a;diff --- a/path headers
+diff\-b;diff +++ b/path headers
+digits;strings of 4+ digits
+docker;Docker/Podman SHA256 IDs
+email;email addresses
+hexcolor;hex color codes (#rrggbb)
+ipfs;IPFS CIDs (Qm...)
+ipv4;IPv4 addresses
+ipv6;IPv6 addresses
+markdown\-url;markdown link URLs
+path;absolute and relative file paths
+pointer\-address;hex pointer addresses (0x...)
+quoted\-backtick;backtick-quoted strings
+quoted\-double;double-quoted strings
+quoted\-single;single-quoted strings
+sha;SHA-1/2 hashes (7\(en40 hex chars)
+url;HTTP, git, ssh, s3, ftp, file URLs
+uuid;UUIDs
+version;version numbers (v1.2.3\-beta)
+.TE
+.SH CONFIGURATION
+All CLI flags have corresponding
+.BI @copyrat\- *
+tmux options.
+Set them in
+.B ~/.tmux.conf
+with
+.BR "set \-g" .
+See
+.I CONFIGURATION.md
+in the project repository for full details.
+.SH FILES
+.TP
+.I ~/.tmux/plugins/tmux-copyrat/
+Default plugin installation directory (TPM).
+.TP
+.I ~/.tmux.conf
+Tmux configuration file for setting
+.BI @copyrat\- *
+options.
+.SH EXIT STATUS
+.TP
+.B 0
+A span was selected and copied.
+.TP
+.B 1
+No selection was made (user pressed Esc or no matches found).
+.SH SEE ALSO
+.BR copyrat (1),
+.BR tmux (1),
+.BR pbcopy (1)
+.SH AUTHORS
+graelo <https://github.com/graelo/tmux-copyrat>

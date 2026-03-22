@@ -8,42 +8,40 @@ Customize tmux-copyrat by adding options to your `~/.tmux.conf` file.
 **Note**: Reload your configuration with `tmux source-file ~/.tmux.conf` to
 apply changes.
 
-## Configuration Options
+## Overview of Config Options
 
-### Plugin Settings
-
-- `@copyrat-keyswitch` - Key to search visible area (default: `t`)
-- `@copyrat-keyswitch-history` - Key to search entire history (default: `T`)
-- `@copyrat-keytable` - Keytable name (default: `cpyrt`)
-- `@copyrat-window-name` - Window name (default: `[copyrat]`)
-- `@copyrat-clipboard-exe` - Clipboard command (auto-detected)
-
-### Colors
-
-- `@copyrat-text-fg/bg` - Base text colors
-- `@copyrat-span-fg/bg` - Matched text colors
-- `@copyrat-focused-fg/bg` - Focused match colors
-- `@copyrat-selected-fg/bg` - Selected match colors (multi-select mode)
-- `@copyrat-hint-fg/bg` - Hint colors
-
-### Behavior
-
-- `@copyrat-alphabet` - Hint character set (default: `dvorak`)
-- `@copyrat-reverse` - Hint direction (default: `true`)
-- `@copyrat-unique-hint` - Same hints for identical text (default: `true`)
-- `@copyrat-focus-wrap-around` - Focus wrapping (default: `false`)
-- `@copyrat-hint-alignment` - Hint position: `leading/center/trailing`
-- `@copyrat-hint-style` - Styling: `bold/italic/underline/surround`
-- `@copyrat-hint-surroundings` - Surround characters (default: `{}`)
-- `@copyrat-default-output` - Default output: `tmux` or `clipboard` (default:
-  `tmux`)
-- `@copyrat-multi-select` - Enable multi-select mode (default: `false`)
-- `@copyrat-separator` - Separator when joining multi-selected texts (default: 1
-  space)
-
-### Custom Bindings
-
-- `@copyrat-bind-{key}` - Override or add pattern bindings
+| Option                       | Default       | Description                                    |
+| ---------------------------- | ------------- | ---------------------------------------------- |
+| **Plugin Settings**          |               |                                                |
+| `@copyrat-keyswitch`         | `t`           | Key to search visible area                     |
+| `@copyrat-keyswitch-history` | `T`           | Key to search entire history                   |
+| `@copyrat-keytable`          | `cpyrt`       | Keytable name                                  |
+| `@copyrat-window-name`       | `[copyrat]`   | Window name                                    |
+| `@copyrat-clipboard-exe`     | auto-detected | Clipboard command                              |
+| **Colors**                   |               |                                                |
+| `@copyrat-text-fg`           | `bright-cyan` | Base text foreground                           |
+| `@copyrat-text-bg`           | `none`        | Base text background                           |
+| `@copyrat-span-fg`           | `blue`        | Matched span foreground                        |
+| `@copyrat-span-bg`           | `none`        | Matched span background                        |
+| `@copyrat-focused-fg`        | `magenta`     | Focused match foreground                       |
+| `@copyrat-focused-bg`        | `none`        | Focused match background                       |
+| `@copyrat-selected-fg`       | `green`       | Selected match foreground (multi-select)       |
+| `@copyrat-selected-bg`       | `none`        | Selected match background (multi-select)       |
+| `@copyrat-hint-fg`           | `yellow`      | Hint foreground                                |
+| `@copyrat-hint-bg`           | `none`        | Hint background                                |
+| **Behavior**                 |               |                                                |
+| `@copyrat-alphabet`          | `dvorak`      | Hint character set                             |
+| `@copyrat-reverse`           | `true`        | Assign hints bottom-up                         |
+| `@copyrat-unique-hint`       | `true`        | Same hint for identical text                   |
+| `@copyrat-focus-wrap-around` | `false`       | Wrap focus at first/last match                 |
+| `@copyrat-hint-alignment`    | `leading`     | Hint position: `leading`, `center`, `trailing` |
+| `@copyrat-hint-style`        |               | `bold`, `italic`, `underline`, `surround`      |
+| `@copyrat-hint-surroundings` | `{}`          | Surround characters (exactly 2 chars)          |
+| `@copyrat-default-output`    | `tmux`        | `tmux` or `clipboard`                          |
+| `@copyrat-multi-select`      | `false`       | Enable multi-select mode                       |
+| `@copyrat-separator`         | (space)       | Separator for multi-select join                |
+| **Custom Bindings**          |               |                                                |
+| `@copyrat-bind-{key}`        |               | Override or add pattern bindings               |
 
 ## Basic Configuration
 
@@ -199,13 +197,6 @@ focused span is copied (same as single-select behavior).
 
 Mistyped keys are silently ignored in multi-select mode instead of exiting.
 
-The `copyrat` standalone binary also supports multi-select via the
-`--multi-select` (`-m`) and `--separator` (`-S`) flags:
-
-```console
-echo "127.0.0.1 and 192.168.1.1 and hello@world.com" | copyrat -A --multi-select
-```
-
 ## Customize Copyrat Key Bindings
 
 This shows how to use the `@copyrat-bind-{key}` options to override defaults or
@@ -281,7 +272,7 @@ options (colors, hint style, etc.) — you must pass the flags you need explicit
 or read them from tmux options as shown above.
 
 **History search**: to search the entire scrollback instead of the visible area,
-change `--capture-region visible-area` to `--capture-region entire-history`.
+add `--capture-region entire-history` to the command.
 
 ## Complete Example
 
