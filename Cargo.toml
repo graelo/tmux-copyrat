@@ -1,14 +1,13 @@
 [package]
 name = "copyrat"
-version = "0.8.4"
+version = "0.8.5"
 edition = "2021"
 description = "A tmux plugin for copy-pasting within tmux panes."
-readme = "README.md"
-license = "MIT"
-authors = ["graelo <graelo@graelo.cc>"]
-repository = "https://github.com/graelo/tmux-copyrat"
-homepage = "https://github.com/graelo/tmux-copyrat"
 documentation = "https://docs.rs/tmux-copyrat"
+readme = "README.md"
+homepage = "https://github.com/graelo/tmux-copyrat"
+repository = "https://github.com/graelo/tmux-copyrat"
+license = "MIT"
 keywords = ["rust", "tmux", "tmux-copycat", "tmux-plugin"]
 categories = ["command-line-utilities"]
 exclude = ["/.github"]
