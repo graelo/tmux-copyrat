@@ -77,6 +77,12 @@ dependency:
 git log | copyrat -r -u -x sha -x datetime | pbcopy
 ```
 
+Multi-select is supported via `-m` (and `-S` for separator):
+
+```sh
+echo "127.0.0.1 and 192.168.1.1 and hello@world.com" | copyrat -A -m
+```
+
 ![[copyrat-output.png](images/copyrat-output.png)](images/copyrat-output.png)
 
 ## See Also
