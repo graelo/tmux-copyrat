@@ -7,8 +7,8 @@ use std::io::Write;
 use termion::{self, color, cursor, event, screen::IntoAlternateScreen, style};
 use unicode_width::UnicodeWidthChar;
 
-use super::colors::UiColors;
 use super::Selection;
+use super::colors::UiColors;
 use super::{HintAlignment, HintStyle};
 use crate::{config::extended::OutputDestination, textbuf};
 
@@ -1525,13 +1525,13 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         let expected_span2_text = {
             let goto11_3 = cursor::Goto(11, 3);
             format!(
-        "{goto11_3}{focus_bg}{focus_fg}https://en.wikipedia.org/wiki/Barcelona{fg_reset}{bg_reset}",
-        goto11_3 = goto11_3,
-        focus_fg = color::Fg(rendering_colors.focused_fg),
-        focus_bg = color::Bg(rendering_colors.focused_bg),
-        fg_reset = color::Fg(color::Reset),
-        bg_reset = color::Bg(color::Reset)
-      )
+                "{goto11_3}{focus_bg}{focus_fg}https://en.wikipedia.org/wiki/Barcelona{fg_reset}{bg_reset}",
+                goto11_3 = goto11_3,
+                focus_fg = color::Fg(rendering_colors.focused_fg),
+                focus_bg = color::Bg(rendering_colors.focused_bg),
+                fg_reset = color::Fg(color::Reset),
+                bg_reset = color::Bg(color::Reset)
+            )
         };
 
         // Because reverse is true, this second span is focused,

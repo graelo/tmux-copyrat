@@ -164,7 +164,7 @@ pub fn available_panes() -> Result<Vec<Pane>> {
         "list-panes",
         "-F",
         "#{pane_id}:#{?pane_in_mode,true,false}:#{pane_height}:#{scroll_position}:#{?pane_active,true,false}",
-        ];
+    ];
 
     let output = duct::cmd("tmux", &args).read()?;
 

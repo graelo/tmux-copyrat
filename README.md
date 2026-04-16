@@ -1,8 +1,8 @@
 # tmux-copyrat
 
 [![build status](https://github.com/graelo/tmux-copyrat/actions/workflows/essentials.yml/badge.svg)](https://github.com/graelo/tmux-copyrat/actions)
-[![rustc 1.85+](https://img.shields.io/badge/rustc-1.85+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
-[![edition 2021](https://img.shields.io/badge/edition-2021-blue.svg)](https://doc.rust-lang.org/edition-guide/rust-2021/index.html)
+[![rustc 1.88+](https://img.shields.io/badge/rustc-1.88+-blue.svg)](https://rust-lang.github.io/rfcs/2495-min-rust-version.html)
+[![edition 2024](https://img.shields.io/badge/edition-2024-blue.svg)](https://doc.rust-lang.org/edition-guide/rust-2024/index.html)
 [![crate](https://img.shields.io/crates/v/copyrat.svg)](https://crates.io/crates/copyrat)
 [![tmux 3.0+](https://img.shields.io/badge/tmux-3.0+-blue.svg)](https://tmux.github.io)
 

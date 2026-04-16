@@ -1,7 +1,8 @@
 [package]
 name = "copyrat"
 version = "0.8.5"
-edition = "2021"
+edition = "2024"
+rust-version = "1.88"
 description = "A tmux plugin for copy-pasting within tmux panes."
 documentation = "https://docs.rs/tmux-copyrat"
 readme = "README.md"
