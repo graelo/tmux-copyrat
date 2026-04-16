@@ -143,7 +143,7 @@ set -g @copyrat-hint-surroundings "[]"
 
 If you don't want a keyswitch at all, you'll have to create your own bindings,
 as described in
-[BYOB - Bring Your Own Bindings](#byob---bring-your-own-bindings).
+[BYOB: Bring Your Own Bindings](#byob-bring-your-own-bindings).
 
 ### Search Area
 
@@ -250,7 +250,7 @@ set -g @copyrat-bind-M "custom-pattern \
 set -g @copyrat-bind-D ""                      # Disable D
 ```
 
-## BYOB - Bring Your Own Bindings
+## BYOB: Bring Your Own Bindings
 
 You can of course create manual bindings that invoke `tmux-copyrat run`
 directly. This is useful when you want to bypass the keytable for single-key
