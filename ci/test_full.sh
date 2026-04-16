@@ -3,7 +3,7 @@
 set -e
 
 CRATE=tmux-copyrat
-MSRV=1.85
+MSRV=1.88
 
 get_rust_version() {
   local array=($(rustc --version));

@@ -55,7 +55,7 @@ binary because it sees it's present in the `PATH`.
 
 ## Cargo (build from source)
 
-Requires `rustc 1.85+`.
+Requires `rustc 1.88+`.
 
 ```bash
 cargo install copyrat

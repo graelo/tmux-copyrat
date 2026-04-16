@@ -111,14 +111,14 @@ impl Alphabet {
             let prefix = lead.pop().unwrap();
 
             // generate characters pairs
-            let gen: Vec<String> = letters
+            let pairs: Vec<String> = letters
                 .iter()
                 .take(n - lead.len() - prev.len())
                 .map(|c| format!("{prefix}{c}"))
                 .collect();
 
-            // Insert gen in front of prev
-            prev.splice(..0, gen);
+            // Insert pairs in front of prev
+            prev.splice(..0, pairs);
         }
 
         // Finalize by concatenating the lead and prev components, filling
@@ -171,7 +171,9 @@ mod tests {
         let hints = alphabet.make_hints(13);
         assert_eq!(
             hints,
-            ["a", "ba", "bb", "bc", "bd", "ca", "cb", "cc", "cd", "da", "db", "dc", "dd"]
+            [
+                "a", "ba", "bb", "bc", "bd", "ca", "cb", "cc", "cd", "da", "db", "dc", "dd"
+            ]
         );
     }
 

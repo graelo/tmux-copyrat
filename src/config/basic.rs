@@ -3,9 +3,10 @@ use std::fmt::Display;
 use clap::{ArgAction, Parser, ValueEnum};
 
 use crate::{
+    Error, Result,
     config::extended::OutputDestination,
     textbuf::{alphabet, regexes},
-    ui, Error, Result,
+    ui,
 };
 
 /// Main configuration, parsed from command line.

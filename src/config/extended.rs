@@ -4,7 +4,7 @@ use std::fmt;
 use clap::{Args, Parser, ValueEnum};
 
 use super::basic;
-use crate::{textbuf::alphabet, tmux, ui, Error, Result};
+use crate::{Error, Result, textbuf::alphabet, tmux, ui};
 
 #[derive(Parser, Debug)]
 #[clap(author, about, version)]

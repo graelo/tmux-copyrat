@@ -5,7 +5,7 @@ use sequence_trie::SequenceTrie;
 
 use super::alphabet::Alphabet;
 use super::raw_span::RawSpan;
-use super::regexes::{NamedPattern, EXCLUDE_PATTERNS, PATTERNS};
+use super::regexes::{EXCLUDE_PATTERNS, NamedPattern, PATTERNS};
 use super::span::Span;
 
 /// Holds data for the `Ui`.

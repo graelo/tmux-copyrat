@@ -94,8 +94,7 @@ mod tests {
 
     #[test]
     fn match_ansi_colors() {
-        let buffer =
-        "path: [32m/var/log/nginx.log[m\npath: [32mtest/log/nginx-2.log:32[mfolder/.nginx@4df2.log";
+        let buffer = "path: [32m/var/log/nginx.log[m\npath: [32mtest/log/nginx-2.log:32[mfolder/.nginx@4df2.log";
         let lines = buffer.split('\n').collect::<Vec<_>>();
         let use_all_patterns = true;
         let named_pat = vec![];
@@ -122,8 +121,7 @@ mod tests {
 
     #[test]
     fn match_paths() {
-        let buffer =
-        "Lorem /tmp/foo/bar_lol, lorem\n Lorem /var/log/boot-strap.log lorem ../log/kern.log lorem";
+        let buffer = "Lorem /tmp/foo/bar_lol, lorem\n Lorem /var/log/boot-strap.log lorem ../log/kern.log lorem";
         let lines = buffer.split('\n').collect::<Vec<_>>();
         let use_all_patterns = true;
         let named_pat = vec![];

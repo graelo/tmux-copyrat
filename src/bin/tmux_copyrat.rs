@@ -1,9 +1,9 @@
 use clap::Parser;
 use copyrat::{
+    Result,
     config::extended::{ConfigExt, MainConfig, OutputDestination},
     tmux,
     ui::Selection,
-    Result,
 };
 
 fn main() -> Result<()> {
