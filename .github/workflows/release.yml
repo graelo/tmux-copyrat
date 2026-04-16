@@ -9,7 +9,6 @@ permissions: {}
 jobs:
   prepare-artifacts:
     name: Prepare release artifacts
-    # if: github.ref == 'refs/heads/main'
     runs-on: '${{ matrix.os }}'
     permissions:
       contents: read
@@ -112,7 +111,6 @@ jobs:
 
   release:
     name: Create a GitHub Release
-    # if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -175,7 +173,6 @@ jobs:
 
   homebrew:
     name: Bump Homebrew formula
-    # if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: release
     permissions:

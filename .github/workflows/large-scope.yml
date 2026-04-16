@@ -61,7 +61,7 @@ jobs:
 
   test-other-platforms:
     name: Tests on
-    runs-on: '${{ matrix.os }}'
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
     strategy:
