@@ -196,13 +196,11 @@ pub fn get_options(prefix: &str) -> Result<HashMap<String, String>> {
 
     let args: HashMap<String, String> = lines
         .iter()
-        .flat_map(|line| match re.captures(line) {
-            None => None,
-            Some(captures) => {
-                let key = captures[1].to_string();
-                let value = captures[2].to_string();
-                Some((key, value))
-            }
+        .filter_map(|line| {
+            let captures = re.captures(line)?;
+            let key = captures[1].to_string();
+            let value = captures[2].to_string();
+            Some((key, value))
         })
         .collect();
 

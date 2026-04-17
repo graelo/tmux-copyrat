@@ -751,19 +751,16 @@ impl<'a> ViewController<'a> {
             // This is an option of a result of a key... Let's pop error cases first.
             let next_key = reader.keys().next();
 
-            if next_key.is_none() {
+            let Some(next_key) = next_key else {
                 // Nothing in the buffer. Wait for a bit...
                 std::thread::sleep(std::time::Duration::from_millis(25));
                 continue;
-            }
+            };
 
-            let key_res = next_key.unwrap();
-            if let Err(err) = key_res {
-                // Termion not being able to read from stdin is an unrecoverable error.
-                panic!("{}", err);
-            }
+            // Termion not being able to read from stdin is an unrecoverable error.
+            let key = next_key.unwrap_or_else(|err| panic!("{err}"));
 
-            match key_res.unwrap() {
+            match key {
                 event::Key::Esc => {
                     break;
                 }
@@ -860,7 +857,7 @@ impl<'a> ViewController<'a> {
                         .lookup_trie
                         .get_node(&typed_hint.chars().collect::<Vec<char>>());
 
-                    if node.is_none() {
+                    let Some(node) = node else {
                         if self.multi_select.enabled {
                             // In multi-select, don't exit on mistype
                             typed_hint.clear();
@@ -869,9 +866,7 @@ impl<'a> ViewController<'a> {
                         }
                         // A key outside the alphabet was entered.
                         return Event::Exit;
-                    }
-
-                    let node = node.unwrap();
+                    };
                     if node.is_leaf() {
                         let span_index = node.value().expect(
                             "By construction, the Lookup Trie should have a value for each leaf.",
