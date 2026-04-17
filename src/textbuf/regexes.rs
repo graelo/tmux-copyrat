@@ -2,10 +2,30 @@
 //!
 //! All patterns must have one capture group. The first group is used.
 
+use std::sync::LazyLock;
+
+use regex::Regex;
+
 use crate::{Error, Result};
 
 pub(super) const EXCLUDE_PATTERNS: [(&str, &str); 1] =
     [("ansi_colors", r"[[:cntrl:]]\[([0-9]{1,2};)?([0-9]{1,2})?m")];
+
+/// Pre-compiled exclude regexes, built once on first access.
+pub(super) static EXCLUDE_REGEXES: LazyLock<Vec<(&str, Regex)>> = LazyLock::new(|| {
+    EXCLUDE_PATTERNS
+        .iter()
+        .map(|&(name, pattern)| (name, Regex::new(pattern).unwrap()))
+        .collect()
+});
+
+/// Pre-compiled pattern regexes, built once on first access.
+pub(super) static PATTERN_REGEXES: LazyLock<Vec<(&str, Regex)>> = LazyLock::new(|| {
+    PATTERNS
+        .iter()
+        .map(|&(name, pattern)| (name, Regex::new(pattern).unwrap()))
+        .collect()
+});
 
 /// Holds all the regex patterns that are currently supported.
 ///
