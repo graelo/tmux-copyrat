@@ -19,10 +19,8 @@ fn main() {
     let selection: Option<Selection> = run(&lines, &opt);
 
     // Early exit, signaling no selections were found.
-    if selection.is_none() {
+    let Some(Selection { text, .. }) = selection else {
         std::process::exit(1);
-    }
-
-    let Selection { text, .. } = selection.unwrap();
+    };
     println!("{text}");
 }

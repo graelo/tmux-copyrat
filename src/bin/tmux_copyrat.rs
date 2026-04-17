@@ -49,35 +49,35 @@ fn run(config: ConfigExt) -> Result<()> {
     // Finally copy selection to the output destination (tmux buffer or
     // clipboard), and paste it to the active buffer if it was uppercased.
 
-    match selection {
-        None => return Ok(()),
-        Some(Selection {
-            text,
-            uppercased,
-            output_destination,
-        }) => {
-            if uppercased {
-                if active_pane.is_copy_mode {
-                    // break out of copy mode
-                    duct::cmd!("tmux", "copy-mode", "-t", active_pane.id.as_str(), "-q").run()?;
-                }
-                duct::cmd!("tmux", "send-keys", "-t", active_pane.id.as_str(), &text).run()?;
-            }
+    let Some(Selection {
+        text,
+        uppercased,
+        output_destination,
+    }) = selection
+    else {
+        return Ok(());
+    };
 
-            match output_destination {
-                OutputDestination::Tmux => {
-                    duct::cmd!("tmux", "set-buffer", &text).run()?;
-                }
-                OutputDestination::Clipboard => {
-                    let mut parts = config.clipboard_exe.split_whitespace();
-                    let program = parts.next().expect("clipboard-exe must not be empty");
-                    let args: Vec<&str> = parts.collect();
+    if uppercased {
+        if active_pane.is_copy_mode {
+            // break out of copy mode
+            duct::cmd!("tmux", "copy-mode", "-t", active_pane.id.as_str(), "-q").run()?;
+        }
+        duct::cmd!("tmux", "send-keys", "-t", active_pane.id.as_str(), &text).run()?;
+    }
 
-                    duct::cmd!("echo", "-n", &text)
-                        .pipe(duct::cmd(program, &args))
-                        .read()?;
-                }
-            }
+    match output_destination {
+        OutputDestination::Tmux => {
+            duct::cmd!("tmux", "set-buffer", &text).run()?;
+        }
+        OutputDestination::Clipboard => {
+            let mut parts = config.clipboard_exe.split_whitespace();
+            let program = parts.next().expect("clipboard-exe must not be empty");
+            let args: Vec<&str> = parts.collect();
+
+            duct::cmd!("echo", "-n", &text)
+                .pipe(duct::cmd(program, &args))
+                .read()?;
         }
     }
 
