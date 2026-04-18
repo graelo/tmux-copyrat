@@ -41,6 +41,7 @@ const ALPHABETS: [(&str, &str); 21] = [
 /// Letters 'n' and 'N' are systematically removed to prevent conflict with
 /// navigation keys (arrows and 'n' 'N'). Letters 'y' and 'Y' are also removed
 /// to prevent conflict with yank/copy.
+///
 pub fn parse_alphabet(src: &str) -> Result<Alphabet> {
     let alphabet_pair = ALPHABETS.iter().find(|&(name, _letters)| name == &src);
 
@@ -194,5 +195,51 @@ mod tests {
         // The 7500 last ones come from the filler ("" empty hints).
         assert_eq!(hints.len(), 10000);
         assert!(&hints[2500..].iter().all(|s| s.is_empty()));
+    }
+
+    #[test]
+    fn make_hints_zero() {
+        let alphabet = Alphabet("abcd".to_string());
+        let hints = alphabet.make_hints(0);
+        assert!(hints.is_empty());
+    }
+
+    #[test]
+    fn make_hints_one() {
+        let alphabet = Alphabet("abcd".to_string());
+        let hints = alphabet.make_hints(1);
+        assert_eq!(hints, ["a"]);
+    }
+
+    #[test]
+    fn parse_alphabet_known() {
+        let alphabet = parse_alphabet("qwerty").unwrap();
+        // 'n', 'N', 'y', 'Y' must be stripped
+        assert!(!alphabet.0.contains('n'));
+        assert!(!alphabet.0.contains('N'));
+        assert!(!alphabet.0.contains('y'));
+        assert!(!alphabet.0.contains('Y'));
+        // Other letters must remain
+        assert!(alphabet.0.contains('a'));
+        assert!(alphabet.0.contains('s'));
+    }
+
+    #[test]
+    fn parse_alphabet_unknown() {
+        assert!(parse_alphabet("nonexistent").is_err());
+    }
+
+    #[test]
+    fn parse_alphabet_strips_nav_keys_from_all() {
+        // Verify stripping works across different layouts
+        for name in ["qwerty", "azerty", "dvorak", "colemak"] {
+            let alphabet = parse_alphabet(name).unwrap();
+            for ch in ['n', 'N', 'y', 'Y'] {
+                assert!(
+                    !alphabet.0.contains(ch),
+                    "{name} alphabet still contains '{ch}'"
+                );
+            }
+        }
     }
 }

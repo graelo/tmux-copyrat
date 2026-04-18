@@ -8,7 +8,8 @@ use super::raw_span::RawSpan;
 use super::regexes::{EXCLUDE_REGEXES, NamedPattern, PATTERN_REGEXES};
 use super::span::Span;
 
-/// Holds data for the `Ui`.
+/// Holds parsed lines, matched spans with hints, and a lookup trie for
+/// fast hint resolution.
 pub struct Model<'a> {
     pub lines: &'a [&'a str],
     pub reverse: bool,

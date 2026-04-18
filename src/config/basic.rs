@@ -148,3 +148,44 @@ impl Config {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn try_parse_chars_valid() {
+        let result = try_parse_chars("{}").unwrap();
+        assert_eq!(result.open, '{');
+        assert_eq!(result.close, '}');
+    }
+
+    #[test]
+    fn try_parse_chars_brackets() {
+        let result = try_parse_chars("[]").unwrap();
+        assert_eq!(result.open, '[');
+        assert_eq!(result.close, ']');
+    }
+
+    #[test]
+    fn try_parse_chars_unicode() {
+        let result = try_parse_chars("«»").unwrap();
+        assert_eq!(result.open, '«');
+        assert_eq!(result.close, '»');
+    }
+
+    #[test]
+    fn try_parse_chars_single_char_rejected() {
+        assert!(try_parse_chars("x").is_err());
+    }
+
+    #[test]
+    fn try_parse_chars_three_chars_rejected() {
+        assert!(try_parse_chars("abc").is_err());
+    }
+
+    #[test]
+    fn try_parse_chars_empty_rejected() {
+        assert!(try_parse_chars("").is_err());
+    }
+}

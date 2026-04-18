@@ -72,6 +72,28 @@ impl FromStr for Color {
     }
 }
 
+/// Parse a color name into a [`Color`].
+///
+/// Accepts standard terminal color names, bright variants (with or without
+/// hyphen), and `"none"` for reset.
+///
+/// # Examples
+///
+/// ```
+/// use copyrat::ui::colors::parse_color;
+///
+/// let green = parse_color("green");
+/// assert!(green.is_ok());
+///
+/// let bright = parse_color("bright-red");
+/// assert!(bright.is_ok());
+///
+/// // "none" produces a reset escape
+/// let reset = parse_color("none");
+/// assert!(reset.is_ok());
+///
+/// assert!(parse_color("invalid").is_err());
+/// ```
 pub fn parse_color(src: &str) -> Result<Color> {
     Color::from_str(src)
 }
@@ -102,6 +124,47 @@ mod tests {
             Color::from_str("wat").is_err(),
             "this color should not exist"
         );
+    }
+
+    #[test]
+    fn color_none_resets_fg() {
+        let actual = format!("{}", tcolor::Fg(Color::from_str("none").unwrap()));
+        assert_eq!(actual, "\x1B[39m");
+    }
+
+    #[test]
+    fn color_none_resets_bg() {
+        let actual = format!("{}", tcolor::Bg(Color::from_str("none").unwrap()));
+        assert_eq!(actual, "\x1B[49m");
+    }
+
+    #[test]
+    fn bright_color_hyphen_form() {
+        let c = Color::from_str("bright-black").unwrap();
+        assert_eq!(c.0, Some(8));
+    }
+
+    #[test]
+    fn bright_color_compact_form() {
+        let c = Color::from_str("brightblack").unwrap();
+        assert_eq!(c.0, Some(8));
+    }
+
+    #[test]
+    fn bright_color_both_forms_equal() {
+        for (hyphen, compact) in [
+            ("bright-red", "brightred"),
+            ("bright-green", "brightgreen"),
+            ("bright-blue", "brightblue"),
+            ("bright-cyan", "brightcyan"),
+            ("bright-white", "brightwhite"),
+            ("bright-magenta", "brightmagenta"),
+            ("bright-yellow", "brightyellow"),
+        ] {
+            let a = Color::from_str(hyphen).unwrap();
+            let b = Color::from_str(compact).unwrap();
+            assert_eq!(a.0, b.0, "{hyphen} and {compact} should map to same value");
+        }
     }
 }
 
