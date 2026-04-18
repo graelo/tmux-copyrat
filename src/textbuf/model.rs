@@ -5,7 +5,7 @@ use sequence_trie::SequenceTrie;
 
 use super::alphabet::Alphabet;
 use super::raw_span::RawSpan;
-use super::regexes::{EXCLUDE_PATTERNS, NamedPattern, PATTERNS};
+use super::regexes::{EXCLUDE_REGEXES, NamedPattern, PATTERN_REGEXES};
 use super::span::Span;
 
 /// Holds data for the `Ui`.
@@ -67,12 +67,7 @@ fn find_raw_spans<'a>(
     custom_patterns: &'a [String],
     use_all_patterns: bool,
 ) -> Vec<RawSpan<'a>> {
-    let exclude_regexes = EXCLUDE_PATTERNS
-        .iter()
-        .map(|&(name, pattern)| (name, Regex::new(pattern).unwrap()))
-        .collect::<Vec<_>>();
-
-    let custom_regexes = custom_patterns
+    let custom_regexes: Vec<(&str, Regex)> = custom_patterns
         .iter()
         .map(|pattern| {
             (
@@ -80,21 +75,26 @@ fn find_raw_spans<'a>(
                 Regex::new(pattern).expect("Invalid custom regexp"),
             )
         })
-        .collect::<Vec<_>>();
+        .collect();
 
-    let regexes = if use_all_patterns {
-        PATTERNS
-            .iter()
-            .map(|&(name, pattern)| (name, Regex::new(pattern).unwrap()))
-            .collect::<Vec<(&str, regex::Regex)>>()
-    } else {
+    let named_regexes: Vec<(&str, Regex)> = if !use_all_patterns {
         named_patterns
             .iter()
             .map(|NamedPattern(name, pattern)| (name.as_str(), Regex::new(pattern).unwrap()))
-            .collect::<Vec<(&str, regex::Regex)>>()
+            .collect()
+    } else {
+        Vec::new()
     };
 
-    let all_regexes = [exclude_regexes, custom_regexes, regexes].concat();
+    // Collect references to all regexes: static (pre-compiled) + dynamic (per-call).
+    let mut all_regexes: Vec<(&str, &Regex)> = Vec::new();
+    all_regexes.extend(EXCLUDE_REGEXES.iter().map(|(n, r)| (*n, r)));
+    all_regexes.extend(custom_regexes.iter().map(|(n, r)| (*n, r)));
+    if use_all_patterns {
+        all_regexes.extend(PATTERN_REGEXES.iter().map(|(n, r)| (*n, r)));
+    } else {
+        all_regexes.extend(named_regexes.iter().map(|(n, r)| (*n, r)));
+    }
 
     let mut raw_spans = Vec::new();
 

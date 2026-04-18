@@ -125,10 +125,10 @@ pub(crate) fn try_parse_chars(src: &str) -> Result<HintSurroundingsArg> {
         return Err(Error::ExpectedSurroundingPair);
     }
 
-    let chars: Vec<char> = src.chars().collect();
+    let mut chars = src.chars();
     Ok(HintSurroundingsArg {
-        open: chars[0],
-        close: chars[1],
+        open: chars.next().unwrap(),
+        close: chars.next().unwrap(),
     })
 }
 
