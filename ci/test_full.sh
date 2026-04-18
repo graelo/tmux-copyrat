@@ -42,7 +42,7 @@ cargo build --no-default-features
 cargo nextest run --no-default-features
 
 # test each isolated feature, with and without std
-for feature in ${FEATURES[*]}; do
+for feature in "${FEATURES[@]}"; do
   # cargo build --no-default-features --features="std $feature"
   # cargo nextest run --no-default-features --features="std $feature"
 
