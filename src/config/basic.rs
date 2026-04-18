@@ -132,6 +132,23 @@ pub(crate) fn try_parse_chars(src: &str) -> Result<HintSurroundingsArg> {
     })
 }
 
+impl Config {
+    pub fn hint_style(&self) -> Option<ui::HintStyle> {
+        match &self.hint_style_arg {
+            None => None,
+            Some(style) => match style {
+                HintStyleArg::Bold => Some(ui::HintStyle::Bold),
+                HintStyleArg::Italic => Some(ui::HintStyle::Italic),
+                HintStyleArg::Underline => Some(ui::HintStyle::Underline),
+                HintStyleArg::Surround => {
+                    let HintSurroundingsArg { open, close } = self.hint_surroundings;
+                    Some(ui::HintStyle::Surround(open, close))
+                }
+            },
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -170,22 +187,5 @@ mod tests {
     #[test]
     fn try_parse_chars_empty_rejected() {
         assert!(try_parse_chars("").is_err());
-    }
-}
-
-impl Config {
-    pub fn hint_style(&self) -> Option<ui::HintStyle> {
-        match &self.hint_style_arg {
-            None => None,
-            Some(style) => match style {
-                HintStyleArg::Bold => Some(ui::HintStyle::Bold),
-                HintStyleArg::Italic => Some(ui::HintStyle::Italic),
-                HintStyleArg::Underline => Some(ui::HintStyle::Underline),
-                HintStyleArg::Surround => {
-                    let HintSurroundingsArg { open, close } = self.hint_surroundings;
-                    Some(ui::HintStyle::Surround(open, close))
-                }
-            },
-        }
     }
 }
