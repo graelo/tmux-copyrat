@@ -72,6 +72,28 @@ impl FromStr for Color {
     }
 }
 
+/// Parse a color name into a [`Color`].
+///
+/// Accepts standard terminal color names, bright variants (with or without
+/// hyphen), and `"none"` for reset.
+///
+/// # Examples
+///
+/// ```
+/// use copyrat::ui::colors::parse_color;
+///
+/// let green = parse_color("green");
+/// assert!(green.is_ok());
+///
+/// let bright = parse_color("bright-red");
+/// assert!(bright.is_ok());
+///
+/// // "none" produces a reset escape
+/// let reset = parse_color("none");
+/// assert!(reset.is_ok());
+///
+/// assert!(parse_color("invalid").is_err());
+/// ```
 pub fn parse_color(src: &str) -> Result<Color> {
     Color::from_str(src)
 }

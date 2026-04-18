@@ -41,6 +41,7 @@ const ALPHABETS: [(&str, &str); 21] = [
 /// Letters 'n' and 'N' are systematically removed to prevent conflict with
 /// navigation keys (arrows and 'n' 'N'). Letters 'y' and 'Y' are also removed
 /// to prevent conflict with yank/copy.
+///
 pub fn parse_alphabet(src: &str) -> Result<Alphabet> {
     let alphabet_pair = ALPHABETS.iter().find(|&(name, _letters)| name == &src);
 

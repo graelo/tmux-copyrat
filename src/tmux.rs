@@ -47,6 +47,23 @@ impl FromStr for Pane {
     ///
     /// For definitions, look at `Pane` type,
     /// and at the tmux man page for definitions.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::str::FromStr;
+    /// use copyrat::tmux::Pane;
+    ///
+    /// let pane = Pane::from_str("%52:false:62:3:false").unwrap();
+    /// assert_eq!(pane.height, 62);
+    /// assert_eq!(pane.scroll_position, 3);
+    /// assert!(!pane.is_active);
+    ///
+    /// // Empty scroll_position defaults to 0
+    /// let pane = Pane::from_str("%53:false:23::true").unwrap();
+    /// assert_eq!(pane.scroll_position, 0);
+    /// assert!(pane.is_active);
+    /// ```
     fn from_str(src: &str) -> std::result::Result<Self, Self::Err> {
         let items: Vec<&str> = src.split(':').collect();
         assert_eq!(items.len(), 5, "tmux should have returned 5 items per line");
@@ -134,8 +151,20 @@ pub struct PaneId(String);
 impl FromStr for PaneId {
     type Err = Error;
 
-    /// Parse into PaneId. The `&str` must be start with '%'
-    /// followed by a `u16`.
+    /// Parse into PaneId. The `&str` must start with '%' followed by a `u16`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use std::str::FromStr;
+    /// use copyrat::tmux::PaneId;
+    ///
+    /// let id = PaneId::from_str("%42").unwrap();
+    /// assert_eq!(id.as_str(), "%42");
+    ///
+    /// assert!(PaneId::from_str("42").is_err());   // missing %
+    /// assert!(PaneId::from_str("%abc").is_err());  // not a number
+    /// ```
     fn from_str(src: &str) -> std::result::Result<Self, Self::Err> {
         if !src.starts_with('%') {
             return Err(Error::ExpectedPaneIdMarker);
