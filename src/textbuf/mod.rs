@@ -688,6 +688,58 @@ mod tests {
     }
 
     #[test]
+    fn match_empty_buffer() {
+        let buffer = "";
+        let lines = buffer.split('\n').collect::<Vec<_>>();
+        let alphabet = Alphabet("abcd".to_string());
+        let spans = Model::new(&lines, &alphabet, true, &[], &[], false, false).spans;
+        assert!(spans.is_empty());
+    }
+
+    #[test]
+    fn match_no_matching_content() {
+        let buffer = "just plain text with nothing to match";
+        let lines = buffer.split('\n').collect::<Vec<_>>();
+        let alphabet = Alphabet("abcd".to_string());
+        let spans = Model::new(&lines, &alphabet, true, &[], &[], false, false).spans;
+        assert!(spans.is_empty());
+    }
+
+    #[test]
+    fn span_coordinates() {
+        let buffer = "lorem 127.0.0.1 ipsum\n255.255.255.255 dolor";
+        let lines = buffer.split('\n').collect::<Vec<_>>();
+        let alphabet = Alphabet("abcd".to_string());
+        let spans = Model::new(&lines, &alphabet, true, &[], &[], false, false).spans;
+
+        // First IP on line 0, starting at column 6
+        assert_eq!(spans[0].text, "127.0.0.1");
+        assert_eq!(spans[0].x, 6);
+        assert_eq!(spans[0].y, 0);
+
+        // Second IP on line 1, starting at column 0
+        assert_eq!(spans[1].text, "255.255.255.255");
+        assert_eq!(spans[1].x, 0);
+        assert_eq!(spans[1].y, 1);
+    }
+
+    #[test]
+    fn span_coordinates_multiline() {
+        let buffer = "aaa https://example.com bbb\nccc\nddd user@test.org eee";
+        let lines = buffer.split('\n').collect::<Vec<_>>();
+        let alphabet = Alphabet("abcd".to_string());
+        let spans = Model::new(&lines, &alphabet, true, &[], &[], false, false).spans;
+
+        let url_span = spans.iter().find(|s| s.pattern == "url").unwrap();
+        assert_eq!(url_span.y, 0);
+        assert_eq!(url_span.x, 4);
+
+        let email_span = spans.iter().find(|s| s.pattern == "email").unwrap();
+        assert_eq!(email_span.y, 2);
+        assert_eq!(email_span.x, 4);
+    }
+
+    #[test]
     fn named_patterns() {
         let buffer = "Lorem [link](http://foo.bar) ipsum CUSTOM-52463 lorem ISSUE-123 lorem\nLorem /var/fd70b569/9999.log 52463 lorem\n Lorem 973113 lorem 123e4567-e89b-12d3-a456-426655440000 lorem 8888 lorem\n  https://crates.io/23456/fd70b569 lorem";
         let lines = buffer.split('\n').collect::<Vec<_>>();

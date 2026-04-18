@@ -81,3 +81,36 @@ pub(crate) fn parse_pattern_name(src: &str) -> Result<NamedPattern> {
         None => Err(Error::UnknownPatternName),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_known_pattern_name() {
+        let named = parse_pattern_name("url").unwrap();
+        assert_eq!(named.0, "url");
+        // Verify the returned pattern compiles
+        assert!(Regex::new(&named.1).is_ok());
+    }
+
+    #[test]
+    fn parse_unknown_pattern_name() {
+        assert!(parse_pattern_name("nonexistent").is_err());
+    }
+
+    #[test]
+    fn all_pattern_names_are_parseable() {
+        for &(name, _) in &PATTERNS {
+            let result = parse_pattern_name(name);
+            assert!(result.is_ok(), "pattern name '{name}' failed to parse");
+        }
+    }
+
+    #[test]
+    fn all_patterns_compile_as_regex() {
+        // Force LazyLock initialization — panics if any pattern is invalid
+        let _ = &*EXCLUDE_REGEXES;
+        let _ = &*PATTERN_REGEXES;
+    }
+}

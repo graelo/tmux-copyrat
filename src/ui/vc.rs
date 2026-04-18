@@ -1599,4 +1599,172 @@ Barcelona https://en.wikipedia.org/wiki/Barcelona -   ";
         assert_eq!(display_width("\tTODO.md", 8), 15); // 8 (tab) + 7 (TODO.md)
         assert_eq!(display_width("\tsrc/textbuf/toto.rs", 8), 27); // 8 + 19
     }
+
+    #[test]
+    fn test_display_width_cjk() {
+        // CJK characters are width 2
+        assert_eq!(display_width("你好", 8), 4);
+        assert_eq!(display_width("a你b", 8), 4); // 1 + 2 + 1
+    }
+
+    #[test]
+    fn test_display_width_combining() {
+        // Combining diacritical mark (width 0) after base char
+        assert_eq!(display_width("e\u{0301}", 8), 1); // é as e + combining acute
+    }
+
+    // -- Viewport tests --
+
+    #[test]
+    fn test_viewport_is_visible() {
+        let vp = Viewport::new(10);
+        assert!(vp.is_visible(0));
+        assert!(vp.is_visible(9));
+        assert!(!vp.is_visible(10));
+    }
+
+    #[test]
+    fn test_viewport_screen_y() {
+        let vp = Viewport::new(10);
+        // screen_y is 1-indexed for termion
+        assert_eq!(vp.screen_y(0), Some(1));
+        assert_eq!(vp.screen_y(9), Some(10));
+        assert_eq!(vp.screen_y(10), None);
+    }
+
+    #[test]
+    fn test_viewport_screen_y_after_scroll() {
+        let mut vp = Viewport::new(10);
+        vp.top_row = 5;
+        assert_eq!(vp.screen_y(4), None); // above viewport
+        assert_eq!(vp.screen_y(5), Some(1)); // first visible row
+        assert_eq!(vp.screen_y(14), Some(10)); // last visible row
+        assert_eq!(vp.screen_y(15), None); // below viewport
+    }
+
+    #[test]
+    fn test_viewport_ensure_visible_scroll_down() {
+        let mut vp = Viewport::new(5);
+        // Row 7 is below viewport [0..5)
+        assert!(vp.ensure_visible(7));
+        assert_eq!(vp.top_row, 3); // 7 - 5 + 1
+    }
+
+    #[test]
+    fn test_viewport_ensure_visible_scroll_up() {
+        let mut vp = Viewport::new(5);
+        vp.top_row = 10;
+        assert!(vp.ensure_visible(3));
+        assert_eq!(vp.top_row, 3);
+    }
+
+    #[test]
+    fn test_viewport_ensure_visible_already_visible() {
+        let mut vp = Viewport::new(10);
+        assert!(!vp.ensure_visible(5));
+        assert_eq!(vp.top_row, 0);
+    }
+
+    #[test]
+    fn test_viewport_scroll_up_at_top() {
+        let mut vp = Viewport::new(10);
+        assert!(!vp.scroll_up(5));
+    }
+
+    #[test]
+    fn test_viewport_scroll_up() {
+        let mut vp = Viewport::new(10);
+        vp.top_row = 8;
+        assert!(vp.scroll_up(3));
+        assert_eq!(vp.top_row, 5);
+    }
+
+    #[test]
+    fn test_viewport_scroll_up_saturates() {
+        let mut vp = Viewport::new(10);
+        vp.top_row = 2;
+        assert!(vp.scroll_up(10));
+        assert_eq!(vp.top_row, 0);
+    }
+
+    #[test]
+    fn test_viewport_scroll_down() {
+        let mut vp = Viewport::new(10);
+        assert!(vp.scroll_down(3, 30));
+        assert_eq!(vp.top_row, 3);
+    }
+
+    #[test]
+    fn test_viewport_scroll_down_at_bottom() {
+        let mut vp = Viewport::new(10);
+        vp.top_row = 20; // max_top = 30 - 10 = 20
+        assert!(!vp.scroll_down(5, 30));
+    }
+
+    #[test]
+    fn test_viewport_scroll_down_clamps() {
+        let mut vp = Viewport::new(10);
+        vp.top_row = 18;
+        assert!(vp.scroll_down(100, 30));
+        assert_eq!(vp.top_row, 20); // clamped to max_top
+    }
+
+    // -- compute_wrapped_lines tests --
+
+    #[test]
+    fn test_wrapped_lines_no_wrapping() {
+        let lines = vec!["short", "also short"];
+        let wrapped = compute_wrapped_lines(&lines, 80);
+        assert_eq!(wrapped.len(), 2);
+        assert_eq!(wrapped[0].pos_y, 0);
+        assert_eq!(wrapped[1].pos_y, 1);
+    }
+
+    #[test]
+    fn test_wrapped_lines_exact_width() {
+        // Line exactly fits terminal width — no wrapping
+        let line = "a".repeat(80);
+        let lines = vec![line.as_str(), "next"];
+        let wrapped = compute_wrapped_lines(&lines, 80);
+        assert_eq!(wrapped[0].pos_y, 0);
+        assert_eq!(wrapped[1].pos_y, 1); // no extra row
+    }
+
+    #[test]
+    fn test_wrapped_lines_one_over() {
+        // Line is 81 chars on 80-col terminal — wraps to 2 rows
+        let line = "a".repeat(81);
+        let lines = vec![line.as_str(), "next"];
+        let wrapped = compute_wrapped_lines(&lines, 80);
+        assert_eq!(wrapped[0].pos_y, 0);
+        assert_eq!(wrapped[1].pos_y, 2); // line 0 took 2 rows
+    }
+
+    #[test]
+    fn test_wrapped_lines_two_full_rows() {
+        // 160 ASCII chars on 80-col terminal — exactly 2 rows
+        let line = "a".repeat(160);
+        let lines = vec![line.as_str(), "next"];
+        let wrapped = compute_wrapped_lines(&lines, 80);
+        assert_eq!(wrapped[0].pos_y, 0);
+        assert_eq!(wrapped[1].pos_y, 2);
+    }
+
+    #[test]
+    fn test_wrapped_lines_161_chars() {
+        // 161 chars on 80-col terminal — wraps to 3 rows
+        let line = "a".repeat(161);
+        let lines = vec![line.as_str(), "next"];
+        let wrapped = compute_wrapped_lines(&lines, 80);
+        assert_eq!(wrapped[0].pos_y, 0);
+        assert_eq!(wrapped[1].pos_y, 3);
+    }
+
+    #[test]
+    fn test_wrapped_lines_empty() {
+        let lines = vec![""];
+        let wrapped = compute_wrapped_lines(&lines, 80);
+        assert_eq!(wrapped.len(), 1);
+        assert_eq!(wrapped[0].pos_y, 0);
+    }
 }

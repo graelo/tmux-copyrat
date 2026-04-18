@@ -246,4 +246,40 @@ mod tests {
 
         assert_eq!(panes, expected);
     }
+
+    #[test]
+    fn test_parse_copy_mode() {
+        let pane = Pane::from_str("%10:true:40:5:true").unwrap();
+        assert!(pane.is_copy_mode);
+        assert_eq!(pane.scroll_position, 5);
+        assert!(pane.is_active);
+    }
+
+    #[test]
+    fn test_pane_id_valid() {
+        let id = PaneId::from_str("%42").unwrap();
+        assert_eq!(id.as_str(), "%42");
+    }
+
+    #[test]
+    fn test_pane_id_missing_prefix() {
+        assert!(PaneId::from_str("42").is_err());
+    }
+
+    #[test]
+    fn test_pane_id_non_numeric() {
+        assert!(PaneId::from_str("%abc").is_err());
+    }
+
+    #[test]
+    #[should_panic(expected = "tmux should have returned 5 items")]
+    fn test_parse_wrong_field_count() {
+        let _ = Pane::from_str("%10:false:40");
+    }
+
+    #[test]
+    fn test_pane_id_display() {
+        let id = PaneId::from_str("%7").unwrap();
+        assert_eq!(format!("{id}"), "%7");
+    }
 }

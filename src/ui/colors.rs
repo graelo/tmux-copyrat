@@ -103,6 +103,47 @@ mod tests {
             "this color should not exist"
         );
     }
+
+    #[test]
+    fn color_none_resets_fg() {
+        let actual = format!("{}", tcolor::Fg(Color::from_str("none").unwrap()));
+        assert_eq!(actual, "\x1B[39m");
+    }
+
+    #[test]
+    fn color_none_resets_bg() {
+        let actual = format!("{}", tcolor::Bg(Color::from_str("none").unwrap()));
+        assert_eq!(actual, "\x1B[49m");
+    }
+
+    #[test]
+    fn bright_color_hyphen_form() {
+        let c = Color::from_str("bright-black").unwrap();
+        assert_eq!(c.0, Some(8));
+    }
+
+    #[test]
+    fn bright_color_compact_form() {
+        let c = Color::from_str("brightblack").unwrap();
+        assert_eq!(c.0, Some(8));
+    }
+
+    #[test]
+    fn bright_color_both_forms_equal() {
+        for (hyphen, compact) in [
+            ("bright-red", "brightred"),
+            ("bright-green", "brightgreen"),
+            ("bright-blue", "brightblue"),
+            ("bright-cyan", "brightcyan"),
+            ("bright-white", "brightwhite"),
+            ("bright-magenta", "brightmagenta"),
+            ("bright-yellow", "brightyellow"),
+        ] {
+            let a = Color::from_str(hyphen).unwrap();
+            let b = Color::from_str(compact).unwrap();
+            assert_eq!(a.0, b.0, "{hyphen} and {compact} should map to same value");
+        }
+    }
 }
 
 /// Holds color-related data.
