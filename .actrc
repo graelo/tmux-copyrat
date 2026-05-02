@@ -1,0 +1,2 @@
+-P ubuntu-latest=catthehacker/ubuntu:act-latest
+-P ubuntu-24.04-arm=catthehacker/ubuntu:act-latest
