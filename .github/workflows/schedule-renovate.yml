@@ -43,6 +43,5 @@ jobs:
         env:
           RENOVATE_REPOSITORIES: ${{ github.repository }}
           RENOVATE_TOKEN: ${{ steps.app-token.outputs.token }}
-          LOG_LEVEL: debug
         with:
           configurationFile: renovate.json
