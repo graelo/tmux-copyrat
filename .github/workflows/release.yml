@@ -27,18 +27,19 @@ jobs:
       run:
         shell: bash
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
             rust: stable
             suffix: ''
-            archive_ext: zip
+            archive_ext: tar.xz
           - os: macos-15-intel
             target: x86_64-apple-darwin
             rust: stable
             suffix: ''
-            archive_ext: zip
+            archive_ext: tar.xz
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
             rust: stable
@@ -72,25 +73,16 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: cargo build --release --target "${TARGET}"
 
-      - name: Package – compress (zip)
-        if: ${{ matrix.archive_ext == 'zip' }}
-        env:
-          REPO_NAME: ${{ github.event.repository.name }}
-          TARGET: ${{ matrix.target }}
-          ARCHIVE_EXT: ${{ matrix.archive_ext }}
-        run: |
-          cp "target/${TARGET}/release/${REPO_NAME}" .
-          zip -A "${REPO_NAME}-${TARGET}.${ARCHIVE_EXT}" "${REPO_NAME}"
-
       - name: Package – compress (tar.xz)
-        if: ${{ matrix.archive_ext == 'tar.xz' }}
         env:
           REPO_NAME: ${{ github.event.repository.name }}
           TARGET: ${{ matrix.target }}
           ARCHIVE_EXT: ${{ matrix.archive_ext }}
         run: |
+          set -euo pipefail
           cp "target/${TARGET}/release/${REPO_NAME}" .
-          tar Jcf "${REPO_NAME}-${TARGET}.${ARCHIVE_EXT}" "${REPO_NAME}"
+          tar Jcf "${REPO_NAME}-${TARGET}.${ARCHIVE_EXT}" \
+            "${REPO_NAME}" README.md LICENSE
 
       - name: Package – list files
         env:
@@ -110,6 +102,7 @@ jobs:
   release:
     name: Publish release
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
       id-token: write
@@ -152,11 +145,11 @@ jobs:
       - name: Download – archive (aarch64-apple-darwin)
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ${{ github.event.repository.name }}-aarch64-apple-darwin.zip
+          name: ${{ github.event.repository.name }}-aarch64-apple-darwin.tar.xz
       - name: Download – archive (x86_64-apple-darwin)
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: ${{ github.event.repository.name }}-x86_64-apple-darwin.zip
+          name: ${{ github.event.repository.name }}-x86_64-apple-darwin.tar.xz
 
       - name: Create GitHub release
         env:
@@ -166,12 +159,12 @@ jobs:
           gh release create "${TAG_NAME}" \
             --title "${TAG_NAME}" \
             --notes-file CHANGELOG.md \
-            ./*.zip ./*.tar.xz
+            ./*.tar.xz
 
       - name: Attest provenance
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
-          subject-path: '*.zip,*.tar.xz'
+          subject-path: '*.tar.xz'
 
   homebrew:
     name: Bump Homebrew formula
