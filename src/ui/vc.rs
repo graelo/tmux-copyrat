@@ -447,7 +447,7 @@ impl<'a> ViewController<'a> {
             bg_color = color::Bg(*bg_color),
             fg_reset = color::Fg(color::Reset),
             bg_reset = color::Bg(color::Reset),
-            text = &text,
+            text = text,
         )
         .unwrap();
     }
@@ -1104,7 +1104,7 @@ path: /usr/local/bin/cargo";
                 bg = color::Bg(colors.focused_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
-                text = &text,
+                text = text,
             )
             .as_bytes()
         );
@@ -1141,7 +1141,7 @@ path: /usr/local/bin/cargo";
                 bg = color::Bg(colors.span_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
-                text = &text,
+                text = text,
             )
             .as_bytes()
         );
@@ -1178,7 +1178,7 @@ path: /usr/local/bin/cargo";
                 bg = color::Bg(colors.selected_bg),
                 fg_reset = color::Fg(color::Reset),
                 bg_reset = color::Bg(color::Reset),
-                text = &text,
+                text = text,
             )
             .as_bytes()
         );
