@@ -23,6 +23,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
+      id-token: write
+      attestations: write
     defaults:
       run:
         shell: bash
@@ -93,6 +95,13 @@ jobs:
           ls -alF .
           ls -alF "target/${TARGET}/release/"
 
+      - name: Attest provenance
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
+        with:
+          subject-path: |
+            ${{ github.event.repository.name }}-${{ matrix.target }}
+            ${{ github.event.repository.name }}-${{ matrix.target }}.${{ matrix.archive_ext }}
+
       - name: Upload – standalone
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -113,8 +122,6 @@ jobs:
     environment: release
     permissions:
       contents: write
-      id-token: write
-      attestations: write
     needs:
       - prepare-artifacts
     steps:
@@ -190,16 +197,6 @@ jobs:
             ./"${REPO_NAME}"-x86_64-apple-darwin \
             ./"${REPO_NAME}"-aarch64-unknown-linux-musl \
             ./"${REPO_NAME}"-x86_64-unknown-linux-musl
-
-      - name: Attest provenance
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
-        with:
-          subject-path: |
-            *.tar.xz
-            ${{ github.event.repository.name }}-aarch64-apple-darwin
-            ${{ github.event.repository.name }}-x86_64-apple-darwin
-            ${{ github.event.repository.name }}-aarch64-unknown-linux-musl
-            ${{ github.event.repository.name }}-x86_64-unknown-linux-musl
 
   homebrew:
     name: Bump Homebrew formula
