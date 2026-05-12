@@ -73,16 +73,18 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: cargo build --release --target "${TARGET}"
 
-      - name: Package – compress (tar.xz)
+      - name: Package – standalone + archive
         env:
           REPO_NAME: ${{ github.event.repository.name }}
           TARGET: ${{ matrix.target }}
           ARCHIVE_EXT: ${{ matrix.archive_ext }}
         run: |
           set -euo pipefail
+          cp "target/${TARGET}/release/${REPO_NAME}" "${REPO_NAME}-${TARGET}"
           cp "target/${TARGET}/release/${REPO_NAME}" .
           tar Jcf "${REPO_NAME}-${TARGET}.${ARCHIVE_EXT}" \
             "${REPO_NAME}" README.md LICENSE
+          rm "${REPO_NAME}"
 
       - name: Package – list files
         env:
@@ -90,7 +92,13 @@ jobs:
         run: |
           ls -alF .
           ls -alF "target/${TARGET}/release/"
-        shell: bash
+
+      - name: Upload – standalone
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ github.event.repository.name }}-${{ matrix.target }}
+          path: ${{ github.event.repository.name }}-${{ matrix.target }}
+          retention-days: 1
 
       - name: Upload – archive
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -134,6 +142,23 @@ jobs:
           ./convco changelog -c .convco --max-versions 1 --include-hidden-sections > CHANGELOG.md
           rm convco convco-ubuntu.zip
 
+      - name: Download – standalone (x86_64-unknown-linux-musl)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ github.event.repository.name }}-x86_64-unknown-linux-musl
+      - name: Download – standalone (aarch64-unknown-linux-musl)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ github.event.repository.name }}-aarch64-unknown-linux-musl
+      - name: Download – standalone (aarch64-apple-darwin)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ github.event.repository.name }}-aarch64-apple-darwin
+      - name: Download – standalone (x86_64-apple-darwin)
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ github.event.repository.name }}-x86_64-apple-darwin
+
       - name: Download – archive (x86_64-unknown-linux-musl)
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -154,17 +179,27 @@ jobs:
       - name: Create GitHub release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_NAME: ${{ github.event.repository.name }}
           TAG_NAME: ${{ github.ref_name }}
         run: |
           gh release create "${TAG_NAME}" \
             --title "${TAG_NAME}" \
             --notes-file CHANGELOG.md \
-            ./*.tar.xz
+            ./*.tar.xz \
+            ./"${REPO_NAME}"-aarch64-apple-darwin \
+            ./"${REPO_NAME}"-x86_64-apple-darwin \
+            ./"${REPO_NAME}"-aarch64-unknown-linux-musl \
+            ./"${REPO_NAME}"-x86_64-unknown-linux-musl
 
       - name: Attest provenance
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
-          subject-path: '*.tar.xz'
+          subject-path: |
+            *.tar.xz
+            ${{ github.event.repository.name }}-aarch64-apple-darwin
+            ${{ github.event.repository.name }}-x86_64-apple-darwin
+            ${{ github.event.repository.name }}-aarch64-unknown-linux-musl
+            ${{ github.event.repository.name }}-x86_64-unknown-linux-musl
 
   homebrew:
     name: Bump Homebrew formula
