@@ -19,10 +19,13 @@ concurrency:
 
 jobs:
   prepare-artifacts:
-    name: Build artifacts
+    name: ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
         include:
@@ -193,7 +196,8 @@ jobs:
         run: |
           echo "tag-name=${GITHUB_REF#refs/tags/}" >> "${GITHUB_OUTPUT}"
 
-      - uses: mislav/bump-homebrew-formula-action@ccf2332299a883f6af50a1d2d41e5df7904dd769 # v4.1
+      - name: Bump Homebrew formula
+        uses: mislav/bump-homebrew-formula-action@ccf2332299a883f6af50a1d2d41e5df7904dd769 # v4.1
         if: '!contains(github.ref, ''-'')' # skip prereleases
         with:
           formula-name: tmux-copyrat
