@@ -8,6 +8,29 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-05-13
+
+### Added
+
+- Doc tests for the public API and unit tests for previously untested modules
+- `cargo-nextest` as the test runner (CI and local)
+
+### Changed
+
+- Bump MSRV to 1.95
+- Dual-license under MIT or Apache-2.0 (was MIT only)
+- Release workflow now uploads standalone binaries alongside archives, attests
+  build provenance per target, and aligns with the github-actions-playbook
+  conventions; archives are tagged and shipped via subdir
+- `tmux-copyrat.tmux` installer fetches the standalone binary instead of
+  extracting the release archive
+- Renovate manages dependency and GitHub Action updates with automerge for
+  patch and minor PRs and a 3-day `minimumReleaseAge`
+
+### Performance
+
+- Compile static regexes once with `LazyLock`
+
 ## [0.8.6] - 2026-04-16
 
 ### Changed
@@ -130,7 +153,8 @@ and this project adheres to
 - Initial scrollback history support
 - Viewport scrolling with PageUp/PageDown
 
-[Unreleased]: https://github.com/graelo/tmux-copyrat/compare/v0.8.6...HEAD
+[Unreleased]: https://github.com/graelo/tmux-copyrat/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/graelo/tmux-copyrat/compare/v0.8.6...v0.9.0
 [0.8.6]: https://github.com/graelo/tmux-copyrat/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/graelo/tmux-copyrat/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/graelo/tmux-copyrat/compare/v0.8.3...v0.8.4
