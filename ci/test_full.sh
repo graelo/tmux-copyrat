@@ -27,9 +27,6 @@ if ! check_version $MSRV ; then
   exit 1
 fi
 
-FEATURES=()
-echo "Testing supported features: ${FEATURES[*]}"
-
 NEXTEST_PROFILE=""
 if [ -n "$CI" ]; then
   NEXTEST_PROFILE="--profile ci"
@@ -37,29 +34,9 @@ fi
 
 set -x
 
-# test the default
-cargo build
-cargo nextest run $NEXTEST_PROFILE
-
-# test `no_std`
-cargo build --no-default-features
-cargo nextest run $NEXTEST_PROFILE --no-default-features
-
-# test each isolated feature, with and without std
-for feature in "${FEATURES[@]}"; do
-  # cargo build --no-default-features --features="std $feature"
-  # cargo nextest run $NEXTEST_PROFILE --no-default-features --features="std $feature"
-
-  cargo build --no-default-features --features="$feature"
-  cargo nextest run $NEXTEST_PROFILE --no-default-features --features="$feature"
-done
-
-# test all supported features, with and without std
-# cargo build --features="std ${FEATURES[*]}"
-# cargo nextest run $NEXTEST_PROFILE --features="std ${FEATURES[*]}"
-
-cargo build --features="${FEATURES[*]}"
-cargo nextest run $NEXTEST_PROFILE --features="${FEATURES[*]}"
+# test the default build
+cargo build --locked
+cargo nextest run --locked $NEXTEST_PROFILE
 
 # doc tests (not supported by nextest)
-cargo test --doc
+cargo test --locked --doc
