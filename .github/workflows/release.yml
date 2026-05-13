@@ -34,38 +34,33 @@ jobs:
         include:
           - os: macos-latest
             target: aarch64-apple-darwin
-            rust: stable
           - os: macos-15-intel
             target: x86_64-apple-darwin
-            rust: stable
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            rust: stable
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
-            rust: stable
     steps:
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
-        with:
-          toolchain: ${{ matrix.rust }}
-          targets: ${{ matrix.target }}
-          components: rustfmt, clippy
-
-      - name: Install musl-tools (Linux)
-        if: contains(matrix.target, '-musl')
-        run: sudo apt-get update && sudo apt-get install -y musl-tools
-
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
+        with:
+          toolchain: stable
+          targets: ${{ matrix.target }}
+
+      - name: Install musl-tools (Linux)
+        if: contains(matrix.target, '-musl')
+        run: sudo apt-get update && sudo apt-get install -y musl-tools
+
       - name: Build (release)
         env:
           TARGET: ${{ matrix.target }}
-        run: cargo build --release --target "${TARGET}"
+        run: cargo build --locked --release --target "${TARGET}"
 
       - name: Package
         env:
@@ -82,7 +77,8 @@ jobs:
           PKG_DIR="${BIN}-${TAG}-${TARGET}"
           mkdir "${PKG_DIR}"
           cp "${SRC}" "${PKG_DIR}/"
-          cp README.md LICENSE "${PKG_DIR}/"
+          cp README.md "${PKG_DIR}/"
+          cp LICENSE* "${PKG_DIR}/" 2>/dev/null || true
 
           ARCHIVE_FILE="${PKG_DIR}.tar.xz"
           tar -cJf "${ARCHIVE_FILE}" "${PKG_DIR}"
