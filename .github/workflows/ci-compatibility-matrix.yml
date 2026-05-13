@@ -1,8 +1,8 @@
 # Compatibility testing: multi-version and multi-platform matrix.
 #
 # Local:
-#   act push -W .github/workflows/ci-compatibility-matrix.yml -j test-versions
-#   act push -W .github/workflows/ci-compatibility-matrix.yml -j test-other-platforms
+#   act push -W .github/workflows/ci-compatibility-matrix.yml -j test-all-versions
+#   act push -W .github/workflows/ci-compatibility-matrix.yml -j test-all-platforms
 
 name: 'CI: Compatibility Matrix'
 on:
@@ -17,11 +17,14 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test-versions:
+  test-all-versions:
     name: ubuntu-latest (${{ matrix.rust }})
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    defaults:
+      run:
+        shell: bash
     strategy:
       matrix:
         rust: [1.95.0, beta, nightly]
@@ -56,13 +59,13 @@ jobs:
 
       - name: Quality – cargo clippy
         run: |
-          cargo clippy --all-targets -- -D warnings
+          cargo clippy --locked --all-targets -- -D warnings
 
       - name: Build (dev)
-        run: cargo build
+        run: cargo build --locked
 
       - name: Build (release)
-        run: cargo build --release
+        run: cargo build --locked --release
 
       - name: Install cargo-nextest
         uses: taiki-e/install-action@cca35edeb1d01366c2843b68fc3ca441446d73d3 # v2.77.1
@@ -72,8 +75,8 @@ jobs:
       - name: Test
         run: ./ci/test_full.sh
 
-  test-other-platforms:
-    name: ${{ matrix.os }} (stable)
+  test-all-platforms:
+    name: ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -83,31 +86,23 @@ jobs:
     env:
       CARGO_BUILD_TARGET: ${{ matrix.target }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            type: unix
-            toolchain: stable
           - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-musl
-            type: unix
-            toolchain: stable
           - os: macos-15-intel
             target: x86_64-apple-darwin
-            type: unix
-            toolchain: stable
           - os: macos-latest
             target: aarch64-apple-darwin
-            type: unix
-            toolchain: stable
     steps:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@3c5f7ea28cd621ae0bf5283f0e981fb97b8a7af9 # master
         with:
-          toolchain: ${{ matrix.toolchain }}
+          toolchain: stable
           targets: ${{ matrix.target }}
-          components: rustfmt, clippy
 
       - name: Install musl-tools (Linux)
         if: contains(matrix.target, '-musl')
@@ -136,10 +131,10 @@ jobs:
           tool: cargo-nextest@0.9.133
 
       - name: Build (dev)
-        run: cargo build
+        run: cargo build --locked
 
       - name: Build (release)
-        run: cargo build --release
+        run: cargo build --locked --release
 
       - name: Test
         run: ./ci/test_full.sh
