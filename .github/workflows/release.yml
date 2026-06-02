@@ -31,14 +31,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: macos-latest
-            target: aarch64-apple-darwin
-          - os: macos-15-intel
-            target: x86_64-apple-darwin
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-          - os: ubuntu-24.04-arm
-            target: aarch64-unknown-linux-musl
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-latest
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-24.04-arm
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+          - target: aarch64-apple-darwin
+            os: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -61,7 +61,7 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: cargo build --locked --release --target "${TARGET}"
 
-      - name: Package
+      - name: Stage binary and archive
         env:
           BIN: ${{ github.event.repository.name }}
           TARGET: ${{ matrix.target }}
@@ -124,7 +124,6 @@ jobs:
 
       - name: Install convco
         run: |
-          git show-ref
           curl -sSfLO https://github.com/convco/convco/releases/latest/download/convco-ubuntu.zip
           unzip convco-ubuntu.zip
           chmod +x convco
@@ -179,7 +178,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Configure Homebrew, git, and gh for the bot
+      - name: Set up Homebrew bot
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
