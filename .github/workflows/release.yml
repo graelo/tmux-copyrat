@@ -178,7 +178,7 @@ jobs:
           permission-contents: write
           permission-pull-requests: write
 
-      - name: Setup Homebrew bot
+      - name: Set up Homebrew bot
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
