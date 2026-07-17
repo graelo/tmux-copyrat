@@ -61,12 +61,12 @@ jobs:
         run: |
           git show-ref
           echo Commit message: "$(git log -1 --pretty=%B)"
-          curl -sSfLO https://github.com/convco/convco/releases/latest/download/convco-ubuntu.zip
-          unzip convco-ubuntu.zip
-          chmod +x convco
-          ./convco --version
-          ./convco check -c .convco
-          rm convco
+          curl -sSfLO https://github.com/convco/convco/releases/latest/download/convco-x86_64-unknown-linux-musl.tar.gz
+          tar -xzf convco-x86_64-unknown-linux-musl.tar.gz
+          chmod +x convco-x86_64-unknown-linux-musl/convco
+          ./convco-x86_64-unknown-linux-musl/convco --version
+          ./convco-x86_64-unknown-linux-musl/convco check -c .convco
+          rm -rf convco-x86_64-unknown-linux-musl convco-x86_64-unknown-linux-musl.tar.gz
 
       - name: Build (dev)
         run: cargo build --locked
