@@ -57,16 +57,17 @@ jobs:
         run: |
           cargo clippy --locked --all-targets -- -D warnings
 
+      - name: Install convco
+        uses: taiki-e/install-action@7572810d7dd469b651bb7793945692cf78da5dd7 # v2.85.0
+        with:
+          tool: convco@0.7.0
+
       - name: Quality – convco check
         run: |
           git show-ref
           echo Commit message: "$(git log -1 --pretty=%B)"
-          curl -sSfLO https://github.com/convco/convco/releases/latest/download/convco-x86_64-unknown-linux-musl.tar.gz
-          tar -xzf convco-x86_64-unknown-linux-musl.tar.gz
-          chmod +x convco-x86_64-unknown-linux-musl/convco
-          ./convco-x86_64-unknown-linux-musl/convco --version
-          ./convco-x86_64-unknown-linux-musl/convco check -c .convco
-          rm -rf convco-x86_64-unknown-linux-musl convco-x86_64-unknown-linux-musl.tar.gz
+          convco --version
+          convco check -c .convco
 
       - name: Build (dev)
         run: cargo build --locked
