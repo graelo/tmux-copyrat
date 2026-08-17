@@ -89,6 +89,13 @@ echo "127.0.0.1 and 192.168.1.1 and hello@world.com" | copyrat -A -m
 
 ![[copyrat-output.png](images/copyrat-output.png)](images/copyrat-output.png)
 
+## Development
+
+For local verification, read the [`Makefile`](Makefile) for the canonical task
+definitions, or run `make help` to list them: run `make check` before pushing
+and `make check-all` before opening a pull request. See [CONTRIBUTING.md] for
+focused testing, code coverage, and manpage maintenance.
+
 ## See Also
 
 - [INSTALLATION.md] — install via TPM, manual clone, or Homebrew
