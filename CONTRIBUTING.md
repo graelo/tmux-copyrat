@@ -1,32 +1,33 @@
 # Contributing
 
-## Build
+## Build, test, check
+
+The `Makefile` is the canonical definition of every local task; run
+`make help` to list them. The ones you need day to day:
 
 ```sh
-cargo build                # debug
-make release               # release with native CPU opts
+cargo build                # debug build
+make release               # release build with native CPU opts
+make test                  # full test suite
+make check                 # fmt + lint + test — run before `git push`
+make check-all             # adds audits, commit lint, docs — run before a PR
+make fix                   # auto-format and apply clippy fixes
 ```
 
-## Test
+To run a single test, use nextest directly:
 
 ```sh
-cargo test                 # all tests
-cargo test test_name       # single test
-cargo test module::tests   # module tests
+cargo nextest run test_name
+cargo nextest run module::tests
 ```
 
-## Code Coverage
-
-Requires nightly and `grcov`:
+## Code coverage
 
 ```sh
-rustup component add llvm-tools-preview
-cargo install grcov
-rustup toolchain install nightly
 make coverage
 ```
 
-Report output: `./coverage/index.html`
+Report output: `./target/llvm-cov/html/index.html`
 
 ## Manpages
 
@@ -39,12 +40,7 @@ mandoc man/tmux-copyrat.1 | less
 mandoc man/copyrat.1 | less
 ```
 
-Lint with:
-
-```sh
-mandoc -Tlint man/tmux-copyrat.1
-mandoc -Tlint man/copyrat.1
-```
+Lint with `make man`.
 
 When to update them:
 
@@ -52,6 +48,9 @@ When to update them:
 - Changing a default value
 - Adding or removing a named pattern
 - Changing key bindings or runtime controls
+
+Key bindings and named patterns are also defined in `tmux-copyrat.tmux`, which
+is compiled into the binary — update it alongside the manpages.
 
 The version and date in the `.TH` header should be updated on each release.
 
