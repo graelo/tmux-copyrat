@@ -8,6 +8,28 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- Consolidate local verification onto the `Makefile`, which is now the single
+  definition of every task: `make check` is the pre-push gate and
+  `make check-all` the pre-PR gate
+- Reduce the `src/lib.rs` crate documentation to a short stub pointing at the
+  repository, rather than duplicating the README
+
+### Fixed
+
+- The `documentation` metadata now resolves; it pointed at
+  `https://docs.rs/tmux-copyrat`, which 404s, instead of the published crate
+  name `https://docs.rs/copyrat`
+- Coverage instructions now work: `make coverage` builds an HTML report with
+  `cargo-llvm-cov`, replacing a documented target that did not exist and its
+  nightly + grcov requirements
+
+### Removed
+
+- `.pre-commit-config.yaml`, whose hooks were never installed and whose Clippy
+  invocation contradicted CI; its Markdown check survives as `make md`
+
 ## [0.9.0] - 2026-05-13
 
 ### Added
