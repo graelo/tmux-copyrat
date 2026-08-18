@@ -65,20 +65,25 @@ impl FromStr for Pane {
     /// assert!(pane.is_active);
     /// ```
     fn from_str(src: &str) -> std::result::Result<Self, Self::Err> {
-        let items: Vec<&str> = src.split(':').collect();
-        assert_eq!(items.len(), 5, "tmux should have returned 5 items per line");
-
-        let mut iter = items.iter();
+        let mut fields = src.split(':');
 
         // Pane id must be start with '%' followed by a `u32`
-        let id_str = iter.next().unwrap();
+        let id_str = fields
+            .next()
+            .expect("str::split always returns at least one field");
         let id = PaneId::from_str(id_str)?;
 
-        let is_copy_mode = iter.next().unwrap().parse::<bool>()?;
+        let is_copy_mode = fields
+            .next()
+            .ok_or(Error::ExpectedPaneFieldCount)?
+            .parse::<bool>()?;
 
-        let height = iter.next().unwrap().parse::<i32>()?;
+        let height = fields
+            .next()
+            .ok_or(Error::ExpectedPaneFieldCount)?
+            .parse::<i32>()?;
 
-        let scroll_position = iter.next().unwrap();
+        let scroll_position = fields.next().ok_or(Error::ExpectedPaneFieldCount)?;
         let scroll_position = if scroll_position.is_empty() {
             "0"
         } else {
@@ -86,7 +91,14 @@ impl FromStr for Pane {
         };
         let scroll_position = scroll_position.parse::<i32>()?;
 
-        let is_active = iter.next().unwrap().parse::<bool>()?;
+        let is_active = fields
+            .next()
+            .ok_or(Error::ExpectedPaneFieldCount)?
+            .parse::<bool>()?;
+
+        if fields.next().is_some() {
+            return Err(Error::ExpectedPaneFieldCount);
+        }
 
         Ok(Pane {
             id,
@@ -301,9 +313,13 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "tmux should have returned 5 items")]
     fn test_parse_wrong_field_count() {
-        let _ = Pane::from_str("%10:false:40");
+        for pane in ["%10:false:40", "%10:false:40:5:true:extra"] {
+            assert!(matches!(
+                Pane::from_str(pane),
+                Err(Error::ExpectedPaneFieldCount)
+            ));
+        }
     }
 
     #[test]

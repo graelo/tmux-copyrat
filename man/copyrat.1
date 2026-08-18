@@ -27,7 +27,8 @@ in
 .BR tmux-copyrat (1).
 .TP
 .BR \-X ", " \-\-custom\-patterns " " \fIREGEX\fR
-Custom regex pattern (must contain a capture group). Repeatable.
+Custom regex pattern. The text captured by its first capture group is copied.
+Must contain a capture group. Repeatable.
 .SS Hint Generation
 .TP
 .BR \-k ", " \-\-alphabet " " \fILAYOUT\fR
@@ -152,6 +153,9 @@ A span was selected and printed to stdout.
 .TP
 .B 1
 No selection was made (user pressed Esc or no matches found).
+.TP
+.B 2
+An input or output error occurred.
 .SH SEE ALSO
 .BR tmux-copyrat (1),
 .BR tmux (1),

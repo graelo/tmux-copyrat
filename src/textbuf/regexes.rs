@@ -2,7 +2,7 @@
 //!
 //! All patterns must have one capture group. The first group is used.
 
-use std::sync::LazyLock;
+use std::{str::FromStr, sync::LazyLock};
 
 use regex::Regex;
 
@@ -70,14 +70,42 @@ pub(super) const PATTERNS: [(&str, &str); 21] = [
     ),
 ];
 
-/// Type-safe string Pattern Name (newtype).
+/// Validated custom regex pattern.
 #[derive(Debug, Clone)]
-pub struct NamedPattern(pub String, pub String);
+pub struct CustomPattern(Regex);
+
+impl CustomPattern {
+    pub(crate) fn as_regex(&self) -> &Regex {
+        &self.0
+    }
+}
+
+impl FromStr for CustomPattern {
+    type Err = Error;
+
+    /// Parse a custom regex that contains a capture group.
+    fn from_str(src: &str) -> Result<Self> {
+        let regex = Regex::new(src).map_err(Error::InvalidCustomRegex)?;
+
+        if regex.captures_len() < 2 {
+            return Err(Error::CustomRegexMissingCaptureGroup);
+        }
+
+        Ok(Self(regex))
+    }
+}
+
+/// Type-safe named pattern and its compiled regex.
+#[derive(Debug, Clone)]
+pub struct NamedPattern(pub String, pub Regex);
 
 /// Parse a name string into `NamedPattern`, used during CLI parsing.
 pub(crate) fn parse_pattern_name(src: &str) -> Result<NamedPattern> {
     match PATTERNS.iter().find(|&(name, _pattern)| name == &src) {
-        Some((name, pattern)) => Ok(NamedPattern(name.to_string(), pattern.to_string())),
+        Some((name, pattern)) => Ok(NamedPattern(
+            name.to_string(),
+            Regex::new(pattern).expect("Built-in regexes must compile."),
+        )),
         None => Err(Error::UnknownPatternName),
     }
 }
@@ -90,8 +118,7 @@ mod tests {
     fn parse_known_pattern_name() {
         let named = parse_pattern_name("url").unwrap();
         assert_eq!(named.0, "url");
-        // Verify the returned pattern compiles
-        assert!(Regex::new(&named.1).is_ok());
+        assert_eq!(named.1.as_str(), PATTERNS[1].1);
     }
 
     #[test]
@@ -112,5 +139,21 @@ mod tests {
         // Force LazyLock initialization — panics if any pattern is invalid
         let _ = &*EXCLUDE_REGEXES;
         let _ = &*PATTERN_REGEXES;
+    }
+
+    #[test]
+    fn custom_pattern_rejects_invalid_regex() {
+        assert!(matches!(
+            CustomPattern::from_str("("),
+            Err(Error::InvalidCustomRegex(_))
+        ));
+    }
+
+    #[test]
+    fn custom_pattern_requires_capture_group() {
+        assert!(matches!(
+            CustomPattern::from_str("foo"),
+            Err(Error::CustomRegexMissingCaptureGroup)
+        ));
     }
 }
