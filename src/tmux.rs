@@ -68,7 +68,9 @@ impl FromStr for Pane {
         let mut fields = src.split(':');
 
         // Pane id must be start with '%' followed by a `u32`
-        let id_str = fields.next().ok_or(Error::ExpectedPaneFieldCount)?;
+        let id_str = fields
+            .next()
+            .expect("str::split always returns at least one field");
         let id = PaneId::from_str(id_str)?;
 
         let is_copy_mode = fields
