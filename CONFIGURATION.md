@@ -205,7 +205,7 @@ add new patterns. Read the next section if you want to bypass these mechanics.
 ### Syntax
 
 - `pattern-name {name}` - Use built-in pattern
-- `custom-pattern {regex}` - Use custom regex
+- `custom-pattern {regex}` - Use a custom regex; capture group 1 is selected
 - `""` (empty) - Disable binding
 
 ### Available Patterns
@@ -244,7 +244,7 @@ set -g @copyrat-bind-6 "pattern-name ipv4"     # 6 = IPv4 not IPv6
 
 # Add custom patterns
 set -g @copyrat-bind-M "custom-pattern \
-'[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}'"
+'([a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2})'"
 
 # Remove bindings
 set -g @copyrat-bind-D ""                      # Disable D
@@ -307,7 +307,7 @@ set -g @copyrat-separator "\n"
 # Custom bindings
 set -g @copyrat-bind-m "pattern-name email"
 set -g @copyrat-bind-M "custom-pattern \
-'[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}'"
+'([a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2}:[a-f0-9]{2})'"
 set -g @copyrat-bind-D ""  # Disable docker binding
 ```
 

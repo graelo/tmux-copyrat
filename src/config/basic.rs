@@ -42,8 +42,8 @@ pub struct Config {
     )]
     pub named_patterns: Vec<regexes::NamedPattern>,
 
-    /// Additional regex patterns ("(foo.*)bar", etc). Must have a capture
-    /// group.
+    /// Additional regex patterns ("(foo.*)bar", etc). The first capture
+    /// group's text is selectable.
     #[arg(short = 'X', long, value_parser(CustomPattern::from_str))]
     pub custom_patterns: Vec<CustomPattern>,
 
