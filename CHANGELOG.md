@@ -22,6 +22,8 @@ and this project adheres to
   panics, hangs, and empty selections
 - Return errors instead of panicking when tmux pane output is malformed or
   standard input cannot be read
+- Use exit status 2 for standalone input/output errors, distinct from status 1
+  when no selection is made
 - The `documentation` metadata now resolves; it pointed at
   `https://docs.rs/tmux-copyrat`, which 404s, instead of the published crate
   name `https://docs.rs/copyrat`
