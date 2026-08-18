@@ -14,8 +14,17 @@ pub enum Error {
     #[error("Unknown pattern name")]
     UnknownPatternName,
 
+    #[error("Invalid custom regex: {0}")]
+    InvalidCustomRegex(#[source] regex::Error),
+
+    #[error("Custom regex must contain a capture group")]
+    CustomRegexMissingCaptureGroup,
+
     #[error("Expected a pane id marker")]
     ExpectedPaneIdMarker,
+
+    #[error("Expected five colon-separated tmux pane fields")]
+    ExpectedPaneFieldCount,
 
     #[error("Failed parsing integer")]
     ExpectedInt {

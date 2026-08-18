@@ -3,7 +3,7 @@ use std::io::{self, Read};
 
 use copyrat::{config::basic, run, ui::Selection};
 
-fn main() {
+fn main() -> io::Result<()> {
     let opt = basic::Config::parse();
 
     // Copy the pane contents (piped in via stdin) into a buffer, and split lines.
@@ -11,7 +11,7 @@ fn main() {
     let mut handle = stdin.lock();
 
     let mut buffer = String::new();
-    handle.read_to_string(&mut buffer).unwrap();
+    handle.read_to_string(&mut buffer)?;
     let lines = buffer.split('\n').collect::<Vec<_>>();
 
     // Execute copyrat over the buffer (will take control over stdout).
@@ -23,4 +23,5 @@ fn main() {
         std::process::exit(1);
     };
     println!("{text}");
+    Ok(())
 }

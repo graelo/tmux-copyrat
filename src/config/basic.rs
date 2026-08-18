@@ -1,11 +1,11 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use clap::{ArgAction, Parser, ValueEnum};
 
 use crate::{
     Error, Result,
     config::extended::OutputDestination,
-    textbuf::{alphabet, regexes},
+    textbuf::{CustomPattern, alphabet, regexes},
     ui,
 };
 
@@ -44,8 +44,8 @@ pub struct Config {
 
     /// Additional regex patterns ("(foo.*)bar", etc). Must have a capture
     /// group.
-    #[arg(short = 'X', long)]
-    pub custom_patterns: Vec<String>,
+    #[arg(short = 'X', long, value_parser(CustomPattern::from_str))]
+    pub custom_patterns: Vec<CustomPattern>,
 
     /// Assign hints starting from the bottom of the screen.
     #[arg(short, long, action = ArgAction::SetTrue)]

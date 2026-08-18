@@ -2,7 +2,7 @@
 //!
 //! All patterns must have one capture group. The first group is used.
 
-use std::sync::LazyLock;
+use std::{str::FromStr, sync::LazyLock};
 
 use regex::Regex;
 
@@ -70,6 +70,31 @@ pub(super) const PATTERNS: [(&str, &str); 21] = [
     ),
 ];
 
+/// Validated custom regex pattern.
+#[derive(Debug, Clone)]
+pub struct CustomPattern(Regex);
+
+impl CustomPattern {
+    pub(crate) fn as_regex(&self) -> &Regex {
+        &self.0
+    }
+}
+
+impl FromStr for CustomPattern {
+    type Err = Error;
+
+    /// Parse a custom regex that contains a capture group.
+    fn from_str(src: &str) -> Result<Self> {
+        let regex = Regex::new(src).map_err(Error::InvalidCustomRegex)?;
+
+        if regex.captures_len() < 2 {
+            return Err(Error::CustomRegexMissingCaptureGroup);
+        }
+
+        Ok(Self(regex))
+    }
+}
+
 /// Type-safe string Pattern Name (newtype).
 #[derive(Debug, Clone)]
 pub struct NamedPattern(pub String, pub String);
@@ -112,5 +137,21 @@ mod tests {
         // Force LazyLock initialization — panics if any pattern is invalid
         let _ = &*EXCLUDE_REGEXES;
         let _ = &*PATTERN_REGEXES;
+    }
+
+    #[test]
+    fn custom_pattern_rejects_invalid_regex() {
+        assert!(matches!(
+            CustomPattern::from_str("("),
+            Err(Error::InvalidCustomRegex(_))
+        ));
+    }
+
+    #[test]
+    fn custom_pattern_requires_capture_group() {
+        assert!(matches!(
+            CustomPattern::from_str("foo"),
+            Err(Error::CustomRegexMissingCaptureGroup)
+        ));
     }
 }

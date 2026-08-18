@@ -18,6 +18,10 @@ and this project adheres to
 
 ### Fixed
 
+- Reject invalid custom patterns and ignore empty matches or captures to prevent
+  panics, hangs, and empty selections
+- Return errors instead of panicking when tmux pane output is malformed or
+  standard input cannot be read
 - The `documentation` metadata now resolves; it pointed at
   `https://docs.rs/tmux-copyrat`, which 404s, instead of the published crate
   name `https://docs.rs/copyrat`

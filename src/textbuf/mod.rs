@@ -5,12 +5,15 @@ pub(crate) mod regexes;
 mod span;
 
 pub use model::Model;
+pub use regexes::CustomPattern;
 pub use span::Span;
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::alphabet::Alphabet;
-    use super::model::Model;
+    use super::{CustomPattern, Model};
 
     #[test]
     fn match_reverse() {
@@ -646,15 +649,37 @@ mod tests {
     }
 
     #[test]
+    fn zero_length_custom_match_is_ignored() {
+        let lines = ["text"];
+        let alphabet = Alphabet("abcd".to_string());
+        let custom = [CustomPattern::from_str("()").unwrap()];
+
+        // Without the non-empty-match guard, this test would hang because the
+        // scanner would repeatedly process the unchanged input chunk.
+        let spans = Model::new(&lines, &alphabet, false, &[], &custom, false, false).spans;
+
+        assert!(spans.is_empty());
+    }
+
+    #[test]
+    fn empty_custom_capture_is_ignored() {
+        let lines = ["b"];
+        let alphabet = Alphabet("abcd".to_string());
+        let custom = [CustomPattern::from_str("(a*)b").unwrap()];
+
+        let spans = Model::new(&lines, &alphabet, false, &[], &custom, false, false).spans;
+
+        assert!(spans.is_empty());
+    }
+
+    #[test]
     fn priority_between_regexes() {
         let buffer = "Lorem [link](http://foo.bar) ipsum CUSTOM-52463 lorem ISSUE-123 lorem\nLorem /var/fd70b569/9999.log 52463 lorem\n Lorem 973113 lorem 123e4567-e89b-12d3-a456-426655440000 lorem 8888 lorem\n  https://crates.io/23456/fd70b569 lorem";
         let lines = buffer.split('\n').collect::<Vec<_>>();
         let use_all_patterns = true;
         let named_pat = vec![];
-        let custom: Vec<String> = ["(CUSTOM-[0-9]{4,})", "(ISSUE-[0-9]{3})"]
-            .iter()
-            .map(|&s| s.to_string())
-            .collect();
+        let custom = ["(CUSTOM-[0-9]{4,})", "(ISSUE-[0-9]{3})"]
+            .map(|pattern| CustomPattern::from_str(pattern).unwrap());
         let alphabet = Alphabet("abcd".to_string());
         let reverse = false;
         let unique_hint = false;

@@ -5,7 +5,7 @@ use sequence_trie::SequenceTrie;
 
 use super::alphabet::Alphabet;
 use super::raw_span::RawSpan;
-use super::regexes::{EXCLUDE_REGEXES, NamedPattern, PATTERN_REGEXES};
+use super::regexes::{CustomPattern, EXCLUDE_REGEXES, NamedPattern, PATTERN_REGEXES};
 use super::span::Span;
 
 /// Holds parsed lines, matched spans with hints, and a lookup trie for
@@ -23,7 +23,7 @@ impl<'a> Model<'a> {
         alphabet: &'a Alphabet,
         use_all_patterns: bool,
         named_patterns: &'a [NamedPattern],
-        custom_patterns: &'a [String],
+        custom_patterns: &'a [CustomPattern],
         reverse: bool,
         unique_hint: bool,
     ) -> Model<'a> {
@@ -65,19 +65,9 @@ impl<'a> Model<'a> {
 fn find_raw_spans<'a>(
     lines: &'a [&'a str],
     named_patterns: &'a [NamedPattern],
-    custom_patterns: &'a [String],
+    custom_patterns: &'a [CustomPattern],
     use_all_patterns: bool,
 ) -> Vec<RawSpan<'a>> {
-    let custom_regexes: Vec<(&str, Regex)> = custom_patterns
-        .iter()
-        .map(|pattern| {
-            (
-                "custom",
-                Regex::new(pattern).expect("Invalid custom regexp"),
-            )
-        })
-        .collect();
-
     let named_regexes: Vec<(&str, Regex)> = if !use_all_patterns {
         named_patterns
             .iter()
@@ -90,7 +80,11 @@ fn find_raw_spans<'a>(
     // Collect references to all regexes: static (pre-compiled) + dynamic (per-call).
     let mut all_regexes: Vec<(&str, &Regex)> = Vec::new();
     all_regexes.extend(EXCLUDE_REGEXES.iter().map(|(n, r)| (*n, r)));
-    all_regexes.extend(custom_regexes.iter().map(|(n, r)| (*n, r)));
+    all_regexes.extend(
+        custom_patterns
+            .iter()
+            .map(|pattern| ("custom", pattern.as_regex())),
+    );
     if use_all_patterns {
         all_regexes.extend(PATTERN_REGEXES.iter().map(|(n, r)| (*n, r)));
     } else {
@@ -116,7 +110,7 @@ fn find_raw_spans<'a>(
                 .iter()
                 .filter_map(|(pat_name, reg)| {
                     reg.find_iter(chunk)
-                        .next()
+                        .find(|reg_match| !reg_match.is_empty())
                         .map(|reg_match| (pat_name, reg, reg_match))
                 })
                 .collect::<Vec<_>>();
@@ -135,23 +129,25 @@ fn find_raw_spans<'a>(
             if **pat_name != "ansi_colors" {
                 let text = reg_match.as_str();
 
-                // All patterns must have a capturing group: try obtaining
-                // that text and start offset.
                 let capture = reg
-                    .captures_iter(text)
-                    .next()
-                    .expect("This regex is guaranteed to match.")
-                    .get(1)
-                    .expect("This regex should have a capture group.");
+                    .captures(text)
+                    .and_then(|captures| captures.get(1))
+                    .filter(|capture| !capture.as_str().is_empty());
+                debug_assert!(
+                    **pat_name == "custom" || capture.is_some(),
+                    "built-in pattern {pat_name} must provide a non-empty capture group"
+                );
 
-                let (subtext, substart) = (capture.as_str(), capture.start());
-
-                raw_spans.push(RawSpan {
-                    x: offset + reg_match.start() as i32 + substart as i32,
-                    y: index as i32,
-                    pattern: pat_name,
-                    text: subtext,
-                });
+                // A custom pattern can have an optional or empty first capture.
+                // Skip matches that do not yield text to select.
+                if let Some(capture) = capture {
+                    raw_spans.push(RawSpan {
+                        x: offset + reg_match.start() as i32 + capture.start() as i32,
+                        y: index as i32,
+                        pattern: pat_name,
+                        text: capture.as_str(),
+                    });
+                }
             }
 
             chunk = chunk
