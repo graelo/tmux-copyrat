@@ -68,16 +68,7 @@ fn find_raw_spans<'a>(
     custom_patterns: &'a [CustomPattern],
     use_all_patterns: bool,
 ) -> Vec<RawSpan<'a>> {
-    let named_regexes: Vec<(&str, Regex)> = if !use_all_patterns {
-        named_patterns
-            .iter()
-            .map(|NamedPattern(name, pattern)| (name.as_str(), Regex::new(pattern).unwrap()))
-            .collect()
-    } else {
-        Vec::new()
-    };
-
-    // Collect references to all regexes: static (pre-compiled) + dynamic (per-call).
+    // Collect references to all regexes: static + patterns compiled during CLI parsing.
     let mut all_regexes: Vec<(&str, &Regex)> = Vec::new();
     all_regexes.extend(EXCLUDE_REGEXES.iter().map(|(n, r)| (*n, r)));
     all_regexes.extend(
@@ -88,7 +79,11 @@ fn find_raw_spans<'a>(
     if use_all_patterns {
         all_regexes.extend(PATTERN_REGEXES.iter().map(|(n, r)| (*n, r)));
     } else {
-        all_regexes.extend(named_regexes.iter().map(|(n, r)| (*n, r)));
+        all_regexes.extend(
+            named_patterns
+                .iter()
+                .map(|NamedPattern(name, regex)| (name.as_str(), regex)),
+        );
     }
 
     let mut raw_spans = Vec::new();
@@ -103,15 +98,18 @@ fn find_raw_spans<'a>(
         // occuring the earliest on the chunk. Save its matched text and
         // position in a `RawSpan` struct.
         loop {
-            // For each avalable regex, use the `find_iter` iterator to
-            // get the first non-overlapping match in the chunk, returning
-            // the start and end byte indices with respect to the chunk.
+            // For each available regex, find the first non-empty match and
+            // retain its captures. All indices are relative to the chunk.
             let chunk_matches = all_regexes
                 .iter()
                 .filter_map(|(pat_name, reg)| {
-                    reg.find_iter(chunk)
-                        .find(|reg_match| !reg_match.is_empty())
-                        .map(|reg_match| (pat_name, reg, reg_match))
+                    reg.captures_iter(chunk)
+                        .find(|captures| {
+                            captures
+                                .get(0)
+                                .is_some_and(|reg_match| !reg_match.is_empty())
+                        })
+                        .map(|captures| (pat_name, captures))
                 })
                 .collect::<Vec<_>>();
 
@@ -120,18 +118,23 @@ fn find_raw_spans<'a>(
             }
 
             // First match on the chunk.
-            let (pat_name, reg, reg_match) = chunk_matches
+            let (pat_name, captures) = chunk_matches
                 .iter()
-                .min_by_key(|element| element.2.start())
+                .min_by_key(|(_, captures)| {
+                    captures
+                        .get(0)
+                        .expect("Regex captures always include group zero.")
+                        .start()
+                })
                 .unwrap();
+            let reg_match = captures
+                .get(0)
+                .expect("Regex captures always include group zero.");
 
             // Never hint or break ansi color sequences.
             if **pat_name != "ansi_colors" {
-                let text = reg_match.as_str();
-
-                let capture = reg
-                    .captures(text)
-                    .and_then(|captures| captures.get(1))
+                let capture = captures
+                    .get(1)
                     .filter(|capture| !capture.as_str().is_empty());
                 debug_assert!(
                     **pat_name == "custom" || capture.is_some(),
@@ -142,7 +145,7 @@ fn find_raw_spans<'a>(
                 // Skip matches that do not yield text to select.
                 if let Some(capture) = capture {
                     raw_spans.push(RawSpan {
-                        x: offset + reg_match.start() as i32 + capture.start() as i32,
+                        x: offset + capture.start() as i32,
                         y: index as i32,
                         pattern: pat_name,
                         text: capture.as_str(),

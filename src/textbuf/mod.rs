@@ -673,6 +673,19 @@ mod tests {
     }
 
     #[test]
+    fn context_sensitive_custom_pattern_is_matched() {
+        let lines = ["xfoo"];
+        let alphabet = Alphabet("abcd".to_string());
+        let custom = [CustomPattern::from_str(r"\B(foo)").unwrap()];
+
+        let spans = Model::new(&lines, &alphabet, false, &[], &custom, false, false).spans;
+
+        assert_eq!(spans.len(), 1);
+        assert_eq!(spans[0].text, "foo");
+        assert_eq!(spans[0].x, 1);
+    }
+
+    #[test]
     fn priority_between_regexes() {
         let buffer = "Lorem [link](http://foo.bar) ipsum CUSTOM-52463 lorem ISSUE-123 lorem\nLorem /var/fd70b569/9999.log 52463 lorem\n Lorem 973113 lorem 123e4567-e89b-12d3-a456-426655440000 lorem 8888 lorem\n  https://crates.io/23456/fd70b569 lorem";
         let lines = buffer.split('\n').collect::<Vec<_>>();

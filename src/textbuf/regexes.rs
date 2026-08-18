@@ -95,14 +95,17 @@ impl FromStr for CustomPattern {
     }
 }
 
-/// Type-safe string Pattern Name (newtype).
+/// Type-safe named pattern and its compiled regex.
 #[derive(Debug, Clone)]
-pub struct NamedPattern(pub String, pub String);
+pub struct NamedPattern(pub String, pub Regex);
 
 /// Parse a name string into `NamedPattern`, used during CLI parsing.
 pub(crate) fn parse_pattern_name(src: &str) -> Result<NamedPattern> {
     match PATTERNS.iter().find(|&(name, _pattern)| name == &src) {
-        Some((name, pattern)) => Ok(NamedPattern(name.to_string(), pattern.to_string())),
+        Some((name, pattern)) => Ok(NamedPattern(
+            name.to_string(),
+            Regex::new(pattern).expect("Built-in regexes must compile."),
+        )),
         None => Err(Error::UnknownPatternName),
     }
 }
@@ -115,8 +118,7 @@ mod tests {
     fn parse_known_pattern_name() {
         let named = parse_pattern_name("url").unwrap();
         assert_eq!(named.0, "url");
-        // Verify the returned pattern compiles
-        assert!(Regex::new(&named.1).is_ok());
+        assert_eq!(named.1.as_str(), PATTERNS[1].1);
     }
 
     #[test]
