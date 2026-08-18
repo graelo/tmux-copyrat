@@ -32,46 +32,50 @@ copyable hints:
 
 ## Default Keys
 
-| Key              | Pattern                                 |
-| ---------------- | --------------------------------------- |
-| <kbd>a</kbd>     | command-line args                       |
-| <kbd>c</kbd>     | hex color codes                         |
-| <kbd>d</kbd>     | dates / datetimes                       |
-| <kbd>D</kbd>     | Docker/Podman IDs                       |
-| <kbd>e</kbd>     | email addresses                         |
-| <kbd>G</kbd>     | 4+ digit strings                        |
-| <kbd>h</kbd>     | SHA-1/2 hashes                          |
-| <kbd>m</kbd>     | markdown URLs                           |
-| <kbd>p</kbd>     | file paths                              |
-| <kbd>P</kbd>     | pointer addresses                       |
-| <kbd>q</kbd>     | quoted strings (single/double/backtick) |
-| <kbd>u</kbd>     | URLs                                    |
-| <kbd>U</kbd>     | UUIDs                                   |
-| <kbd>v</kbd>     | version numbers                         |
-| <kbd>4</kbd>     | IPv4 addresses                          |
-| <kbd>6</kbd>     | IPv6 addresses                          |
-| <kbd>space</kbd> | all patterns                            |
-| <kbd>/</kbd>     | custom regex (prompted)                 |
+| Key | Pattern |
+| --- | --- |
+| <kbd>a</kbd> | command-line args |
+| <kbd>c</kbd> | hex color codes |
+| <kbd>d</kbd> | dates / datetimes |
+| <kbd>D</kbd> | Docker/Podman IDs |
+| <kbd>e</kbd> | email addresses |
+| <kbd>G</kbd> | 4+ digit strings |
+| <kbd>h</kbd> | short or full SHA-1 hashes |
+| <kbd>m</kbd> | markdown URLs |
+| <kbd>p</kbd> | file paths |
+| <kbd>P</kbd> | pointer addresses |
+| <kbd>q</kbd> | quoted strings (single/double/backtick) |
+| <kbd>u</kbd> | URLs |
+| <kbd>U</kbd> | UUIDs |
+| <kbd>v</kbd> | version numbers |
+| <kbd>4</kbd> | IPv4 addresses |
+| <kbd>6</kbd> | IPv6 addresses |
+| <kbd>space</kbd> | all patterns |
+| <kbd>/</kbd> | custom regex (prompted) |
 
 ## Runtime Controls
 
-| Key                         | Action                          |
-| --------------------------- | ------------------------------- |
-| hint chars                  | copy span and exit              |
-| <kbd>CAPS</kbd> hint        | copy to system clipboard        |
-| <kbd>n</kbd> / <kbd>N</kbd> | next / previous span            |
-| <kbd>y</kbd>                | yank focused span (tmux buffer) |
-| <kbd>Y</kbd>                | yank focused span (clipboard)   |
-| <kbd>Space</kbd>            | toggle output destination       |
-| <kbd>Esc</kbd>              | cancel                          |
+| Key | Action |
+| --- | --- |
+| hint chars | copy span and exit |
+| uppercase hint | copy to the output destination and paste into the active pane |
+| <kbd>n</kbd> / <kbd>N</kbd> | move through spans in hint order |
+| <kbd>y</kbd> | copy focused span to the output destination |
+| <kbd>Y</kbd> | copy focused span and paste into the active pane |
+| <kbd>Space</kbd> | toggle output destination |
+| <kbd>Esc</kbd> | cancel |
+
+The default configuration assigns hints in reverse order, so <kbd>n</kbd> moves
+to the previous span and <kbd>N</kbd> to the next. <kbd>Space</kbd> switches
+between the tmux buffer and system clipboard; uppercase hints and <kbd>Y</kbd>
+also paste into the active pane.
 
 Multi-select mode adds <kbd>Tab</kbd> (toggle focused span) and <kbd>Enter</kbd>
 (confirm selection). See [CONFIGURATION.md].
 
 ## Standalone Binary
 
-`copyrat` reads from stdin and writes the selected span to stdout, with no tmux
-dependency:
+`copyrat` reads from stdin and writes the selected span to stdout:
 
 ```sh
 git log | copyrat -r -u -x sha -x datetime | pbcopy
@@ -85,11 +89,18 @@ echo "127.0.0.1 and 192.168.1.1 and hello@world.com" | copyrat -A -m
 
 ![[copyrat-output.png](images/copyrat-output.png)](images/copyrat-output.png)
 
+## Development
+
+For local verification, read the [`Makefile`](Makefile) for the canonical task
+definitions, or run `make help` to list them: run `make check` before pushing
+and `make check-all` before opening a pull request. See [CONTRIBUTING.md] for
+focused testing, code coverage, and manpage maintenance.
+
 ## See Also
 
 - [INSTALLATION.md] — install via TPM, manual clone, or Homebrew
 - [CONFIGURATION.md] — colors, alphabets, custom bindings, multi-select
-- [CONTRIBUTING.md] — development setup, code coverage
+- [CONTRIBUTING.md] — contributing, focused testing, code coverage, and manpages
 
 ## License
 
