@@ -8,6 +8,8 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-08-19
+
 ### Changed
 
 - Consolidate local verification onto the `Makefile`, which is now the single
@@ -15,6 +17,7 @@ and this project adheres to
   `make check-all` the pre-PR gate
 - Reduce the `src/lib.rs` crate documentation to a short stub pointing at the
   repository, rather than duplicating the README
+- rumdl enforces table format (MD060)
 
 ### Fixed
 
@@ -181,7 +184,8 @@ and this project adheres to
 - Initial scrollback history support
 - Viewport scrolling with PageUp/PageDown
 
-[Unreleased]: https://github.com/graelo/tmux-copyrat/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/graelo/tmux-copyrat/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/graelo/tmux-copyrat/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/graelo/tmux-copyrat/compare/v0.8.6...v0.9.0
 [0.8.6]: https://github.com/graelo/tmux-copyrat/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/graelo/tmux-copyrat/compare/v0.8.4...v0.8.5

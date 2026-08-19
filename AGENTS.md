@@ -82,6 +82,11 @@ Keep user-facing documentation in sync with behavior:
   so a change to one without the other ships a feature that is inert from
   tmux. Lint the manpages with `make man`, preview them per `CONTRIBUTING.md`,
   and update `.TH` version and date for releases.
+- For a release version bump, update `Cargo.toml`, `Cargo.lock`, the versioned
+  section and comparison links in `CHANGELOG.md`, and both manpage `.TH`
+  headers. Create a `vX.Y.Z` tag; the release workflow derives artifact and
+  GitHub Release versions from it, so do not manually change workflow tool pins
+  or installer version logic.
 - Commit messages must follow `.convco` Conventional Commit rules. Use
   `make commits` to check them.
 

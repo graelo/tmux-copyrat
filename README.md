@@ -32,38 +32,38 @@ copyable hints:
 
 ## Default Keys
 
-| Key | Pattern |
-| --- | --- |
-| <kbd>a</kbd> | command-line args |
-| <kbd>c</kbd> | hex color codes |
-| <kbd>d</kbd> | dates / datetimes |
-| <kbd>D</kbd> | Docker/Podman IDs |
-| <kbd>e</kbd> | email addresses |
-| <kbd>G</kbd> | 4+ digit strings |
-| <kbd>h</kbd> | short or full SHA-1 hashes |
-| <kbd>m</kbd> | markdown URLs |
-| <kbd>p</kbd> | file paths |
-| <kbd>P</kbd> | pointer addresses |
-| <kbd>q</kbd> | quoted strings (single/double/backtick) |
-| <kbd>u</kbd> | URLs |
-| <kbd>U</kbd> | UUIDs |
-| <kbd>v</kbd> | version numbers |
-| <kbd>4</kbd> | IPv4 addresses |
-| <kbd>6</kbd> | IPv6 addresses |
-| <kbd>space</kbd> | all patterns |
-| <kbd>/</kbd> | custom regex (prompted) |
+| Key              | Pattern                                 |
+| ---------------- | --------------------------------------- |
+| <kbd>a</kbd>     | command-line args                       |
+| <kbd>c</kbd>     | hex color codes                         |
+| <kbd>d</kbd>     | dates / datetimes                       |
+| <kbd>D</kbd>     | Docker/Podman IDs                       |
+| <kbd>e</kbd>     | email addresses                         |
+| <kbd>G</kbd>     | 4+ digit strings                        |
+| <kbd>h</kbd>     | short or full SHA-1 hashes              |
+| <kbd>m</kbd>     | markdown URLs                           |
+| <kbd>p</kbd>     | file paths                              |
+| <kbd>P</kbd>     | pointer addresses                       |
+| <kbd>q</kbd>     | quoted strings (single/double/backtick) |
+| <kbd>u</kbd>     | URLs                                    |
+| <kbd>U</kbd>     | UUIDs                                   |
+| <kbd>v</kbd>     | version numbers                         |
+| <kbd>4</kbd>     | IPv4 addresses                          |
+| <kbd>6</kbd>     | IPv6 addresses                          |
+| <kbd>space</kbd> | all patterns                            |
+| <kbd>/</kbd>     | custom regex (prompted)                 |
 
 ## Runtime Controls
 
-| Key | Action |
-| --- | --- |
-| hint chars | copy span and exit |
-| uppercase hint | copy to the output destination and paste into the active pane |
-| <kbd>n</kbd> / <kbd>N</kbd> | move through spans in hint order |
-| <kbd>y</kbd> | copy focused span to the output destination |
-| <kbd>Y</kbd> | copy focused span and paste into the active pane |
-| <kbd>Space</kbd> | toggle output destination |
-| <kbd>Esc</kbd> | cancel |
+| Key                         | Action                                                        |
+| --------------------------- | ------------------------------------------------------------- |
+| hint chars                  | copy span and exit                                            |
+| uppercase hint              | copy to the output destination and paste into the active pane |
+| <kbd>n</kbd> / <kbd>N</kbd> | move through spans in hint order                              |
+| <kbd>y</kbd>                | copy focused span to the output destination                   |
+| <kbd>Y</kbd>                | copy focused span and paste into the active pane              |
+| <kbd>Space</kbd>            | toggle output destination                                     |
+| <kbd>Esc</kbd>              | cancel                                                        |
 
 The default configuration assigns hints in reverse order, so <kbd>n</kbd> moves
 to the previous span and <kbd>N</kbd> to the next. <kbd>Space</kbd> switches
