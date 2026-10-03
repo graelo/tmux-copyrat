@@ -26,6 +26,8 @@ and this project adheres to
 
 - Remove the duplicate `homepage` field from `Cargo.toml`, which duplicated
   the `repository` URL and is rejected as an error by Rust 1.101 (nightly)
+- Move the `ui/colors.rs` test module after the last item in the file; the
+  new nightly `clippy::items_after_test_module` lint fails CI otherwise
 
 ## [0.9.1] - 2026-08-19
 
