@@ -22,6 +22,11 @@ and this project adheres to
   `thiserror` 2.0.21
 - Bump the pinned GitHub Actions (Renovate)
 
+### Fixed
+
+- Remove the duplicate `homepage` field from `Cargo.toml`, which duplicated
+  the `repository` URL and is rejected as an error by Rust 1.101 (nightly)
+
 ## [0.9.1] - 2026-08-19
 
 ### Changed
