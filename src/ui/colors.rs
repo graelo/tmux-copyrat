@@ -98,6 +98,54 @@ pub fn parse_color(src: &str) -> Result<Color> {
     Color::from_str(src)
 }
 
+/// Holds color-related data.
+///
+/// - `focus_*` colors are used to render the currently focused text span.
+/// - `normal_*` colors are used to render other text spans.
+/// - `hint_*` colors are used to render the hints.
+#[derive(Args, Debug)]
+// #[clap(about)] // Needed to avoid this doc comment to be used as overall `about`.
+pub struct UiColors {
+    /// Foreground color for base text.
+    #[arg(long, default_value = "bright-cyan", value_parser(parse_color))]
+    pub text_fg: Color,
+
+    /// Background color for base text.
+    #[clap(long, default_value = "none", value_parser(parse_color))]
+    pub text_bg: Color,
+
+    /// Foreground color for spans.
+    #[clap(long, default_value = "blue", value_parser(parse_color))]
+    pub span_fg: Color,
+
+    /// Background color for spans.
+    #[clap(long, default_value = "none", value_parser(parse_color))]
+    pub span_bg: Color,
+
+    /// Foreground color for the focused span.
+    #[clap(long, default_value = "magenta", value_parser(parse_color))]
+    pub focused_fg: Color,
+
+    /// Background color for the focused span.
+    #[clap(long, default_value = "none", value_parser(parse_color))]
+    pub focused_bg: Color,
+
+    /// Foreground color for selected spans (multi-select mode).
+    #[clap(long, default_value = "green", value_parser(parse_color))]
+    pub selected_fg: Color,
+
+    /// Background color for selected spans (multi-select mode).
+    #[clap(long, default_value = "none", value_parser(parse_color))]
+    pub selected_bg: Color,
+
+    /// Foreground color for hints.
+    #[clap(long, default_value = "yellow", value_parser(parse_color))]
+    pub hint_fg: Color,
+
+    /// Background color for hints.
+    #[clap(long, default_value = "none", value_parser(parse_color))]
+    pub hint_bg: Color,
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -166,53 +214,4 @@ mod tests {
             assert_eq!(a.0, b.0, "{hyphen} and {compact} should map to same value");
         }
     }
-}
-
-/// Holds color-related data.
-///
-/// - `focus_*` colors are used to render the currently focused text span.
-/// - `normal_*` colors are used to render other text spans.
-/// - `hint_*` colors are used to render the hints.
-#[derive(Args, Debug)]
-// #[clap(about)] // Needed to avoid this doc comment to be used as overall `about`.
-pub struct UiColors {
-    /// Foreground color for base text.
-    #[arg(long, default_value = "bright-cyan", value_parser(parse_color))]
-    pub text_fg: Color,
-
-    /// Background color for base text.
-    #[clap(long, default_value = "none", value_parser(parse_color))]
-    pub text_bg: Color,
-
-    /// Foreground color for spans.
-    #[clap(long, default_value = "blue", value_parser(parse_color))]
-    pub span_fg: Color,
-
-    /// Background color for spans.
-    #[clap(long, default_value = "none", value_parser(parse_color))]
-    pub span_bg: Color,
-
-    /// Foreground color for the focused span.
-    #[clap(long, default_value = "magenta", value_parser(parse_color))]
-    pub focused_fg: Color,
-
-    /// Background color for the focused span.
-    #[clap(long, default_value = "none", value_parser(parse_color))]
-    pub focused_bg: Color,
-
-    /// Foreground color for selected spans (multi-select mode).
-    #[clap(long, default_value = "green", value_parser(parse_color))]
-    pub selected_fg: Color,
-
-    /// Background color for selected spans (multi-select mode).
-    #[clap(long, default_value = "none", value_parser(parse_color))]
-    pub selected_bg: Color,
-
-    /// Foreground color for hints.
-    #[clap(long, default_value = "yellow", value_parser(parse_color))]
-    pub hint_fg: Color,
-
-    /// Background color for hints.
-    #[clap(long, default_value = "none", value_parser(parse_color))]
-    pub hint_bg: Color,
 }

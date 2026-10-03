@@ -6,7 +6,6 @@ rust-version = "1.95"
 description = "A tmux plugin for copy-pasting within tmux panes."
 documentation = "https://docs.rs/copyrat"
 readme = "README.md"
-homepage = "https://github.com/graelo/tmux-copyrat"
 repository = "https://github.com/graelo/tmux-copyrat"
 license = "MIT OR Apache-2.0"
 keywords = ["rust", "tmux", "tmux-copycat", "tmux-plugin"]
