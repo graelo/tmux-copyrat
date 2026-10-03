@@ -8,6 +8,20 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Changed
+
+- CI workflows install Rust with `actions-rust-lang/setup-rust-toolchain`
+  (pinned at v2.0.0) instead of `dtolnay/rust-toolchain`, per
+  github-actions-playbook v1.9; the `.github/zizmor.yml` suppression config,
+  which existed only for that action, is removed
+- Local reusable workflows are called with the dedicated self-repository
+  paths (`$/.github/...`) instead of `./`, per github-actions-playbook v1.8
+- The release workflow trusts the Homebrew tap with `brew trust --tap` before
+  tapping it, so Homebrew can evaluate the formula
+- Bump dependencies: `clap` 4.6.7, `duct` 1.1.2, `log` 0.4.34,
+  `thiserror` 2.0.21
+- Bump the pinned GitHub Actions (Renovate)
+
 ## [0.9.1] - 2026-08-19
 
 ### Changed
