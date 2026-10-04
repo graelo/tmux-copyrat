@@ -10,6 +10,9 @@ and this project adheres to
 
 ### Changed
 
+- Add `.cargo/config.toml` setting `build.warnings = "deny"`, so local
+  builds deny cargo warnings (e.g. `cargo::unused_dependencies`) the same
+  way the CI does via `CARGO_BUILD_WARNINGS`
 - CI workflows install Rust with `actions-rust-lang/setup-rust-toolchain`
   (pinned at v2.0.0) instead of `dtolnay/rust-toolchain`, per
   github-actions-playbook v1.9; the `.github/zizmor.yml` suppression config,
